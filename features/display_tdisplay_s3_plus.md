@@ -8,8 +8,8 @@ This feature describes the work required to implement the Display HAL contract f
 
 *   **Target Hardware:** T-Display-S3 AMOLED Plus
 *   **Vendor Code Reference:** The implementation MUST be a port of the logic found in the vendor-provided examples.
-    *   **Path:** `hw-examples/T-Display-S3-AMOLED-Plus/PLACEHOLDER_VENDOR_CODE_PATH/`
-    *   **Focus:** Analyze the `.ino` files and any associated libraries (`.cpp`, `.h`) within the `PLACEHOLDER_VENDOR_CODE_PATH` sub-directory to understand the display initialization sequence, pin configurations, and drawing commands.
+    *   **Path:** `hw-examples/LilyGo-AMOLED-Series/`
+    *   **Focus:** Analyze the `examples/Factory/Factory.ino` file to understand the main application logic. The supporting library code (e.g., `LilyGo_AMOLED.h`, `LilyGo_AMOLED.cpp`) is located in the `src/` directory. These files are the primary source for understanding the display initialization sequence, pin configurations, and drawing commands.
 
 ## 2. Implementation Plan
 
