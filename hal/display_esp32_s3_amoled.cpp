@@ -136,11 +136,36 @@ void hal_display_flush(void) {
 }
 
 int32_t hal_display_get_width_pixels(void) {
+    if (g_initialized && g_gfx != nullptr) {
+        return g_gfx->width();
+    }
     return LCD_WIDTH;
 }
 
 int32_t hal_display_get_height_pixels(void) {
+    if (g_initialized && g_gfx != nullptr) {
+        return g_gfx->height();
+    }
     return LCD_HEIGHT;
+}
+
+void hal_display_set_rotation(int degrees) {
+    if (!g_initialized || g_gfx == nullptr) {
+        return;  // Not initialized
+    }
+
+    // Arduino_GFX uses rotation index (0-3) instead of degrees
+    // 0 = 0°, 1 = 90°, 2 = 180°, 3 = 270°
+    uint8_t rotation_index = 0;
+    switch (degrees) {
+        case 0:   rotation_index = 0; break;
+        case 90:  rotation_index = 1; break;
+        case 180: rotation_index = 2; break;
+        case 270: rotation_index = 3; break;
+        default:  rotation_index = 0; break;  // Default to 0 for invalid values
+    }
+
+    g_gfx->setRotation(rotation_index);
 }
 
 #endif  // !UNIT_TEST

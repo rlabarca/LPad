@@ -68,6 +68,18 @@ int32_t hal_display_get_width_pixels(void);
  */
 int32_t hal_display_get_height_pixels(void);
 
+/**
+ * @brief Sets the display rotation
+ *
+ * Sets the orientation of the display. Valid rotation values are typically
+ * 0, 90, 180, and 270 degrees. After rotation, subsequent calls to
+ * hal_display_get_width_pixels() and hal_display_get_height_pixels() will
+ * return dimensions corresponding to the new orientation.
+ *
+ * @param degrees The rotation angle in degrees (0, 90, 180, or 270)
+ */
+void hal_display_set_rotation(int degrees);
+
 #ifdef __cplusplus
 }
 #endif

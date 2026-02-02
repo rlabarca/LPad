@@ -34,6 +34,15 @@
 #define LCD_CMD_CASET   0x2A  // Set column address
 #define LCD_CMD_RASET   0x2B  // Set row address
 #define LCD_CMD_RAMWR   0x2C  // Write frame memory
+#define LCD_CMD_MADCTL  0x36  // Memory Data Access Control
+
+// MADCTL bits (RM67162)
+#define MADCTL_MY       0x80  // Row Address Order
+#define MADCTL_MX       0x40  // Column Address Order
+#define MADCTL_MV       0x20  // Row/Column Exchange
+#define MADCTL_ML       0x10  // Vertical Refresh Order
+#define MADCTL_RGB      0x00  // RGB Order
+#define MADCTL_BGR      0x08  // BGR Order
 
 // SPI configuration
 #define LCD_SPI_FREQ    40000000  // 40 MHz for RM67162 SPI mode
@@ -46,6 +55,7 @@ static SPIClass *g_spi = nullptr;
 static bool g_initialized = false;
 static uint16_t g_offset_x = 0;
 static uint16_t g_offset_y = 0;
+static int g_rotation = 0;  // Current rotation in degrees
 
 // RM67162 SPI initialization sequence (from vendor initSequence.cpp)
 typedef struct {
@@ -283,11 +293,52 @@ void hal_display_flush(void) {
 }
 
 int32_t hal_display_get_width_pixels(void) {
+    // Swap dimensions for 90 and 270 degree rotations
+    if (g_rotation == 90 || g_rotation == 270) {
+        return LCD_HEIGHT;
+    }
     return LCD_WIDTH;
 }
 
 int32_t hal_display_get_height_pixels(void) {
+    // Swap dimensions for 90 and 270 degree rotations
+    if (g_rotation == 90 || g_rotation == 270) {
+        return LCD_WIDTH;
+    }
     return LCD_HEIGHT;
+}
+
+void hal_display_set_rotation(int degrees) {
+    if (!g_initialized) {
+        return;  // Not initialized
+    }
+
+    // Store the rotation
+    g_rotation = degrees;
+
+    // Determine MADCTL value based on rotation
+    // Based on Arduino_RM67162 implementation
+    uint8_t madctl_value;
+    switch (degrees) {
+        case 0:
+            madctl_value = MADCTL_RGB;
+            break;
+        case 90:
+            madctl_value = MADCTL_MX | MADCTL_MV | MADCTL_RGB;
+            break;
+        case 180:
+            madctl_value = MADCTL_MX | MADCTL_MY | MADCTL_RGB;
+            break;
+        case 270:
+            madctl_value = MADCTL_MV | MADCTL_MY | MADCTL_RGB;
+            break;
+        default:
+            madctl_value = MADCTL_RGB;  // Default to 0 degrees
+            break;
+    }
+
+    // Send MADCTL command
+    writeCommand(LCD_CMD_MADCTL, &madctl_value, 1);
 }
 
 #endif  // !UNIT_TEST
