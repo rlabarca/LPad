@@ -54,6 +54,20 @@ void hal_display_draw_pixel(int32_t x, int32_t y, uint16_t color);
  */
 void hal_display_flush(void);
 
+/**
+ * @brief Returns the width of the active display in pixels
+ *
+ * @return int32_t The width of the display in pixels
+ */
+int32_t hal_display_get_width_pixels(void);
+
+/**
+ * @brief Returns the height of the active display in pixels
+ *
+ * @return int32_t The height of the display in pixels
+ */
+int32_t hal_display_get_height_pixels(void);
+
 #ifdef __cplusplus
 }
 #endif

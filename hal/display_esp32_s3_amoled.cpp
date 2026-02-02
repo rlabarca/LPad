@@ -135,4 +135,12 @@ void hal_display_flush(void) {
     // This function exists to satisfy the HAL contract.
 }
 
+int32_t hal_display_get_width_pixels(void) {
+    return LCD_WIDTH;
+}
+
+int32_t hal_display_get_height_pixels(void) {
+    return LCD_HEIGHT;
+}
+
 #endif  // !UNIT_TEST

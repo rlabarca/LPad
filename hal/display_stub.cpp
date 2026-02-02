@@ -30,3 +30,13 @@ void hal_display_draw_pixel(int32_t x, int32_t y, uint16_t color) {
 void hal_display_flush(void) {
     // Nothing to flush in stub
 }
+
+// Stub implementation - returns a default width for testing
+int32_t hal_display_get_width_pixels(void) {
+    return 240;  // Default test dimension
+}
+
+// Stub implementation - returns a default height for testing
+int32_t hal_display_get_height_pixels(void) {
+    return 240;  // Default test dimension
+}
