@@ -1,0 +1,21 @@
+# PlatformIO
+.pio/
+.vscode/
+.pioenvs/
+.piolibdeps/
+lib/
+
+# Build artifacts
+*.o
+*.a
+*.elf
+*.bin
+
+# IDE
+.DS_Store
+*.swp
+*.swo
+*~
+
+# Test artifacts
+test/output/
