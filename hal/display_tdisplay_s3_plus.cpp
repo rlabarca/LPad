@@ -247,23 +247,27 @@ void hal_display_clear(uint16_t color) {
         return;  // Not initialized
     }
 
+    // Get current logical dimensions (accounts for rotation)
+    int32_t width = hal_display_get_width_pixels();
+    int32_t height = hal_display_get_height_pixels();
+
     // Set address window to full screen
-    setAddrWindow(0, 0, LCD_WIDTH - 1, LCD_HEIGHT - 1);
+    setAddrWindow(0, 0, width - 1, height - 1);
 
     // Allocate buffer for one row
-    uint16_t *line_buffer = (uint16_t *)malloc(LCD_WIDTH * sizeof(uint16_t));
+    uint16_t *line_buffer = (uint16_t *)malloc(width * sizeof(uint16_t));
     if (!line_buffer) {
         return;  // Memory allocation failed
     }
 
     // Fill buffer with color
-    for (int i = 0; i < LCD_WIDTH; i++) {
+    for (int i = 0; i < width; i++) {
         line_buffer[i] = color;
     }
 
     // Push the same row multiple times to fill the screen
-    for (int y = 0; y < LCD_HEIGHT; y++) {
-        pushColors(line_buffer, LCD_WIDTH);
+    for (int y = 0; y < height; y++) {
+        pushColors(line_buffer, width);
     }
 
     free(line_buffer);
@@ -274,8 +278,12 @@ void hal_display_draw_pixel(int32_t x, int32_t y, uint16_t color) {
         return;  // Not initialized
     }
 
+    // Get current logical dimensions (accounts for rotation)
+    int32_t width = hal_display_get_width_pixels();
+    int32_t height = hal_display_get_height_pixels();
+
     // Check bounds
-    if (x < 0 || x >= LCD_WIDTH || y < 0 || y >= LCD_HEIGHT) {
+    if (x < 0 || x >= width || y < 0 || y >= height) {
         return;  // Out of bounds, handle gracefully
     }
 
