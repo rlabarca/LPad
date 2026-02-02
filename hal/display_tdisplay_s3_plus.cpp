@@ -6,8 +6,8 @@
  * hw-examples/LilyGo-AMOLED-Series/
  *
  * Hardware:
- * - Display Controller: RM67162 (536x240 AMOLED, 1.91 inch)
- * - Communication: QSPI (Quad SPI)
+ * - Display Controller: RM67162 (240x536 AMOLED, 1.91 inch)
+ * - Communication: SPI (NOT QSPI - this is the Plus model)
  * - Touch Controller: CST816T (optional)
  */
 
@@ -15,21 +15,20 @@
 
 #include "display.h"
 #include <Arduino.h>
-#include <driver/spi_master.h>
+#include <SPI.h>
 
-// Pin definitions (from BOARD_AMOLED_191 configuration)
-#define LCD_D0          18
-#define LCD_D1          7
-#define LCD_D2          48
-#define LCD_D3          5
+// Pin definitions (from BOARD_AMOLED_191_SPI configuration)
+#define LCD_MOSI        18
+#define LCD_DC          7   // Data/Command pin (critical for SPI)
 #define LCD_SCK         47
 #define LCD_CS          6
 #define LCD_RST         17
 #define LCD_TE          9
+#define LCD_PMIC_EN     38  // PMIC enable pin
 
 // Display dimensions (RM67162)
-#define LCD_WIDTH       536
-#define LCD_HEIGHT      240
+#define LCD_WIDTH       240
+#define LCD_HEIGHT      536
 
 // LCD commands
 #define LCD_CMD_CASET   0x2A  // Set column address
@@ -37,62 +36,76 @@
 #define LCD_CMD_RAMWR   0x2C  // Write frame memory
 
 // SPI configuration
-#define DEFAULT_SPI_HANDLER  SPI3_HOST
-#define DEFAULT_SCK_SPEED    75000000  // 75 MHz for RM67162
-#define SEND_BUF_SIZE        16384
-#define TFT_SPI_MODE         SPI_MODE0
+#define LCD_SPI_FREQ    40000000  // 40 MHz for RM67162 SPI mode
+
+// Default brightness level (from vendor initSequence.h)
+#define AMOLED_DEFAULT_BRIGHTNESS  175
 
 // Global hardware objects
-static spi_device_handle_t g_spi = nullptr;
+static SPIClass *g_spi = nullptr;
 static bool g_initialized = false;
 static uint16_t g_offset_x = 0;
 static uint16_t g_offset_y = 0;
 
-// Command bit and address bit configuration (from vendor RM67162_AMOLED)
-static const uint8_t CMD_BIT = 8;
-static const uint8_t ADDR_BIT = 24;
-
-// RM67162 initialization sequence (from vendor initSequence.cpp)
+// RM67162 SPI initialization sequence (from vendor initSequence.cpp)
 typedef struct {
     uint32_t addr;
-    uint8_t param[128];
+    uint8_t param[20];
     uint8_t len;
 } lcd_cmd_t;
 
-static const lcd_cmd_t rm67162_init_sequence[] = {
-    {0x11, {0x00}, 0x80},  // Sleep Out (+ 120ms delay)
-    {0x44, {0x01, 0x66}, 0x02},  // Set Tear Scanline
-    {0x35, {0x00}, 0x01},  // Tearing Effect Line ON
-    {0x53, {0x20}, 0x01},  // Write CTRL Display
-    {0x51, {0x00}, 0x01},  // Write Display Brightness
-    {0x29, {0x00}, 0x80},  // Display ON (+ 120ms delay)
+static const lcd_cmd_t rm67162_spi_init_sequence[] = {
+    {0xFE, {0x04}, 0x01},                               // SET PAGE 3
+    {0x6A, {0x00}, 0x01},
+    {0xFE, {0x05}, 0x01},                               // SET PAGE 4
+    {0xFE, {0x07}, 0x01},                               // SET PAGE 6
+    {0x07, {0x4F}, 0x01},
+    {0xFE, {0x01}, 0x01},                               // SET PAGE 0
+    {0x2A, {0x02}, 0x01},
+    {0x2B, {0x73}, 0x01},
+    {0xFE, {0x0A}, 0x01},                               // SET PAGE 9
+    {0x29, {0x10}, 0x01},
+    {0xFE, {0x00}, 0x01},                               // SET PAGE 0
+    {0x51, {AMOLED_DEFAULT_BRIGHTNESS}, 0x01},          // Write Display Brightness
+    {0x53, {0x20}, 0x01},                               // Write CTRL Display
+    {0x35, {0x00}, 0x01},                               // Tearing Effect Line ON
+    {0x3A, {0x75}, 0x01},                               // Interface Pixel Format 16bit/pixel
+    {0xC4, {0x80}, 0x01},
+    {0x11, {0x00}, 0x01 | 0x80},                        // Sleep Out (+ 120ms delay)
+    {0x29, {0x00}, 0x01 | 0x80},                        // Display ON (+ 120ms delay)
 };
 
-static const uint32_t RM67162_INIT_SEQUENCE_LENGTH = sizeof(rm67162_init_sequence) / sizeof(lcd_cmd_t);
+static const uint32_t RM67162_INIT_SPI_SEQUENCE_LENGTH = sizeof(rm67162_spi_init_sequence) / sizeof(lcd_cmd_t);
 
 /**
- * @brief Write a command to the display
+ * @brief Write a command to the display using SPI
  *
- * @param cmd Command address
+ * @param cmd Command byte
  * @param pdat Parameter data
  * @param length Parameter length
  */
 static void writeCommand(uint32_t cmd, uint8_t *pdat, uint32_t length) {
     if (!g_spi) return;
 
-    spi_transaction_ext_t t;
-    memset(&t, 0, sizeof(t));
+    // Chip select LOW
+    digitalWrite(LCD_CS, LOW);
 
-    t.base.flags = SPI_TRANS_MODE_QIO;
-    t.base.cmd = 0x02;  // Command write mode
-    t.base.addr = cmd << 8;
+    g_spi->beginTransaction(SPISettings(LCD_SPI_FREQ, MSBFIRST, SPI_MODE0));
 
-    if (length > 0 && pdat) {
-        t.base.tx_buffer = pdat;
-        t.base.length = length * 8;  // Length in bits
+    // Send command byte (DC LOW)
+    digitalWrite(LCD_DC, LOW);
+    g_spi->write(cmd);
+
+    // Send data bytes if present (DC HIGH)
+    if (pdat && length > 0) {
+        digitalWrite(LCD_DC, HIGH);
+        g_spi->writeBytes(pdat, length);
     }
 
-    spi_device_polling_transmit(g_spi, (spi_transaction_t *)&t);
+    g_spi->endTransaction();
+
+    // Chip select HIGH
+    digitalWrite(LCD_CS, HIGH);
 }
 
 /**
@@ -143,39 +156,22 @@ static void pushColors(uint16_t *data, uint32_t len) {
     // Chip select LOW
     digitalWrite(LCD_CS, LOW);
 
-    bool first_send = true;
-    uint16_t *p = data;
+    g_spi->beginTransaction(SPISettings(LCD_SPI_FREQ, MSBFIRST, SPI_MODE0));
 
-    do {
-        size_t chunk_size = len;
-        if (chunk_size > SEND_BUF_SIZE) {
-            chunk_size = SEND_BUF_SIZE;
-        }
+    // Data mode (DC HIGH)
+    digitalWrite(LCD_DC, HIGH);
 
-        spi_transaction_ext_t t;
-        memset(&t, 0, sizeof(t));
+    // Write pixel data with correct byte order
+    // Send high byte first, then low byte (big-endian over SPI)
+    for (uint32_t i = 0; i < len; i++) {
+        uint16_t color = data[i];
+        uint8_t hi = (color >> 8) & 0xFF;
+        uint8_t lo = color & 0xFF;
+        g_spi->write(hi);  // Send high byte first
+        g_spi->write(lo);  // Send low byte second
+    }
 
-        if (first_send) {
-            t.base.flags = SPI_TRANS_MODE_QIO;
-            t.base.cmd = 0x32;  // Memory write continue
-            t.base.addr = 0x002C00;
-            first_send = false;
-        } else {
-            t.base.flags = SPI_TRANS_MODE_QIO | SPI_TRANS_VARIABLE_CMD |
-                          SPI_TRANS_VARIABLE_ADDR | SPI_TRANS_VARIABLE_DUMMY;
-            t.command_bits = 0;
-            t.address_bits = 0;
-            t.dummy_bits = 0;
-        }
-
-        t.base.tx_buffer = p;
-        t.base.length = chunk_size * 16;  // Length in bits
-
-        spi_device_polling_transmit(g_spi, (spi_transaction_t *)&t);
-
-        len -= chunk_size;
-        p += chunk_size;
-    } while (len > 0);
+    g_spi->endTransaction();
 
     // Chip select HIGH
     digitalWrite(LCD_CS, HIGH);
@@ -186,10 +182,20 @@ bool hal_display_init(void) {
         return true;  // Already initialized
     }
 
+    // Enable PMIC to power the display
+    pinMode(LCD_PMIC_EN, OUTPUT);
+    digitalWrite(LCD_PMIC_EN, HIGH);
+    delay(10);
+
     // Configure GPIO pins
     pinMode(LCD_RST, OUTPUT);
     pinMode(LCD_CS, OUTPUT);
+    pinMode(LCD_DC, OUTPUT);
     pinMode(LCD_TE, INPUT);
+
+    // Initialize pins to idle state
+    digitalWrite(LCD_CS, HIGH);
+    digitalWrite(LCD_DC, HIGH);
 
     // Reset display
     digitalWrite(LCD_RST, HIGH);
@@ -199,45 +205,17 @@ bool hal_display_init(void) {
     digitalWrite(LCD_RST, HIGH);
     delay(200);
 
-    // Configure QSPI bus
-    spi_bus_config_t buscfg = {};
-    buscfg.data0_io_num = LCD_D0;
-    buscfg.data1_io_num = LCD_D1;
-    buscfg.sclk_io_num = LCD_SCK;
-    buscfg.data2_io_num = LCD_D2;
-    buscfg.data3_io_num = LCD_D3;
-    buscfg.data4_io_num = -1;
-    buscfg.data5_io_num = -1;
-    buscfg.data6_io_num = -1;
-    buscfg.data7_io_num = -1;
-    buscfg.max_transfer_sz = (SEND_BUF_SIZE * 16) + 8;
-    buscfg.flags = SPICOMMON_BUSFLAG_MASTER | SPICOMMON_BUSFLAG_GPIO_PINS;
-
-    // Initialize SPI bus
-    esp_err_t ret = spi_bus_initialize(DEFAULT_SPI_HANDLER, &buscfg, SPI_DMA_CH_AUTO);
-    if (ret != ESP_OK) {
-        return false;  // SPI bus initialization failed
+    // Initialize SPI
+    g_spi = new SPIClass(HSPI);
+    if (!g_spi) {
+        return false;  // Memory allocation failed
     }
-
-    // Configure SPI device
-    spi_device_interface_config_t devcfg = {};
-    devcfg.command_bits = CMD_BIT;
-    devcfg.address_bits = ADDR_BIT;
-    devcfg.mode = TFT_SPI_MODE;
-    devcfg.clock_speed_hz = DEFAULT_SCK_SPEED;
-    devcfg.spics_io_num = -1;  // CS controlled manually
-    devcfg.flags = SPI_DEVICE_HALFDUPLEX;
-    devcfg.queue_size = 17;
-
-    ret = spi_bus_add_device(DEFAULT_SPI_HANDLER, &devcfg, &g_spi);
-    if (ret != ESP_OK) {
-        return false;  // SPI device add failed
-    }
+    g_spi->begin(LCD_SCK, -1 /*MISO not used*/, LCD_MOSI, LCD_CS);
 
     // Send initialization sequence (retry twice to prevent initialization failure)
     for (int retry = 0; retry < 2; retry++) {
-        for (uint32_t i = 0; i < RM67162_INIT_SEQUENCE_LENGTH; i++) {
-            const lcd_cmd_t *cmd = &rm67162_init_sequence[i];
+        for (uint32_t i = 0; i < RM67162_INIT_SPI_SEQUENCE_LENGTH; i++) {
+            const lcd_cmd_t *cmd = &rm67162_spi_init_sequence[i];
             writeCommand(cmd->addr, (uint8_t *)cmd->param, cmd->len & 0x1F);
 
             // Check delay flags
@@ -299,7 +277,7 @@ void hal_display_draw_pixel(int32_t x, int32_t y, uint16_t color) {
 }
 
 void hal_display_flush(void) {
-    // The RM67162 via QSPI writes directly to the display without buffering,
+    // The RM67162 via SPI writes directly to the display without buffering,
     // so flush is a no-op for this hardware.
     // This function exists to satisfy the HAL contract.
 }
