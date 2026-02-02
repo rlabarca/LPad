@@ -4,6 +4,10 @@
 > **CRITICAL:** We do NOT use external task trackers (Beads/Jira) or Claude's native `/task` command (which is user-bound). The **Git History** and **Filesystem** are the only Source of Truth.
 
 ## Core Directives
+
+### Definition of Done (Summary)
+Your work on a feature is ONLY complete after you have successfully created the final git commit for it. A feature is NOT "done" just because the code is written. You MUST follow the full `Version Control` protocol (Directive #6) including staging files and creating commits. Do not report a feature as "complete" until it is reflected in `git log`.
+
 1.  **Feature-First:** Code is secondary. Truth lives in `features/*.md`. Strictly follow the Gherkin-style behavior defined there.
 2.  **HAL Architecture:** NEVER write hardware-specific code in `src/`. All hardware interaction (GPIO, I2C, Display) must go through `hal/`.
 3.  **TDD Workflow:**
@@ -19,7 +23,7 @@
     *   **Protocol:**
         1.  **Work In Progress / Ready for Hardware Test:**
             *   Implement the feature and pass all local/unit tests.
-            *   Commit the work with a message: `feat(scope): <description> [Ready for HIL Test features/filename.md]`
+            *   **You MUST then stage all new and modified files (`git add .` or `git add <file1> <file2>...`) and commit them** with a message: `feat(scope): <description> [Ready for HIL Test features/filename.md]`
             *   **CRITICAL HANDOFF:** Explicitly inform the User that the feature is ready for Hardware-in-the-Loop (HIL) testing and await their confirmation. Do NOT proceed to the "Complete" state until User confirmation.
         2.  **Completion:**
             *   Upon User confirmation that HIL tests have passed:
