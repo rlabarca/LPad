@@ -25,6 +25,7 @@
             *   Upon User confirmation that HIL tests have passed:
             *   Create an empty commit to mark the feature as fully "Done": `git commit --allow-empty -m "chore(release): Validate feature [Complete features/filename.md]"`
             *   This explicitly marks the feature as completed in the git history without further code changes from the agent.
+7.  **Respect Architectural Layers:** When implementing a feature, you MUST use the functions provided by its immediate prerequisite. Do NOT bypass an abstraction layer to call lower-level functions (e.g., calling HAL functions directly when a relative drawing feature is the prerequisite) unless the scenario explicitly requires it for a specific low-level test.
 
 ## Architecture & Discovery
 * This is a PlatformIO project.
