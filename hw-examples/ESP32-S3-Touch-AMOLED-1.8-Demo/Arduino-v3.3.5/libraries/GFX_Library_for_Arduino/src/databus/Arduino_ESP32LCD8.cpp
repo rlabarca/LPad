@@ -789,7 +789,7 @@ bool Arduino_ESP32LCD8::begin(int32_t speed, int8_t dataMode)
       .data_gpio_nums = {_d0, _d1, _d2, _d3, _d4, _d5, _d6, _d7},
       .bus_width = 8,
       .max_transfer_bytes = LCD_MAX_PIXELS_AT_ONCE * 2,
-      .dma_burst_size = 64,
+      // .dma_burst_size removed in ESP-IDF 5.x
       // .sram_trans_align = 4
   };
   esp_lcd_new_i80_bus(&bus_config, &_i80_bus);
@@ -821,7 +821,7 @@ bool Arduino_ESP32LCD8::begin(int32_t speed, int8_t dataMode)
   _cmd = -1;
   _isColor = false;
   _bufferLen = 0;
-  _buffer = (uint8_t *)esp_lcd_i80_alloc_draw_buffer(_io_handle, LCD_MAX_PIXELS_AT_ONCE * 2 + 16, MALLOC_CAP_DMA);
+  _buffer = (uint8_t *)heap_caps_malloc(LCD_MAX_PIXELS_AT_ONCE * 2 + 16, MALLOC_CAP_DMA);
 
   return (_buffer != nullptr);
 }

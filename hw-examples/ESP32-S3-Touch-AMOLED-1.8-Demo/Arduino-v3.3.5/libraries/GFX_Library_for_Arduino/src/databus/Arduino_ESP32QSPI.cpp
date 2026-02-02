@@ -55,7 +55,7 @@ bool Arduino_ESP32QSPI::begin(int32_t speed, int8_t dataMode)
 #if (!defined(ESP_ARDUINO_VERSION_MAJOR)) || (ESP_ARDUINO_VERSION_MAJOR < 3)
     // skip this
 #else
-        .isr_cpu_id = ESP_INTR_CPU_AFFINITY_AUTO,
+        .isr_cpu_id = INTR_CPU_ID_AUTO,
 #endif
         .intr_flags = 0};
     esp_err_t ret = spi_bus_initialize(ESP32QSPI_SPI_HOST, &buscfg, ESP32QSPI_DMA_CHANNEL);
