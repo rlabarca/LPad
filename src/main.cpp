@@ -70,6 +70,13 @@ void setup() {
         while (1) delay(1000);
     }
     Serial.println("  [PASS] Display initialized");
+
+    // Apply rotation if configured via build flag
+#ifdef APP_DISPLAY_ROTATION
+    Serial.printf("  [INFO] Applying rotation: %d degrees\n", APP_DISPLAY_ROTATION);
+    hal_display_set_rotation(APP_DISPLAY_ROTATION);
+#endif
+
     delay(500);
 
     // Print display information
