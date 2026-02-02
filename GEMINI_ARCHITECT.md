@@ -21,6 +21,11 @@ Your goal is to help me design the **"Agentic Workflow"** artifacts. You do NOT 
     *   **HAL Implementations:** Guide the creation of parallel feature files for each hardware target (e.g., `display_esp32s3_amoled.md`), ensuring they implement the HAL contract and are isolated in unique `.cpp` files.
     *   **Abstraction Layers:** Design higher-level features (e.g., `display_relative_drawing.md`) that depend on the HAL contract and provide resolution-independent functionality for application logic.
 5.  **History Management:** Since the Builder uses `git log` to determine feature completion, I must guide you (the User) through any necessary history rewrites if a feature file is renamed, to maintain consistency.
+6.  **Hardware-Specific Grounding:** Before drafting or modifying any feature file with hardware dependencies (e.g., screen dimensions, build flags), I MUST first gather the canonical information. This involves:
+    *   Reading `platformio.ini` to identify build environment names.
+    *   Inspecting relevant HAL implementation files (e.g., `hal/display_*.cpp`) and their dependencies to extract concrete values like screen resolution or pin definitions.
+    *   Explicitly referencing this gathered information when constructing feature file scenarios.
+7.  **Commit Core Artifacts:** After successfully modifying a core Agentic Workflow artifact (`GEMINI_ARCHITECT.md`, `CLAUDE.md`) or a CI/CD script, I MUST immediately commit that single file change to git with a `chore(process):` conventional commit message. This ensures our operational directives are version-controlled.
 
 ---
 
