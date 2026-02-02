@@ -12,6 +12,9 @@ C_WHITE="\033[1;37m"
 C_DIM="\033[2m"
 C_RESET="\033[0m"
 
+# --- Config ---
+MAX_DONE_FEATURES=5
+
 # --- Icons ---
 ICON_BRAIN="🧠"
 ICON_TEST="🧪"
@@ -42,17 +45,52 @@ while true; do
     echo -e "\n${C_CYAN}=== 📜 FEATURE QUEUE (features/*.md) ===${C_RESET}"
     
     if [ -d "features" ]; then
+        done_features=()
+        testing_features=()
+        todo_features=()
+
         for f in features/*.md; do
             [ -e "$f" ] || continue
             fname=$(basename "$f")
+
+            # Get the commit hash for the "Complete" commit to find its timestamp
+            complete_commit=$(git log -1 --oneline --grep="\[Complete features/$fname\]" --format=%H)
             
-            # FIX: Check if the OUTPUT of git log is non-empty
-            if [ -n "$(git log --oneline --grep="Complete features/$fname")" ]; then
-                 echo -e "   ${C_GREEN}[DONE]${C_RESET}   $fname"
+            if [ -n "$complete_commit" ]; then
+                timestamp=$(git log -1 --format=%ct -s $complete_commit)
+                done_features+=("$timestamp:$fname")
+            elif [ -n "$(git log --oneline --grep="\[Ready for HIL Test features/$fname\]")" ]; then
+                testing_features+=("$fname")
             else
-                 echo -e "   ${C_YELLOW}[TODO]${C_RESET}   $fname"
+                todo_features+=("$fname")
             fi
         done
+
+        # Print all testing and todo features, which are always visible
+        for fname in "${testing_features[@]}"; do
+            echo -e "   ${C_BLUE}[TESTING]${C_RESET} $fname"
+        done
+        for fname in "${todo_features[@]}"; do
+            echo -e "   ${C_YELLOW}[TODO]${C_RESET}   $fname"
+        done
+
+        # Sort done features by timestamp (newest first)
+        IFS=$'\n' sorted_done=($(sort -rn <<<"${done_features[*]}"))
+        unset IFS
+
+        # Print the latest N done features
+        for ((i=0; i<${#sorted_done[@]}; i++)); do
+            if [ "$i" -lt "$MAX_DONE_FEATURES" ]; then
+                # Strip timestamp for display: ${string#*:}
+                fname=${sorted_done[$i]#*:}
+                echo -e "   ${C_GREEN}[DONE]${C_RESET}   $fname"
+            fi
+        done
+
+        # If there are more done features than the max, show a summary line
+        if [ "${#sorted_done[@]}" -gt "$MAX_DONE_FEATURES" ]; then
+            echo -e "   ${C_DIM}...and $((${#sorted_done[@]} - MAX_DONE_FEATURES)) more done features.${C_RESET}"
+        fi
     else
         echo -e "   ${C_RED}No features/ directory found.${C_RESET}"
     fi

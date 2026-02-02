@@ -15,13 +15,16 @@
     * **Editor:** I use Helix (`hx`).
     * **Version Control:** Local git only. No pushing to remote.
 6.  **Version Control (The State of Truth):**
-    * We track "Done" status via **Commits**.
-    * **Protocol:** When a Feature is tested and ready:
-        1.  Run `scripts/test_local.sh` (or `pio run`) to ensure green state.
-        2.  Run `git status`.
-        3.  Run `git add -A`.
-        4.  **CRITICAL:** The commit message MUST reference the feature file to mark it "Done".
-            * Format: `feat(scope): <description> [Complete features/filename.md]`
+    *   We track feature status via **Commits**.
+    *   **Protocol:**
+        1.  **Work In Progress / Ready for Hardware Test:**
+            *   Implement the feature and pass all local/unit tests.
+            *   Commit the work with a message: `feat(scope): <description> [Ready for HIL Test features/filename.md]`
+            *   **CRITICAL HANDOFF:** Explicitly inform the User that the feature is ready for Hardware-in-the-Loop (HIL) testing and await their confirmation. Do NOT proceed to the "Complete" state until User confirmation.
+        2.  **Completion:**
+            *   Upon User confirmation that HIL tests have passed:
+            *   Create an empty commit to mark the feature as fully "Done": `git commit --allow-empty -m "chore(release): Validate feature [Complete features/filename.md]"`
+            *   This explicitly marks the feature as completed in the git history without further code changes from the agent.
 
 ## Architecture & Discovery
 * This is a PlatformIO project.
