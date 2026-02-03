@@ -1,41 +1,52 @@
 /**
  * @file main.cpp
- * @brief Relative Display Abstraction Test Application
+ * @brief TimeSeriesGraph Component Demo
  *
- * This application demonstrates the relative drawing abstraction layer
- * and validates coordinate scaling across different display hardware.
+ * This application demonstrates the TimeSeriesGraph UI component
+ * rendering time-series data with automatic scaling and a vaporwave theme.
  *
- * Test Pattern:
- * 1. Corner marker at origin (0%, 0%) - RED 5x5% square
- * 2. Test square at (25%, 25%) - GREEN 25x25% square
- * 3. Center cross at (50%, 50%) - WHITE lines
- * 4. Screen frame at 10% inset - BLUE outline
+ * Demo Sequence:
+ * 1. Graph with rising trend (simulated bond yields)
+ * 2. Graph with volatility (price fluctuations)
+ * 3. Graph with different scale (larger values)
  *
- * Expected Pixel Coordinates per Display:
- *
- * ESP32-S3-AMOLED (368x448):
- * - Corner marker: (0,0) to (18,22) pixels
- * - Test square: (92,112) to (184,224) pixels - Distance from origin: 145.3px
- * - Center cross: at (184, 224) pixels - Distance from origin: 290.0px
- * - Frame: (37,45) to (331,403) pixels
- *
- * T-Display-S3-Plus (240x536):
- * - Corner marker: (0,0) to (12,27) pixels
- * - Test square: (60,134) to (120,268) pixels - Distance from origin: 147.0px
- * - Center cross: at (120, 268) pixels - Distance from origin: 293.9px
- * - Frame: (24,54) to (216,482) pixels
+ * Each graph demonstrates:
+ * - Resolution-independent rendering via RelativeDisplay
+ * - Automatic Y-axis scaling
+ * - Smooth line drawing
+ * - Vaporwave aesthetic (dark purple, cyan, magenta)
  */
 
 #include <Arduino.h>
 #include "../hal/display.h"
 #include "relative_display.h"
+#include "ui_time_series_graph.h"
 
 // RGB565 color definitions
-#define RGB565_BLACK   0x0000
-#define RGB565_WHITE   0xFFFF
-#define RGB565_RED     0xF800
-#define RGB565_GREEN   0x07E0
-#define RGB565_BLUE    0x001F
+#define RGB565_BLACK       0x0000
+#define RGB565_WHITE       0xFFFF
+#define RGB565_CYAN        0x07FF
+#define RGB565_MAGENTA     0xF81F
+#define RGB565_DARK_PURPLE 0x4810
+#define RGB565_PINK        0xFE19
+
+// Create vaporwave theme
+GraphTheme createVaporwaveTheme() {
+    GraphTheme theme;
+    theme.backgroundColor = RGB565_DARK_PURPLE;
+    theme.lineColor = RGB565_CYAN;
+    theme.axisColor = RGB565_MAGENTA;
+    return theme;
+}
+
+// Create alternate pink theme
+GraphTheme createPinkTheme() {
+    GraphTheme theme;
+    theme.backgroundColor = RGB565_BLACK;
+    theme.lineColor = RGB565_PINK;
+    theme.axisColor = RGB565_CYAN;
+    return theme;
+}
 
 void print_display_info() {
     int32_t width = hal_display_get_width_pixels();
@@ -44,27 +55,17 @@ void print_display_info() {
     Serial.println("=== Display Information ===");
     Serial.printf("Resolution: %d x %d pixels\n", width, height);
     Serial.println();
-
-    Serial.println("=== Expected Coordinate Mapping ===");
-    Serial.printf("  0%%   -> 0 pixels (both W/H)\n");
-    Serial.printf(" 25%% W -> %d pixels\n", (int)(width * 0.25f));
-    Serial.printf(" 25%% H -> %d pixels\n", (int)(height * 0.25f));
-    Serial.printf(" 50%% W -> %d pixels\n", (int)(width * 0.50f));
-    Serial.printf(" 50%% H -> %d pixels\n", (int)(height * 0.50f));
-    Serial.printf("100%% W -> %d pixels\n", width);
-    Serial.printf("100%% H -> %d pixels\n", height);
-    Serial.println();
 }
 
 void setup() {
     Serial.begin(115200);
     delay(1000);
 
-    Serial.println("=== Relative Display Abstraction Test ===");
+    Serial.println("=== TimeSeriesGraph Component Demo ===");
     Serial.println();
 
     // Initialize HAL
-    Serial.println("[1/6] Initializing display HAL...");
+    Serial.println("[1/4] Initializing display HAL...");
     if (!hal_display_init()) {
         Serial.println("  [FAIL] Display initialization failed");
         while (1) delay(1000);
@@ -78,110 +79,131 @@ void setup() {
 #endif
 
     delay(500);
-
-    // Print display information
     print_display_info();
 
     // Initialize relative display abstraction
-    Serial.println("[2/6] Initializing relative display abstraction...");
+    Serial.println("[2/4] Initializing relative display abstraction...");
     display_relative_init();
     Serial.println("  [PASS] Relative display initialized");
     Serial.println();
     delay(500);
 
-    // Clear to black
-    Serial.println("[3/6] Clearing display to black...");
-    hal_display_clear(RGB565_BLACK);
-    Serial.println("  [PASS] Display cleared");
-    delay(1000);
-
-    // Draw test pattern
-    Serial.println("[4/6] Drawing test pattern...");
+    // Create vaporwave theme graph
+    Serial.println("[3/4] Creating TimeSeriesGraph with vaporwave theme...");
+    Serial.println("  Theme: Dark Purple background, Cyan line, Magenta axes");
+    GraphTheme vaporwave = createVaporwaveTheme();
+    TimeSeriesGraph graph(vaporwave);
+    Serial.println("  [PASS] Graph created");
     Serial.println();
-
-    // 1. Corner marker at origin - RED 5x5% square
-    Serial.println("  Drawing corner marker at origin (0%, 0%):");
-    Serial.println("    - Color: RED");
-    Serial.println("    - Size: 5% x 5%");
-    Serial.printf("    - Pixel coords: (0,0) to (%d,%d)\n",
-                  (int)(hal_display_get_width_pixels() * 0.05f),
-                  (int)(hal_display_get_height_pixels() * 0.05f));
-    Serial.println("    - Distance from origin: 0 pixels");
-    display_relative_fill_rectangle(0.0f, 0.0f, 5.0f, 5.0f, RGB565_RED);
     delay(500);
 
-    // 2. Test square at (25%, 25%) - GREEN 25x25%
-    int32_t width = hal_display_get_width_pixels();
-    int32_t height = hal_display_get_height_pixels();
-    int32_t square_x = (int)(width * 0.25f);
-    int32_t square_y = (int)(height * 0.25f);
-    int32_t square_w = (int)(width * 0.25f);
-    int32_t square_h = (int)(height * 0.25f);
-    float distance = sqrtf(square_x * square_x + square_y * square_y);
+    // Demo 1: Rising trend (simulated bond yields)
+    Serial.println("[4/4] Demo 1: Rising Bond Yields");
+    Serial.println("  Data: 10-year treasury yields rising from 4.0% to 4.5%");
+    GraphData data1;
+    data1.x_values = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
+    data1.y_values = {4.00, 4.05, 4.08, 4.12, 4.15, 4.18, 4.22, 4.25, 4.28, 4.32, 4.35, 4.38, 4.42, 4.45, 4.48};
 
-    Serial.println();
-    Serial.println("  Drawing test square at (25%, 25%):");
-    Serial.println("    - Color: GREEN");
-    Serial.println("    - Size: 25% x 25%");
-    Serial.printf("    - Top-left pixel: (%d, %d)\n", square_x, square_y);
-    Serial.printf("    - Dimensions: %d x %d pixels\n", square_w, square_h);
-    Serial.printf("    - Bottom-right pixel: (%d, %d)\n",
-                  square_x + square_w, square_y + square_h);
-    Serial.printf("    - Distance from origin: %.1f pixels\n", distance);
-    display_relative_fill_rectangle(25.0f, 25.0f, 25.0f, 25.0f, RGB565_GREEN);
-    delay(500);
+    Serial.printf("  Y-axis range: %.2f to %.2f\n", 4.00, 4.48);
+    Serial.printf("  Data points: %d\n", data1.y_values.size());
 
-    // 3. Center cross - WHITE lines
-    int32_t center_x = width / 2;
-    int32_t center_y = height / 2;
-    float center_distance = sqrtf(center_x * center_x + center_y * center_y);
-
-    Serial.println();
-    Serial.println("  Drawing center cross at (50%, 50%):");
-    Serial.println("    - Color: WHITE");
-    Serial.printf("    - Center pixel: (%d, %d)\n", center_x, center_y);
-    Serial.printf("    - Distance from origin: %.1f pixels\n", center_distance);
-    display_relative_draw_horizontal_line(50.0f, 0.0f, 100.0f, RGB565_WHITE);
-    display_relative_draw_vertical_line(50.0f, 0.0f, 100.0f, RGB565_WHITE);
-    delay(500);
-
-    // 4. Frame at 10% inset - BLUE outline
-    Serial.println();
-    Serial.println("  Drawing frame at 10% inset:");
-    Serial.println("    - Color: BLUE");
-    Serial.printf("    - Top-left pixel: (%d, %d)\n",
-                  (int)(width * 0.10f), (int)(height * 0.10f));
-    Serial.printf("    - Bottom-right pixel: (%d, %d)\n",
-                  (int)(width * 0.90f), (int)(height * 0.90f));
-
-    // Draw frame as 4 lines
-    display_relative_draw_horizontal_line(10.0f, 10.0f, 90.0f, RGB565_BLUE);  // Top
-    display_relative_draw_horizontal_line(90.0f, 10.0f, 90.0f, RGB565_BLUE);  // Bottom
-    display_relative_draw_vertical_line(10.0f, 10.0f, 90.0f, RGB565_BLUE);    // Left
-    display_relative_draw_vertical_line(90.0f, 10.0f, 90.0f, RGB565_BLUE);    // Right
-
-    Serial.println();
-    Serial.println("[5/6] Flushing display buffer...");
+    graph.setData(data1);
+    graph.draw();
     hal_display_flush();
-    Serial.println("  [PASS] Display flushed");
+
+    Serial.println("  [PASS] Graph 1 displayed");
+    Serial.println();
+    delay(5000);
+
+    // Demo 2: Volatile price action
+    Serial.println("Demo 2: Volatile Price Action");
+    Serial.println("  Data: Price fluctuations with peaks and valleys");
+    GraphData data2;
+    data2.x_values = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
+    data2.y_values = {100.0, 105.0, 98.0, 110.0, 95.0, 115.0, 102.0, 108.0, 112.0, 106.0, 118.0, 120.0};
+
+    Serial.printf("  Y-axis range: %.2f to %.2f\n", 95.0, 120.0);
+    Serial.printf("  Data points: %d\n", data2.y_values.size());
+
+    graph.setData(data2);
+    graph.draw();
+    hal_display_flush();
+
+    Serial.println("  [PASS] Graph 2 displayed");
+    Serial.println();
+    delay(5000);
+
+    // Demo 3: Different scale with pink theme
+    Serial.println("Demo 3: Large Values with Pink Theme");
+    Serial.println("  Theme: Black background, Pink line, Cyan axes");
+    GraphTheme pink = createPinkTheme();
+    TimeSeriesGraph graph2(pink);
+
+    GraphData data3;
+    data3.x_values = {1, 2, 3, 4, 5, 6, 7, 8};
+    data3.y_values = {1500.0, 1600.0, 1550.0, 1700.0, 1650.0, 1750.0, 1800.0, 1850.0};
+
+    Serial.printf("  Y-axis range: %.2f to %.2f\n", 1500.0, 1850.0);
+    Serial.printf("  Data points: %d\n", data3.y_values.size());
+
+    graph2.setData(data3);
+    graph2.draw();
+    hal_display_flush();
+
+    Serial.println("  [PASS] Graph 3 displayed");
     Serial.println();
 
-    // Verification instructions
-    Serial.println("[6/6] Visual Verification Checklist:");
-    Serial.println("  [ ] RED square visible at top-left corner (origin)");
-    Serial.println("  [ ] GREEN square visible at 25% position from origin");
-    Serial.println("  [ ] WHITE cross visible at screen center");
-    Serial.println("  [ ] BLUE frame visible with 10% margin from edges");
-    Serial.println("  [ ] All elements scale proportionally to screen size");
-    Serial.println();
-
-    Serial.println("=== Test Complete ===");
-    Serial.println("Pattern demonstrates resolution-independent drawing.");
-    Serial.println("Same percentages produce correct scaling on different displays.");
+    Serial.println("=== Demo Complete ===");
+    Serial.println("Visual Verification:");
+    Serial.println("  [ ] Graph background fills entire screen");
+    Serial.println("  [ ] Axes drawn at graph margins (left & bottom)");
+    Serial.println("  [ ] Data line smoothly connects all points");
+    Serial.println("  [ ] Line color matches theme");
+    Serial.println("  [ ] Graphs rescale automatically for different data ranges");
     Serial.println();
 }
 
 void loop() {
-    // Test complete, nothing to do
-    delay(1000);
+    // Demo complete, could cycle through graphs here
+    delay(5000);
+
+    // Cycle back to demo 1
+    Serial.println("Cycling back to Demo 1...");
+    GraphTheme vaporwave = createVaporwaveTheme();
+    TimeSeriesGraph graph(vaporwave);
+
+    GraphData data1;
+    data1.x_values = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
+    data1.y_values = {4.00, 4.05, 4.08, 4.12, 4.15, 4.18, 4.22, 4.25, 4.28, 4.32, 4.35, 4.38, 4.42, 4.45, 4.48};
+
+    graph.setData(data1);
+    graph.draw();
+    hal_display_flush();
+
+    delay(5000);
+
+    // Show demo 2
+    Serial.println("Showing Demo 2...");
+    GraphData data2;
+    data2.x_values = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
+    data2.y_values = {100.0, 105.0, 98.0, 110.0, 95.0, 115.0, 102.0, 108.0, 112.0, 106.0, 118.0, 120.0};
+
+    graph.setData(data2);
+    graph.draw();
+    hal_display_flush();
+
+    delay(5000);
+
+    // Show demo 3
+    Serial.println("Showing Demo 3...");
+    GraphTheme pink = createPinkTheme();
+    TimeSeriesGraph graph2(pink);
+
+    GraphData data3;
+    data3.x_values = {1, 2, 3, 4, 5, 6, 7, 8};
+    data3.y_values = {1500.0, 1600.0, 1550.0, 1700.0, 1650.0, 1750.0, 1800.0, 1850.0};
+
+    graph2.setData(data3);
+    graph2.draw();
+    hal_display_flush();
 }
