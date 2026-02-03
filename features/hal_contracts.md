@@ -52,3 +52,23 @@ The following functions constitute the core display HAL API:
 *   **Expected Behavior:**
     *   If the display uses a frame buffer, the contents of the buffer should be transferred to the actual display hardware, making changes visible.
     *   For unbuffered displays, this function may do nothing or act as a synchronization point.
+
+---
+
+## Timer HAL API
+
+The following functions constitute the core timer HAL API:
+
+### `hal_timer_init(void)`
+
+*   **Description:** Initializes the high-resolution hardware timer. This must be called once before `hal_timer_get_micros()` is used.
+*   **Parameters:** `void` (no parameters).
+*   **Returns:** `bool` - `true` if initialization was successful, `false` otherwise.
+
+### `hal_timer_get_micros(void)`
+
+*   **Description:** Gets the current time from the high-resolution timer in microseconds. The timer should be monotonic and should not be affected by wall-clock time adjustments.
+*   **Parameters:** `void` (no parameters).
+*   **Returns:** `uint64_t` - The number of microseconds since the timer was initialized or since the device booted. The value should wrap around on overflow.
+*   **Expected Behavior:**
+    *   Consecutive calls to this function should yield non-decreasing values that accurately reflect the passage of time.
