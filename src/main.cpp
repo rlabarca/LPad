@@ -45,12 +45,12 @@ GraphTheme createVaporwaveTheme() {
     theme.lineColor = RGB565_CYAN;
     theme.axisColor = RGB565_MAGENTA;
 
-    // Enable gradient background (3-color vertical - FAST, optimized)
+    // Enable gradient background (3-color at 45 degrees - diagonal)
     theme.useBackgroundGradient = true;
-    theme.backgroundGradient.angle_deg = 90.0f;  // Vertical (top to bottom) - optimized!
-    theme.backgroundGradient.color_stops[0] = RGB565_DARK_PURPLE;  // Top: Deep purple
-    theme.backgroundGradient.color_stops[1] = RGB565_MAGENTA;       // Middle: Magenta
-    theme.backgroundGradient.color_stops[2] = 0x4010;               // Bottom: Dark blue-purple
+    theme.backgroundGradient.angle_deg = 45.0f;  // 45-degree diagonal
+    theme.backgroundGradient.color_stops[0] = RGB565_DARK_PURPLE;  // Deep purple
+    theme.backgroundGradient.color_stops[1] = RGB565_MAGENTA;       // Magenta
+    theme.backgroundGradient.color_stops[2] = 0x4010;               // Dark blue-purple
     theme.backgroundGradient.num_stops = 3;
 
     // Enable gradient line (horizontal gradient)
@@ -66,14 +66,14 @@ GraphTheme createVaporwaveTheme() {
 
     // Enable tick marks on Y-axis
     theme.tickColor = RGB565_WHITE;  // Bright white for visibility
-    theme.tickLength = 5.0f;  // 5% tick length (longer, more visible)
+    theme.tickLength = 8.0f;  // 8% tick length (very long, very visible)
 
     // Enable pulsing live indicator
     theme.liveIndicatorGradient.center_x = 0.0f;
     theme.liveIndicatorGradient.center_y = 0.0f;
     theme.liveIndicatorGradient.radius = 4.0f;  // 4% radius (larger)
-    theme.liveIndicatorGradient.color_stops[0] = RGB565_WHITE;   // Bright center
-    theme.liveIndicatorGradient.color_stops[1] = RGB565_CYAN;    // Cyan edge
+    theme.liveIndicatorGradient.color_stops[0] = RGB565_MAGENTA;  // Magenta/pink center
+    theme.liveIndicatorGradient.color_stops[1] = RGB565_CYAN;     // Cyan edge
     theme.liveIndicatorPulseSpeed = 6.0f;  // 6 pulses per second (very fast!)
 
     return theme;
@@ -179,8 +179,8 @@ void setup() {
 
     graph.setData(graphData);
 
-    // Enable Y-axis tick marks every 0.01 (bond yield increments)
-    graph.setYTicks(0.01f);
+    // Enable Y-axis tick marks every 0.002 (more visible with small data range)
+    graph.setYTicks(0.002f);
 
     // Draw the bond tracker graph
     Serial.println("[5/5] Rendering themeable graph with all features...");

@@ -285,9 +285,9 @@ void TimeSeriesGraph::drawLiveIndicator() {
     float x = mapXToScreen(last_index, data_.y_values.size());
     float y = mapYToScreen(data_.y_values[last_index], y_min, y_max);
 
-    // Calculate pulsing radius using sine wave with more dramatic effect
+    // Calculate pulsing radius - grows from 0 to full size and back
     float base_radius = theme_.liveIndicatorGradient.radius;
-    float pulse_factor = 0.6f + 0.4f * sinf(pulse_phase_);  // Oscillates between 0.6 and 1.0
+    float pulse_factor = fabsf(sinf(pulse_phase_));  // Oscillates from 0 to 1 to 0
     float radius = base_radius * pulse_factor;
 
     // Draw the radial gradient circle
