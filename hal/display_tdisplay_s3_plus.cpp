@@ -163,8 +163,12 @@ void hal_display_draw_pixel(int32_t x, int32_t y, uint16_t color) {
         return;  // Not initialized
     }
 
-    // Check bounds
-    if (x < 0 || x >= LCD_WIDTH || y < 0 || y >= LCD_HEIGHT) {
+    // Get current logical dimensions (accounts for rotation)
+    int32_t width = g_gfx->width();
+    int32_t height = g_gfx->height();
+
+    // Check bounds using logical dimensions
+    if (x < 0 || x >= width || y < 0 || y >= height) {
         return;  // Out of bounds, handle gracefully
     }
 
