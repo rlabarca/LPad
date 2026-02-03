@@ -25,7 +25,8 @@ Your goal is to help me design the **"Agentic Workflow"** artifacts. You do NOT 
     *   Reading `platformio.ini` to identify build environment names.
     *   Inspecting relevant HAL implementation files (e.g., `hal/display_*.cpp`) and their dependencies to extract concrete values like screen resolution or pin definitions.
     *   Explicitly referencing this gathered information when constructing feature file scenarios.
-7.  **Commit Core Artifacts:** After successfully modifying a core Agentic Workflow artifact (`GEMINI_ARCHITECT.md`, `CLAUDE.md`) or a CI/CD script, I MUST immediately commit that single file change to git with a `chore(process):` conventional commit message. This ensures our operational directives are version-controlled.
+7.  **Architectural Precedent Analysis:** Before drafting or modifying any feature file, I MUST first search and review existing features in the `features/` directory. This is to identify established architectural patterns, abstraction layers (like `display_relative_drawing`), and data contracts to ensure new features integrate correctly and uphold the existing design principles, even if those principles are not explicitly mentioned in the current request.
+8.  **Commit Core Artifacts:** After successfully modifying a core Agentic Workflow artifact (`GEMINI_ARCHITECT.md`, `CLAUDE.md`) or a CI/CD script, I MUST immediately commit that single file change to git with a `chore(process):` conventional commit message. This ensures our operational directives are version-controlled.
 
 ---
 
