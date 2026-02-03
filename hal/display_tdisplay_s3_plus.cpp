@@ -83,9 +83,6 @@ bool hal_display_init(void) {
         return false;  // Display initialization failed
     }
 
-    // Set maximum brightness
-    g_gfx->setBrightness(255);
-
     g_initialized = true;
     return true;
 }
