@@ -214,6 +214,10 @@ void setup() {
     unsigned long bgEnd = millis();
     Serial.printf("  [TIME] Background took %lu ms\n", bgEnd - bgStart);
 
+    // Initialize indicator animation phase to peak visibility (no animation loop)
+    // Update with 1/(4*pulseSpeed) to set pulse_phase to PI/2, making sin(phase) = 1 (full visibility)
+    graph.update(1.0f / (4.0f * theme.liveIndicatorPulseSpeed));
+
     // Draw initial data to canvas
     Serial.println("  Drawing data to canvas...");
     unsigned long dataStart = millis();
