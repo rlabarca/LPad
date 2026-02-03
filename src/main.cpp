@@ -32,8 +32,10 @@
 // This is the same data from test_data/yahoo_chart_tnx_5m_1d.json
 const char* BOND_DATA_JSON = R"({"chart":{"result":[{"meta":{"currency":"USD","symbol":"^TNX","exchangeName":"CGI","fullExchangeName":"Cboe Indices","instrumentType":"INDEX","firstTradeDate":-252326400,"regularMarketTime":1770062392,"hasPrePostMarketData":false,"gmtoffset":-21600,"timezone":"CST","exchangeTimezoneName":"America/Chicago","regularMarketPrice":4.275,"fiftyTwoWeekHigh":4.997,"fiftyTwoWeekLow":3.345,"regularMarketDayHigh":4.261,"regularMarketDayLow":4.237,"regularMarketVolume":0,"longName":"CBOE Interest Rate 10 Year T No","shortName":"CBOE Interest Rate 10 Year T No","chartPreviousClose":4.227,"previousClose":4.227,"scale":3,"priceHint":4,"currentTradingPeriod":{"pre":{"timezone":"CST","end":1770038400,"start":1770038400,"gmtoffset":-21600},"regular":{"timezone":"CST","end":1770062400,"start":1770038400,"gmtoffset":-21600},"post":{"timezone":"CST","end":1770062400,"start":1770062400,"gmtoffset":-21600}},"tradingPeriods":[[{"timezone":"CST","end":1770062400,"start":1770038400,"gmtoffset":-21600}]],"dataGranularity":"5m","range":"1d","validRanges":["1d","5d","1mo","3mo","6mo","1y","2y","5y","10y","ytd","max"]},"timestamp":[1770057900,1770058200,1770058500,1770058800,1770059100,1770059400,1770059700,1770060000,1770060300,1770060600,1770060900,1770061200,1770061500,1770061800,1770062100],"indicators":{"quote":[{"open":[4.270999908447266,4.270999908447266,4.2729997634887695,4.275000095367432,4.275000095367432,4.2769999504089355,4.275000095367432,4.2769999504089355,4.279000282287598,4.279000282287598,4.2769999504089355,4.279000282287598,4.275000095367432,4.2729997634887695,4.2729997634887695],"close":[4.270999908447266,4.2729997634887695,4.275000095367432,4.275000095367432,4.2769999504089355,4.275000095367432,4.2769999504089355,4.279000282287598,4.279000282287598,4.2769999504089355,4.2769999504089355,4.275000095367432,4.2729997634887695,4.2729997634887695,4.275000095367432],"high":[4.2729997634887695,4.2729997634887695,4.275000095367432,4.2769999504089355,4.2769999504089355,4.2769999504089355,4.2769999504089355,4.279000282287598,4.279000282287598,4.279000282287598,4.279000282287598,4.279000282287598,4.275000095367432,4.2729997634887695,4.275000095367432],"volume":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"low":[4.270999908447266,4.270999908447266,4.2729997634887695,4.275000095367432,4.275000095367432,4.275000095367432,4.275000095367432,4.2769999504089355,4.2769999504089355,4.2769999504089355,4.2769999504089355,4.275000095367432,4.2729997634887695,4.2729997634887695,4.269000053405762]}]}}],"error":null}})";
 
-// Global variables
+// Global variables for canvas and animation
 hal_canvas_handle_t g_graph_canvas = nullptr;
+TimeSeriesGraph* g_graph = nullptr;
+unsigned long g_lastUpdate = 0;
 
 // Create vaporwave theme with ALL themeable features enabled
 GraphTheme createVaporwaveTheme() {
@@ -181,8 +183,9 @@ void setup() {
     Serial.printf("  [DEBUG] Line Thickness: %.2f%%\n", theme.lineThickness);
     Serial.printf("  [DEBUG] Axis Thickness: %.2f%%\n", theme.axisThickness);
 
-    // Create graph
-    TimeSeriesGraph graph(theme);
+    // Create graph (static to persist for animation loop)
+    static TimeSeriesGraph graph(theme);
+    g_graph = &graph;
 
     Serial.println("  [PASS] Graph created");
     Serial.println();
@@ -245,28 +248,47 @@ void setup() {
     Serial.println("  [PASS] Canvas drawn to display");
     Serial.println();
 
-    // Delete canvas to free memory (as per specification)
-    Serial.println("  Deleting canvas to free memory...");
-    hal_display_canvas_delete(g_graph_canvas);
-    g_graph_canvas = nullptr;
-    Serial.println("  [PASS] Canvas deleted");
-    Serial.println();
+    // Note: Canvas is kept alive for animation loop
+    // It will be reused to redraw the animated indicator
 
     // Display summary
-    Serial.println("=== 10-Year Treasury Bond Tracker Complete ===");
+    Serial.println("=== 10-Year Treasury Bond Tracker Ready ===");
     Serial.println("Visual Verification:");
     Serial.println("  [ ] Gradient background (purple to magenta to dark blue)");
     Serial.println("  [ ] Magenta axes with tick marks on Y-axis");
     Serial.println("  [ ] Gradient line (cyan to magenta)");
-    Serial.println("  [ ] Live indicator at last data point");
+    Serial.println("  [ ] Pulsing live indicator at last data point (animating)");
     Serial.println();
-    Serial.println("Bond tracker display complete.");
+    Serial.println("Starting animation loop...");
     Serial.println();
+
+    // Initialize animation timing
+    g_lastUpdate = millis();
 }
 
 void loop() {
-    // Bond tracker display is complete
-    // Loop function is kept empty as per feature specification
-    // Future enhancement: Could refresh the display with new data here
-    delay(1000);
+    // Animate the live indicator per themeable graph specification
+    unsigned long currentMillis = millis();
+    float deltaTime = (currentMillis - g_lastUpdate) / 1000.0f;
+    g_lastUpdate = currentMillis;
+
+    if (g_graph != nullptr && g_graph_canvas != nullptr && deltaTime > 0.001f) {
+        // Select canvas as drawing target
+        hal_display_canvas_select(g_graph_canvas);
+
+        // Update animation state
+        g_graph->update(deltaTime);
+
+        // Redraw data layer (includes animated indicator)
+        g_graph->drawData();
+
+        // Re-select main display
+        hal_display_canvas_select(nullptr);
+
+        // Blit updated canvas to display
+        hal_display_canvas_draw(g_graph_canvas, 0, 0);
+        hal_display_flush();
+    }
+
+    delay(50);  // ~20 FPS
 }
