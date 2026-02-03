@@ -13,6 +13,44 @@
 #define M_PI 3.14159265358979323846
 #endif
 
+// Helper function to interpolate between two RGB565 colors
+static uint16_t interpolate_color(uint16_t color1, uint16_t color2, float t) {
+    uint8_t r1 = (color1 >> 11) & 0x1F;
+    uint8_t g1 = (color1 >> 5) & 0x3F;
+    uint8_t b1 = color1 & 0x1F;
+
+    uint8_t r2 = (color2 >> 11) & 0x1F;
+    uint8_t g2 = (color2 >> 5) & 0x3F;
+    uint8_t b2 = color2 & 0x1F;
+
+    uint8_t r = (uint8_t)(r1 + t * (r2 - r1));
+    uint8_t g = (uint8_t)(g1 + t * (g2 - g1));
+    uint8_t b = (uint8_t)(b1 + t * (b2 - b1));
+
+    return ((r & 0x1F) << 11) | ((g & 0x3F) << 5) | (b & 0x1F);
+}
+
+// Helper function to get color from gradient at position t
+static uint16_t get_gradient_color(const LinearGradient& gradient, float t) {
+    if (gradient.num_stops < 2) {
+        return gradient.color_stops[0];
+    }
+
+    if (t < 0.0f) t = 0.0f;
+    if (t > 1.0f) t = 1.0f;
+
+    if (gradient.num_stops == 2) {
+        return interpolate_color(gradient.color_stops[0], gradient.color_stops[1], t);
+    }
+
+    // For 3 stops, divide into two segments
+    if (t < 0.5f) {
+        return interpolate_color(gradient.color_stops[0], gradient.color_stops[1], t * 2.0f);
+    } else {
+        return interpolate_color(gradient.color_stops[1], gradient.color_stops[2], (t - 0.5f) * 2.0f);
+    }
+}
+
 TimeSeriesGraph::TimeSeriesGraph(const GraphTheme& theme)
     : theme_(theme), pulse_phase_(0.0f), y_tick_increment_(0.0f),
       cached_y_min_(0.0), cached_y_max_(0.0), range_cached_(false) {
@@ -182,13 +220,17 @@ void TimeSeriesGraph::drawDataLine() {
         float x2 = mapXToScreen(i + 1, point_count);
         float y2 = mapYToScreen(data_.y_values[i + 1], y_min, y_max);
 
-        // Draw with thickness and gradient if enabled
+        // Determine color for this segment
+        uint16_t segment_color = theme_.lineColor;
+        if (theme_.useLineGradient) {
+            // Calculate position of this segment in the overall line (0.0 to 1.0)
+            float t = (float)i / (float)(point_count - 1);
+            segment_color = get_gradient_color(theme_.lineGradient, t);
+        }
+
+        // Draw with thickness
         if (theme_.lineThickness > 0.0f) {
-            if (theme_.useLineGradient) {
-                display_relative_draw_line_thick_gradient(x1, y1, x2, y2, theme_.lineThickness, theme_.lineGradient);
-            } else {
-                display_relative_draw_line_thick(x1, y1, x2, y2, theme_.lineThickness, theme_.lineColor);
-            }
+            display_relative_draw_line_thick(x1, y1, x2, y2, theme_.lineThickness, segment_color);
         } else {
             // Fallback to thin line (pixel by pixel)
             float dx = x2 - x1;
@@ -202,7 +244,7 @@ void TimeSeriesGraph::drawDataLine() {
                 float t = static_cast<float>(step) / static_cast<float>(steps);
                 float x = x1 + t * (x2 - x1);
                 float y = y1 + t * (y2 - y1);
-                display_relative_draw_pixel(x, y, theme_.lineColor);
+                display_relative_draw_pixel(x, y, segment_color);
             }
         }
     }
@@ -237,9 +279,9 @@ void TimeSeriesGraph::drawLiveIndicator() {
     float x = mapXToScreen(last_index, data_.y_values.size());
     float y = mapYToScreen(data_.y_values[last_index], y_min, y_max);
 
-    // Calculate pulsing radius using sine wave
+    // Calculate pulsing radius using sine wave with more dramatic effect
     float base_radius = theme_.liveIndicatorGradient.radius;
-    float pulse_factor = 0.5f + 0.5f * sinf(pulse_phase_);  // Oscillates between 0.5 and 1.0
+    float pulse_factor = 0.6f + 0.4f * sinf(pulse_phase_);  // Oscillates between 0.6 and 1.0
     float radius = base_radius * pulse_factor;
 
     // Draw the radial gradient circle

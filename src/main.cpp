@@ -71,10 +71,10 @@ GraphTheme createVaporwaveTheme() {
     // Enable pulsing live indicator
     theme.liveIndicatorGradient.center_x = 0.0f;
     theme.liveIndicatorGradient.center_y = 0.0f;
-    theme.liveIndicatorGradient.radius = 3.0f;  // 3% radius
+    theme.liveIndicatorGradient.radius = 4.0f;  // 4% radius (larger)
     theme.liveIndicatorGradient.color_stops[0] = RGB565_WHITE;   // Bright center
     theme.liveIndicatorGradient.color_stops[1] = RGB565_CYAN;    // Cyan edge
-    theme.liveIndicatorPulseSpeed = 2.0f;  // 2 pulses per second
+    theme.liveIndicatorPulseSpeed = 4.0f;  // 4 pulses per second (faster)
 
     return theme;
 }
