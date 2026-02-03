@@ -41,6 +41,9 @@ static Arduino_DataBus *g_bus = nullptr;
 static Arduino_RM67162 *g_gfx = nullptr;
 static bool g_initialized = false;
 
+// Canvas support
+static Arduino_Canvas *g_selected_canvas = nullptr;
+
 /**
  * @brief Send vendor-specific initialization sequence for T-Display S3 AMOLED Plus
  *
@@ -155,7 +158,12 @@ void hal_display_clear(uint16_t color) {
         return;  // Not initialized
     }
 
-    g_gfx->fillScreen(color);
+    // Draw to selected canvas if one is active, otherwise draw to main display
+    if (g_selected_canvas != nullptr) {
+        g_selected_canvas->fillScreen(color);
+    } else {
+        g_gfx->fillScreen(color);
+    }
 }
 
 void hal_display_draw_pixel(int32_t x, int32_t y, uint16_t color) {
@@ -163,16 +171,19 @@ void hal_display_draw_pixel(int32_t x, int32_t y, uint16_t color) {
         return;  // Not initialized
     }
 
+    // Draw to selected canvas if one is active, otherwise draw to main display
+    Arduino_GFX *target = (g_selected_canvas != nullptr) ? g_selected_canvas : g_gfx;
+
     // Get current logical dimensions (accounts for rotation)
-    int32_t width = g_gfx->width();
-    int32_t height = g_gfx->height();
+    int32_t width = target->width();
+    int32_t height = target->height();
 
     // Check bounds using logical dimensions
     if (x < 0 || x >= width || y < 0 || y >= height) {
         return;  // Out of bounds, handle gracefully
     }
 
-    g_gfx->drawPixel(x, y, color);
+    target->drawPixel(x, y, color);
 }
 
 void hal_display_flush(void) {
@@ -212,6 +223,75 @@ void hal_display_set_rotation(int degrees) {
     }
 
     g_gfx->setRotation(rotation_index);
+}
+
+// Canvas-based (Layered) Drawing Implementation
+
+hal_canvas_handle_t hal_display_canvas_create(int16_t width, int16_t height) {
+    if (!g_initialized || g_gfx == nullptr) {
+        return nullptr;  // Display not initialized
+    }
+
+    // Create a new Arduino_Canvas with the specified dimensions
+    // Arduino_Canvas uses the parent's bus for actual drawing operations
+    Arduino_Canvas *canvas = new Arduino_Canvas(width, height, g_gfx);
+    if (!canvas) {
+        return nullptr;  // Memory allocation failed
+    }
+
+    // Initialize the canvas
+    if (!canvas->begin()) {
+        delete canvas;
+        return nullptr;  // Canvas initialization failed
+    }
+
+    return static_cast<hal_canvas_handle_t>(canvas);
+}
+
+void hal_display_canvas_delete(hal_canvas_handle_t canvas) {
+    if (canvas == nullptr) {
+        return;
+    }
+
+    // If this canvas is currently selected, deselect it
+    Arduino_Canvas *canvas_ptr = static_cast<Arduino_Canvas*>(canvas);
+    if (g_selected_canvas == canvas_ptr) {
+        g_selected_canvas = nullptr;
+    }
+
+    delete canvas_ptr;
+}
+
+void hal_display_canvas_select(hal_canvas_handle_t canvas) {
+    // Set the selected canvas (nullptr means main display)
+    g_selected_canvas = static_cast<Arduino_Canvas*>(canvas);
+}
+
+void hal_display_canvas_draw(hal_canvas_handle_t canvas, int32_t x, int32_t y) {
+    if (!g_initialized || g_gfx == nullptr || canvas == nullptr) {
+        return;
+    }
+
+    Arduino_Canvas *canvas_ptr = static_cast<Arduino_Canvas*>(canvas);
+
+    // Use Arduino_GFX's draw16bitBeRGBBitmap to blit the canvas to the display
+    // Get the canvas buffer and dimensions
+    uint16_t *buffer = canvas_ptr->getFramebuffer();
+    int16_t width = canvas_ptr->width();
+    int16_t height = canvas_ptr->height();
+
+    if (buffer != nullptr) {
+        g_gfx->draw16bitBeRGBBitmap(x, y, buffer, width, height);
+    }
+}
+
+void hal_display_canvas_fill(hal_canvas_handle_t canvas, uint16_t color) {
+    if (canvas == nullptr) {
+        return;
+    }
+
+    Arduino_Canvas *canvas_ptr = static_cast<Arduino_Canvas*>(canvas);
+    canvas_ptr->fillScreen(color);
 }
 
 #endif  // !UNIT_TEST

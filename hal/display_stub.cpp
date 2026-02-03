@@ -58,3 +58,29 @@ int32_t hal_display_get_height_pixels(void) {
 void hal_display_set_rotation(int degrees) {
     g_stub_rotation = degrees;
 }
+
+// Canvas stub implementations - return nullptr or do nothing
+hal_canvas_handle_t hal_display_canvas_create(int16_t width, int16_t height) {
+    (void)width;
+    (void)height;
+    return nullptr;  // Stub doesn't support canvas creation
+}
+
+void hal_display_canvas_delete(hal_canvas_handle_t canvas) {
+    (void)canvas;  // Stub doesn't support canvas deletion
+}
+
+void hal_display_canvas_select(hal_canvas_handle_t canvas) {
+    (void)canvas;  // Stub doesn't support canvas selection
+}
+
+void hal_display_canvas_draw(hal_canvas_handle_t canvas, int32_t x, int32_t y) {
+    (void)canvas;
+    (void)x;
+    (void)y;  // Stub doesn't support canvas drawing
+}
+
+void hal_display_canvas_fill(hal_canvas_handle_t canvas, uint16_t color) {
+    (void)canvas;
+    (void)color;  // Stub doesn't support canvas filling
+}

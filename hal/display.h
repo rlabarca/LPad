@@ -80,6 +80,54 @@ int32_t hal_display_get_height_pixels(void);
  */
 void hal_display_set_rotation(int degrees);
 
+// Canvas-based (Layered) Drawing API
+// See features/display_canvas_drawing.md for complete specification
+
+// A handle representing an off-screen drawing surface
+typedef void* hal_canvas_handle_t;
+
+/**
+ * @brief Creates an off-screen drawing canvas.
+ *
+ * @param width The width of the canvas in pixels.
+ * @param height The height of the canvas in pixels.
+ * @return A handle to the created canvas, or nullptr on failure.
+ */
+hal_canvas_handle_t hal_display_canvas_create(int16_t width, int16_t height);
+
+/**
+ * @brief Deletes a canvas and frees its memory.
+ *
+ * @param canvas The handle to the canvas to delete.
+ */
+void hal_display_canvas_delete(hal_canvas_handle_t canvas);
+
+/**
+ * @brief Selects a canvas as the current target for all subsequent drawing operations.
+ *
+ * Pass nullptr to select the main display again.
+ *
+ * @param canvas The handle to the canvas to draw on, or nullptr for the screen.
+ */
+void hal_display_canvas_select(hal_canvas_handle_t canvas);
+
+/**
+ * @brief Draws a canvas onto the main display.
+ *
+ * @param canvas The handle of the canvas to draw.
+ * @param x The destination X-coordinate on the main display.
+ * @param y The destination Y-coordinate on the main display.
+ */
+void hal_display_canvas_draw(hal_canvas_handle_t canvas, int32_t x, int32_t y);
+
+/**
+ * @brief Fills a canvas with a specific color.
+ *
+ * @param canvas The handle of the canvas to clear.
+ * @param color The 16-bit color to fill with.
+ */
+void hal_display_canvas_fill(hal_canvas_handle_t canvas, uint16_t color);
+
 #ifdef __cplusplus
 }
 #endif
