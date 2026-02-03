@@ -33,10 +33,51 @@
 // SPI configuration
 #define LCD_SPI_FREQ    40000000  // 40 MHz for RM67162 SPI mode
 
+// Default brightness level (from vendor initSequence.h)
+#define AMOLED_DEFAULT_BRIGHTNESS  175
+
 // Global hardware objects
 static Arduino_DataBus *g_bus = nullptr;
 static Arduino_RM67162 *g_gfx = nullptr;
 static bool g_initialized = false;
+
+/**
+ * @brief Send vendor-specific initialization sequence for T-Display S3 AMOLED Plus
+ *
+ * The Arduino_RM67162 driver uses a generic initialization, but this hardware
+ * requires additional vendor-specific page register configuration.
+ */
+static void applyVendorInitSequence() {
+    if (!g_bus) return;
+
+    // Vendor-specific initialization sequence (from LilyGo-AMOLED-Series)
+    // These page register writes are required for proper operation
+    g_bus->beginWrite();
+
+    // Page register configuration
+    g_bus->writeC8D8(0xFE, 0x04);  // SET PAGE 3
+    g_bus->writeC8D8(0x6A, 0x00);
+    g_bus->writeC8D8(0xFE, 0x05);  // SET PAGE 4
+    g_bus->writeC8D8(0xFE, 0x07);  // SET PAGE 6
+    g_bus->writeC8D8(0x07, 0x4F);
+    g_bus->writeC8D8(0xFE, 0x01);  // SET PAGE 0
+    g_bus->writeC8D8(0x2A, 0x02);
+    g_bus->writeC8D8(0x2B, 0x73);
+    g_bus->writeC8D8(0xFE, 0x0A);  // SET PAGE 9
+    g_bus->writeC8D8(0x29, 0x10);
+    g_bus->writeC8D8(0xFE, 0x00);  // SET PAGE 0
+
+    // Display control
+    g_bus->writeC8D8(0x51, AMOLED_DEFAULT_BRIGHTNESS);  // Write Display Brightness
+    g_bus->writeC8D8(0x53, 0x20);  // Write CTRL Display
+    g_bus->writeC8D8(0x35, 0x00);  // Tearing Effect Line ON
+    g_bus->writeC8D8(0xC4, 0x80);
+
+    g_bus->endWrite();
+
+    // Delays as per vendor sequence
+    delay(120);
+}
 
 bool hal_display_init(void) {
     if (g_initialized) {
@@ -76,9 +117,15 @@ bool hal_display_init(void) {
         return false;  // Memory allocation failed
     }
 
-    // Initialize display controller
+    // Initialize display controller with standard Arduino_RM67162 sequence
     if (!g_gfx->begin(LCD_SPI_FREQ)) {
         return false;  // Display initialization failed
+    }
+
+    // Apply vendor-specific initialization required for this hardware
+    // Retry twice to prevent initialization failure (per vendor code)
+    for (int retry = 0; retry < 2; retry++) {
+        applyVendorInitSequence();
     }
 
     g_initialized = true;
