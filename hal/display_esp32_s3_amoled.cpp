@@ -192,19 +192,30 @@ hal_canvas_handle_t hal_display_canvas_create(int16_t width, int16_t height) {
         return nullptr;  // Display not initialized
     }
 
+#ifdef BOARD_HAS_PSRAM
+    // Log PSRAM availability
+    Serial.printf("[HAL] PSRAM available: %d bytes free\n", ESP.getFreePsram());
+    Serial.printf("[HAL] Regular heap available: %d bytes free\n", ESP.getFreeHeap());
+    Serial.printf("[HAL] Attempting to create canvas: %d x %d (%d bytes)\n",
+                  width, height, width * height * 2);
+#endif
+
     // Create a new Arduino_Canvas with the specified dimensions
     // Arduino_Canvas uses the parent's bus for actual drawing operations
     Arduino_Canvas *canvas = new Arduino_Canvas(width, height, g_gfx);
     if (!canvas) {
+        Serial.println("[HAL] Canvas object allocation failed");
         return nullptr;  // Memory allocation failed
     }
 
     // Initialize the canvas, skip parent display reinitialization
     if (!canvas->begin(GFX_SKIP_OUTPUT_BEGIN)) {
+        Serial.println("[HAL] Canvas begin() failed");
         delete canvas;
         return nullptr;  // Canvas initialization failed
     }
 
+    Serial.println("[HAL] Canvas created successfully");
     return static_cast<hal_canvas_handle_t>(canvas);
 }
 
