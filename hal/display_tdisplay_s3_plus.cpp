@@ -50,12 +50,15 @@ bool hal_display_init(void) {
 
     // Create SPI bus for display communication
     // Arduino_ESP32SPI(dc, cs, sck, mosi, miso, spi_num, is_shared_interface)
+    // Note: Using HSPI (SPI2) to match the original implementation
     g_bus = new Arduino_ESP32SPI(
         LCD_DC /* DC */,
         LCD_CS /* CS */,
         LCD_SCK /* SCK */,
         LCD_MOSI /* MOSI */,
-        GFX_NOT_DEFINED /* MISO */
+        GFX_NOT_DEFINED /* MISO */,
+        HSPI /* spi_num */,
+        true /* is_shared_interface */
     );
 
     if (!g_bus) {
@@ -79,6 +82,9 @@ bool hal_display_init(void) {
     if (!g_gfx->begin(LCD_SPI_FREQ)) {
         return false;  // Display initialization failed
     }
+
+    // Set maximum brightness
+    g_gfx->setBrightness(255);
 
     g_initialized = true;
     return true;
