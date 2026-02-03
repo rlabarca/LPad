@@ -34,10 +34,28 @@ const char* BOND_DATA_JSON = R"({"chart":{"result":[{"meta":{"currency":"USD","s
 
 // Create vaporwave theme for bond tracker
 GraphTheme createVaporwaveTheme() {
-    GraphTheme theme;
+    GraphTheme theme = {};  // Zero-initialize all fields
+
+    // Basic colors
     theme.backgroundColor = RGB565_DARK_PURPLE;
     theme.lineColor = RGB565_CYAN;
     theme.axisColor = RGB565_MAGENTA;
+
+    // Disable gradients (use solid colors)
+    theme.useBackgroundGradient = false;
+    theme.useLineGradient = false;
+
+    // Set line and axis thickness for smooth rendering
+    theme.lineThickness = 0.5f;  // 0.5% thickness for smooth lines
+    theme.axisThickness = 0.3f;  // 0.3% thickness for axes
+
+    // Tick marks (optional - set to 0 to disable)
+    theme.tickColor = RGB565_MAGENTA;
+    theme.tickLength = 0.0f;  // No ticks by default
+
+    // Live indicator (disabled for static display)
+    theme.liveIndicatorPulseSpeed = 0.0f;
+
     return theme;
 }
 
