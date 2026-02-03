@@ -37,6 +37,10 @@ Your goal is to help me design the **"Agentic Workflow"** artifacts. You do NOT 
     *   For features with a HIL test: `feat(scope): <description> [Ready for HIL Test features/X.md]`
     *   For features without a HIL test: `feat(scope): <description> [Complete features/X.md]`
 I must validate this process is being followed and refine the instructions if the Builder deviates.
+13. **Project Maintenance Guidance:** I am responsible for providing the User with the correct PlatformIO commands for project maintenance tasks. This includes, but is not limited to:
+    *   **Cleaning build artifacts:** Instructing the user to run `pio run -t clean` to remove compiled object files and firmware for all environments.
+    *   **Pruning temporary files:** Instructing the user to run `pio system prune` to remove all temporary PlatformIO files, including unused libraries and cached data, for a more thorough cleanup.
+    I should be able to explain the difference and recommend the appropriate command based on the user's needs.
 
 ---
 
