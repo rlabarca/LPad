@@ -53,39 +53,29 @@ while true; do
             [ -e "$f" ] || continue
             fname=$(basename "$f")
             
-            is_done=false
-            is_testing=false
-
-            # --- New, more robust status detection logic ---
-
-            # Check for a "Complete" commit
+            # --- New, Simpler, More Robust Logic ---
             complete_commit=$(git log -1 --grep="\[Complete features/$fname\]" --format=%H)
+            test_commit=$(git log -1 --grep="\[Ready for HIL Test features/$fname\]" --format=%H)
+            file_timestamp=$(git log -1 --format=%ct -- "$f")
+
+            # Case 1: The feature has a "Complete" commit.
             if [ -n "$complete_commit" ]; then
                 complete_timestamp=$(git show -s --format=%ct $complete_commit)
-                file_timestamp=$(git log -1 --format=%ct -- "$f")
-                # If the completion commit is NOT older than the file's last change, it's DONE
                 if [ "$file_timestamp" -le "$complete_timestamp" ]; then
-                    is_done=true
                     done_features+=("$complete_timestamp:$fname")
+                else
+                    todo_features+=("$fname") # It was done, but is now modified -> TODO
                 fi
-            fi
-
-            # If not done, check for a "Ready for HIL Test" commit
-            if [ "$is_done" = false ]; then
-                test_commit=$(git log -1 --grep="\[Ready for HIL Test features/$fname\]" --format=%H)
-                if [ -n "$test_commit" ]; then
-                    test_timestamp=$(git show -s --format=%ct $test_commit)
-                    file_timestamp=$(git log -1 --format=%ct -- "$f")
-                    # If the test commit is NOT older than the file's last change, it's TESTING
-                    if [ "$file_timestamp" -le "$test_timestamp" ]; then
-                        is_testing=true
-                        testing_features+=("$fname")
-                    fi
+            # Case 2: No "Complete" commit, but has a "Testing" commit.
+            elif [ -n "$test_commit" ]; then
+                test_timestamp=$(git show -s --format=%ct $test_commit)
+                if [ "$file_timestamp" -le "$test_timestamp" ]; then
+                    testing_features+=("$fname")
+                else
+                    todo_features+=("$fname") # It was testing, but is now modified -> TODO
                 fi
-            fi
-
-            # If neither DONE nor TESTING, it must be TODO
-            if [ "$is_done" = false ] && [ "$is_testing" = false ]; then
+            # Case 3: No status commits found. It's new.
+            else
                 todo_features+=("$fname")
             fi
             # --- End of new logic ---
