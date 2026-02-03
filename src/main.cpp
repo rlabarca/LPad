@@ -235,17 +235,6 @@ void setup() {
     Serial.println("  Re-selecting main display...");
     hal_display_canvas_select(nullptr);
     Serial.println("  [PASS] Main display selected");
-
-    // Blit canvas to main display at (0, 0)
-    Serial.println("  Blitting canvas to display at (0, 0)...");
-    unsigned long blitStart = millis();
-    hal_display_canvas_draw(g_graph_canvas, 0, 0);
-    unsigned long blitEnd = millis();
-    Serial.printf("  [TIME] Blit took %lu ms\n", blitEnd - blitStart);
-
-    hal_display_flush();
-
-    Serial.println("  [PASS] Canvas drawn to display");
     Serial.println();
 
     // Note: Canvas is kept alive for animation loop
