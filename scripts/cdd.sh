@@ -53,32 +53,42 @@ while true; do
             [ -e "$f" ] || continue
             fname=$(basename "$f")
             
-            # --- New, Simpler, More Robust Logic ---
+            # --- Final, Corrected Logic ---
+            
+            # Find the latest of each type of status commit
             complete_commit=$(git log -1 --grep="\[Complete features/$fname\]" --format=%H)
             test_commit=$(git log -1 --grep="\[Ready for HIL Test features/$fname\]" --format=%H)
+
+            # Get their timestamps (0 if not found)
+            complete_timestamp=0
+            [ -n "$complete_commit" ] && complete_timestamp=$(git show -s --format=%ct $complete_commit)
+
+            test_timestamp=0
+            [ -n "$test_commit" ] && test_timestamp=$(git show -s --format=%ct $test_commit)
+            
+            # Get the file's last modification timestamp
             file_timestamp=$(git log -1 --format=%ct -- "$f")
 
-            # Case 1: The feature has a "Complete" commit.
-            if [ -n "$complete_commit" ]; then
-                complete_timestamp=$(git show -s --format=%ct $complete_commit)
+            # Determine the LATEST status and compare
+            if [ "$complete_timestamp" -gt "$test_timestamp" ]; then
+                # Complete is the latest status
                 if [ "$file_timestamp" -le "$complete_timestamp" ]; then
                     done_features+=("$complete_timestamp:$fname")
                 else
-                    todo_features+=("$fname") # It was done, but is now modified -> TODO
+                    todo_features+=("$fname")
                 fi
-            # Case 2: No "Complete" commit, but has a "Testing" commit.
-            elif [ -n "$test_commit" ]; then
-                test_timestamp=$(git show -s --format=%ct $test_commit)
+            elif [ "$test_timestamp" -gt 0 ]; then
+                # Testing is the latest status (or they are equal, and we prefer Testing)
                 if [ "$file_timestamp" -le "$test_timestamp" ]; then
                     testing_features+=("$fname")
                 else
-                    todo_features+=("$fname") # It was testing, but is now modified -> TODO
+                    todo_features+=("$fname")
                 fi
-            # Case 3: No status commits found. It's new.
             else
+                # No status commits found
                 todo_features+=("$fname")
             fi
-            # --- End of new logic ---
+            # --- End of Final, Corrected Logic ---
         done
 
         # Print all testing and todo features, which are always visible
