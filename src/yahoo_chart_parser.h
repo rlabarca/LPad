@@ -33,10 +33,17 @@ public:
     explicit YahooChartParser(const std::string& filePath);
 
     /**
-     * @brief Parses the JSON data and extracts time-series information
+     * @brief Parses the JSON data from file and extracts time-series information
      * @return true if parsing succeeded, false on error (file not found, invalid JSON, etc.)
      */
     bool parse();
+
+    /**
+     * @brief Parses JSON data from a string buffer
+     * @param jsonString The JSON string to parse
+     * @return true if parsing succeeded, false on error (invalid JSON, etc.)
+     */
+    bool parseFromString(const std::string& jsonString);
 
     /**
      * @brief Gets the extracted timestamps

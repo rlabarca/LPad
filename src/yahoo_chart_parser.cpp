@@ -12,27 +12,14 @@ YahooChartParser::YahooChartParser(const std::string& filePath)
     : filePath_(filePath) {
 }
 
-bool YahooChartParser::parse() {
+bool YahooChartParser::parseFromString(const std::string& jsonString) {
     // Clear any previous data
     timestamps_.clear();
     closePrices_.clear();
 
-    // Read the file
-    std::ifstream file(filePath_);
-    if (!file.is_open()) {
-        return false;
-    }
-
-    // Read file content into string
-    std::stringstream buffer;
-    buffer << file.rdbuf();
-    file.close();
-
-    std::string jsonContent = buffer.str();
-
     // Parse JSON using ArduinoJson
     JsonDocument doc;
-    DeserializationError error = deserializeJson(doc, jsonContent);
+    DeserializationError error = deserializeJson(doc, jsonString);
 
     if (error) {
         return false;
@@ -101,6 +88,24 @@ bool YahooChartParser::parse() {
     }
 
     return true;
+}
+
+bool YahooChartParser::parse() {
+    // Read the file
+    std::ifstream file(filePath_);
+    if (!file.is_open()) {
+        return false;
+    }
+
+    // Read file content into string
+    std::stringstream buffer;
+    buffer << file.rdbuf();
+    file.close();
+
+    std::string jsonContent = buffer.str();
+
+    // Use the string parsing method
+    return parseFromString(jsonContent);
 }
 
 const std::vector<long>& YahooChartParser::getTimestamps() const {
