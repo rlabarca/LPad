@@ -224,12 +224,46 @@ void display_relative_fill_rect_gradient(float x_percent, float y_percent, float
     int32_t x_end_pixel = x_start_pixel + width_pixels;
     int32_t y_end_pixel = y_start_pixel + height_pixels;
 
-    // Compute gradient direction based on angle
+    // Optimization: For horizontal/vertical gradients, pre-compute colors
     float angle_rad = gradient.angle_deg * M_PI / 180.0f;
     float dx = cosf(angle_rad);
     float dy = sinf(angle_rad);
 
-    // For each pixel, compute gradient position
+    // Check if gradient is horizontal (within 5 degrees of 0)
+    if (fabsf(gradient.angle_deg) < 5.0f || fabsf(gradient.angle_deg - 360.0f) < 5.0f) {
+        // Horizontal gradient - pre-compute one row
+        uint16_t* row_colors = new uint16_t[width_pixels];
+        for (int32_t i = 0; i < width_pixels; i++) {
+            float t = (float)i / (float)(width_pixels - 1);
+            row_colors[i] = get_gradient_color(gradient, t);
+        }
+
+        // Draw all rows with the same colors
+        for (int32_t y = y_start_pixel; y < y_end_pixel; y++) {
+            for (int32_t x = 0; x < width_pixels; x++) {
+                hal_display_draw_pixel(x_start_pixel + x, y, row_colors[x]);
+            }
+        }
+        delete[] row_colors;
+        return;
+    }
+
+    // Check if gradient is vertical (within 5 degrees of 90 or 270)
+    if (fabsf(gradient.angle_deg - 90.0f) < 5.0f || fabsf(gradient.angle_deg - 270.0f) < 5.0f) {
+        // Vertical gradient - draw row by row with pre-computed color
+        for (int32_t y = y_start_pixel; y < y_end_pixel; y++) {
+            float t = (float)(y - y_start_pixel) / (float)(height_pixels - 1);
+            if (gradient.angle_deg > 180.0f) t = 1.0f - t;  // Flip for 270°
+
+            uint16_t color = get_gradient_color(gradient, t);
+            for (int32_t x = x_start_pixel; x < x_end_pixel; x++) {
+                hal_display_draw_pixel(x, y, color);
+            }
+        }
+        return;
+    }
+
+    // General case for other angles (slower)
     for (int32_t y = y_start_pixel; y < y_end_pixel; y++) {
         for (int32_t x = x_start_pixel; x < x_end_pixel; x++) {
             // Compute relative position in rectangle (0 to 1)
