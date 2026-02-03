@@ -29,7 +29,7 @@ A struct or class to hold the data to be plotted.
 **And** a `GraphTheme` is defined with "vaporwave" colors (e.g., background: dark purple, line: cyan, labels: magenta).
 **When** a `TimeSeriesGraph` is initialized with the `RelativeDisplay` instance and the `GraphTheme`.
 **And** the graph's `draw()` method is called without any data.
-**Then** the screen should be cleared to the theme's `backgroundColor`.
+**Then** the graph's drawing area should be filled with the theme's `backgroundColor`.
 **And** the X and Y axes should be drawn using the theme's `axisColor`.
 
 ## Scenario: Drawing a graph with data
@@ -53,6 +53,6 @@ A struct or class to hold the data to be plotted.
 ## Implementation Notes
 
 - The `TimeSeriesGraph` should be implemented in its own module (e.g., `src/ui_time_series_graph.h`, `src/ui_time_series_graph.cpp`).
-- The component must rely exclusively on the `RelativeDisplay` for all drawing operations (`draw_line`, `fill_rect`, `print_text`, etc.).
+- The component must rely exclusively on the `RelativeDisplay` for all drawing operations (`draw_line`, `fill_rect`, `print_text`, etc.). **This ensures that it draws to the currently active HAL target (which could be the main display or an off-screen canvas).**
 - The "vaporwave" theme should be the default or an easily selectable configuration.
 - The component should internally manage the mapping of data coordinates (e.g., timestamps, prices) to the relative screen coordinates provided by `RelativeDisplay`.
