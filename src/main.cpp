@@ -66,7 +66,7 @@ GraphTheme createVaporwaveTheme() {
 
     // Enable tick marks on Y-axis
     theme.tickColor = RGB565_WHITE;  // Bright white for visibility
-    theme.tickLength = 8.0f;  // 8% tick length (very long, very visible)
+    theme.tickLength = 2.5f;  // 2.5% tick length (short, subtle)
 
     // Enable pulsing live indicator
     theme.liveIndicatorGradient.center_x = 0.0f;
@@ -234,10 +234,11 @@ void loop() {
         // Update animation state
         g_graph->update(deltaTime);
 
-        // Redraw ONLY the indicator (not the entire line - avoids flickering)
-        g_graph->updateIndicator();
+        // Must redraw entire data layer to properly clear old indicator
+        // (slight flickering is unavoidable without clipping/layering support)
+        g_graph->drawData();
         hal_display_flush();
     }
 
-    delay(30);  // ~33 FPS for smoother animation
+    delay(50);  // ~20 FPS (slower to reduce flickering)
 }
