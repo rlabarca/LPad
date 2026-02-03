@@ -56,4 +56,5 @@ This dependency-driven prompting ensures the project is built layer by layer, in
 - A multi-target HAL architecture is in place for the display.
 - A higher-level "Relative Drawing" abstraction layer has been designed to sit on top of the HAL, providing resolution-independent drawing primitives.
 - The Builder's instructions (`CLAUDE.md`) are updated with rules to enforce this layered architecture.
+- The 10Y Treasury Bond Tracker application, including data parsing and time series graph UI, has been implemented.
 - This `GEMINI_ARCHITECT.md` file is up-to-date with the current project state and bootstrap protocol.
