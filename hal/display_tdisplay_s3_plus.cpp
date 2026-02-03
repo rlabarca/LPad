@@ -241,8 +241,8 @@ hal_canvas_handle_t hal_display_canvas_create(int16_t width, int16_t height) {
         return nullptr;  // Memory allocation failed
     }
 
-    // Initialize the canvas
-    if (!canvas->begin()) {
+    // Initialize the canvas, skip parent display reinitialization
+    if (!canvas->begin(GFX_SKIP_OUTPUT_BEGIN)) {
         delete canvas;
         return nullptr;  // Canvas initialization failed
     }
