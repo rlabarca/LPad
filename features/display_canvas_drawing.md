@@ -75,7 +75,7 @@ The new canvas functions must be implemented in all concrete HAL files that use 
 *   **And:** `hal_display_canvas_draw` should call the main `g_gfx->draw16bitBeRGBBitmap()` method to blit the canvas to the screen.
 *   **And:** `hal_display_canvas_fill` should call the canvas object's `fillScreen()` method.
 
-## 3. Testing Scenarios
+## 3. Unit Test
 
 **Scenario: Drawing to a Canvas**
 *   **Given:** A new test environment in `test/test_display_canvas/`.
@@ -87,3 +87,19 @@ The new canvas functions must be implemented in all concrete HAL files that use 
 *   **And:** The canvas is drawn to the screen at `(20, 20)` with `hal_display_canvas_draw()`.
 *   **Then:** A pixel should be visible on the main display at coordinates `(30, 30)`.
 *   **And:** The test should pass.
+
+## 4. Hardware (HIL) Test
+
+To verify this feature on the device, the Builder must temporarily modify `src/main.cpp` to run a visual demonstration.
+
+**Scenario: Visual Confirmation of Canvas Layering**
+*   **Given:** The `setup()` function in `src/main.cpp`.
+*   **When:** The agent modifies the file for a HIL test.
+*   **Then:** The `setup()` function must be modified to:
+    1. Initialize the display.
+    2. Create a 100x100 pixel canvas (`bg_canvas`) and fill it with blue.
+    3. Create a 40x40 pixel canvas (`fg_canvas`) and fill it with red.
+    4. Draw `bg_canvas` to the screen at coordinates (50, 50).
+    5. Draw `fg_canvas` to the screen at coordinates (80, 80), so it overlaps the background canvas.
+    6. Clean up by deleting both canvases.
+*   **And:** The `loop()` function should be empty.
