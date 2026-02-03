@@ -46,8 +46,9 @@ GraphTheme createVaporwaveTheme() {
     theme.useLineGradient = false;
 
     // Set line and axis thickness for smooth rendering
-    theme.lineThickness = 0.5f;  // 0.5% thickness for smooth lines
-    theme.axisThickness = 0.3f;  // 0.3% thickness for axes
+    // For T-Display (240x536, avg=388px): 2% = ~8 pixels for smooth anti-aliased lines
+    theme.lineThickness = 2.0f;  // 2% thickness for smooth, visible lines
+    theme.axisThickness = 0.8f;  // 0.8% thickness for axes (~3 pixels)
 
     // Tick marks (optional - set to 0 to disable)
     theme.tickColor = RGB565_MAGENTA;
@@ -136,6 +137,14 @@ void setup() {
     Serial.println("  Theme: Vaporwave (Dark Purple, Cyan, Magenta)");
 
     GraphTheme theme = createVaporwaveTheme();
+
+    // Debug: Print theme colors
+    Serial.printf("  [DEBUG] Background Color: 0x%04X (Dark Purple)\n", theme.backgroundColor);
+    Serial.printf("  [DEBUG] Line Color: 0x%04X (should be Cyan 0x07FF)\n", theme.lineColor);
+    Serial.printf("  [DEBUG] Axis Color: 0x%04X (should be Magenta 0xF81F)\n", theme.axisColor);
+    Serial.printf("  [DEBUG] Line Thickness: %.2f%%\n", theme.lineThickness);
+    Serial.printf("  [DEBUG] Axis Thickness: %.2f%%\n", theme.axisThickness);
+
     TimeSeriesGraph graph(theme);
 
     Serial.println("  [PASS] Graph created");
