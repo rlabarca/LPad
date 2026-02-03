@@ -3,31 +3,67 @@
  * @brief Implementation of UI Time Series Graph Component
  */
 
+#define _USE_MATH_DEFINES
 #include "ui_time_series_graph.h"
 #include "relative_display.h"
 #include <algorithm>
 #include <cmath>
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
 TimeSeriesGraph::TimeSeriesGraph(const GraphTheme& theme)
-    : theme_(theme) {
+    : theme_(theme), pulse_phase_(0.0f), y_tick_increment_(0.0f),
+      cached_y_min_(0.0), cached_y_max_(0.0), range_cached_(false) {
 }
 
 void TimeSeriesGraph::setData(const GraphData& data) {
     data_ = data;
+    range_cached_ = false;  // Invalidate cached range when data changes
+}
+
+void TimeSeriesGraph::setYTicks(float increment) {
+    y_tick_increment_ = increment;
 }
 
 void TimeSeriesGraph::draw() {
     drawBackground();
-    drawAxes();
-
-    if (!data_.y_values.empty()) {
-        drawDataLine();
-    }
+    drawData();
 }
 
 void TimeSeriesGraph::drawBackground() {
-    // Fill entire screen with background color
-    display_relative_fill_rectangle(0.0f, 0.0f, 100.0f, 100.0f, theme_.backgroundColor);
+    // Fill entire screen with background color or gradient
+    if (theme_.useBackgroundGradient) {
+        display_relative_fill_rect_gradient(0.0f, 0.0f, 100.0f, 100.0f, theme_.backgroundGradient);
+    } else {
+        display_relative_fill_rectangle(0.0f, 0.0f, 100.0f, 100.0f, theme_.backgroundColor);
+    }
+
+    // Draw axes
+    drawAxes();
+
+    // Draw ticks if enabled
+    if (y_tick_increment_ > 0.0f) {
+        drawYTicks();
+    }
+}
+
+void TimeSeriesGraph::drawData() {
+    if (!data_.y_values.empty()) {
+        drawDataLine();
+        drawLiveIndicator();
+    }
+}
+
+void TimeSeriesGraph::update(float deltaTime) {
+    // Update pulse animation phase
+    pulse_phase_ += deltaTime * theme_.liveIndicatorPulseSpeed * 2.0f * M_PI;
+
+    // Keep phase in range [0, 2*PI]
+    while (pulse_phase_ >= 2.0f * M_PI) {
+        pulse_phase_ -= 2.0f * M_PI;
+    }
 }
 
 void TimeSeriesGraph::drawAxes() {
@@ -37,11 +73,63 @@ void TimeSeriesGraph::drawAxes() {
     float y_min = GRAPH_MARGIN_TOP;
     float y_max = 100.0f - GRAPH_MARGIN_BOTTOM;
 
-    // Draw Y-axis (left edge of graph area)
-    display_relative_draw_vertical_line(x_min, y_min, y_max, theme_.axisColor);
+    // Draw axes with thickness if specified
+    if (theme_.axisThickness > 0.0f) {
+        // Draw Y-axis (vertical line at left edge)
+        display_relative_draw_line_thick(x_min, y_min, x_min, y_max, theme_.axisThickness, theme_.axisColor);
 
-    // Draw X-axis (bottom edge of graph area)
-    display_relative_draw_horizontal_line(y_max, x_min, x_max, theme_.axisColor);
+        // Draw X-axis (horizontal line at bottom)
+        display_relative_draw_line_thick(x_min, y_max, x_max, y_max, theme_.axisThickness, theme_.axisColor);
+    } else {
+        // Fallback to thin lines
+        display_relative_draw_vertical_line(x_min, y_min, y_max, theme_.axisColor);
+        display_relative_draw_horizontal_line(y_max, x_min, x_max, theme_.axisColor);
+    }
+}
+
+void TimeSeriesGraph::drawYTicks() {
+    if (data_.y_values.empty() || y_tick_increment_ <= 0.0f) {
+        return;
+    }
+
+    // Use cached range if available, otherwise calculate it
+    double y_min, y_max;
+    if (range_cached_) {
+        y_min = cached_y_min_;
+        y_max = cached_y_max_;
+    } else {
+        y_min = *std::min_element(data_.y_values.begin(), data_.y_values.end());
+        y_max = *std::max_element(data_.y_values.begin(), data_.y_values.end());
+
+        // Add padding
+        if (std::abs(y_max - y_min) < 0.001) {
+            y_min -= 1.0;
+            y_max += 1.0;
+        }
+
+        cached_y_min_ = y_min;
+        cached_y_max_ = y_max;
+        range_cached_ = true;
+    }
+
+    // Calculate graph area boundaries
+    float x_axis = GRAPH_MARGIN_LEFT;
+    float tick_end = x_axis + theme_.tickLength;
+
+    // Draw tick marks
+    double tick_value = ceil(y_min / y_tick_increment_) * y_tick_increment_;
+    while (tick_value <= y_max) {
+        float y_screen = mapYToScreen(tick_value, y_min, y_max);
+
+        // Draw tick mark
+        if (theme_.axisThickness > 0.0f) {
+            display_relative_draw_line_thick(x_axis, y_screen, tick_end, y_screen, theme_.axisThickness, theme_.tickColor);
+        } else {
+            display_relative_draw_horizontal_line(y_screen, x_axis, tick_end, theme_.tickColor);
+        }
+
+        tick_value += y_tick_increment_;
+    }
 }
 
 void TimeSeriesGraph::drawDataLine() {
@@ -53,20 +141,35 @@ void TimeSeriesGraph::drawDataLine() {
             float y = GRAPH_MARGIN_TOP + (100.0f - GRAPH_MARGIN_TOP - GRAPH_MARGIN_BOTTOM) / 2.0f;
 
             // Draw a small cross as a marker
-            display_relative_draw_horizontal_line(y, x - 1.0f, x + 1.0f, theme_.lineColor);
-            display_relative_draw_vertical_line(x, y - 1.0f, y + 1.0f, theme_.lineColor);
+            if (theme_.lineThickness > 0.0f) {
+                display_relative_draw_line_thick(x - 1.0f, y, x + 1.0f, y, theme_.lineThickness, theme_.lineColor);
+                display_relative_draw_line_thick(x, y - 1.0f, x, y + 1.0f, theme_.lineThickness, theme_.lineColor);
+            } else {
+                display_relative_draw_horizontal_line(y, x - 1.0f, x + 1.0f, theme_.lineColor);
+                display_relative_draw_vertical_line(x, y - 1.0f, y + 1.0f, theme_.lineColor);
+            }
         }
         return;
     }
 
-    // Find min and max Y values for scaling
-    double y_min = *std::min_element(data_.y_values.begin(), data_.y_values.end());
-    double y_max = *std::max_element(data_.y_values.begin(), data_.y_values.end());
+    // Calculate or use cached Y range
+    double y_min, y_max;
+    if (range_cached_) {
+        y_min = cached_y_min_;
+        y_max = cached_y_max_;
+    } else {
+        y_min = *std::min_element(data_.y_values.begin(), data_.y_values.end());
+        y_max = *std::max_element(data_.y_values.begin(), data_.y_values.end());
 
-    // Add small padding to avoid edge cases when all values are the same
-    if (std::abs(y_max - y_min) < 0.001) {
-        y_min -= 1.0;
-        y_max += 1.0;
+        // Add small padding to avoid edge cases when all values are the same
+        if (std::abs(y_max - y_min) < 0.001) {
+            y_min -= 1.0;
+            y_max += 1.0;
+        }
+
+        cached_y_min_ = y_min;
+        cached_y_max_ = y_max;
+        range_cached_ = true;
     }
 
     size_t point_count = data_.y_values.size();
@@ -79,22 +182,68 @@ void TimeSeriesGraph::drawDataLine() {
         float x2 = mapXToScreen(i + 1, point_count);
         float y2 = mapYToScreen(data_.y_values[i + 1], y_min, y_max);
 
-        // Draw line segment using multiple pixel draws for better visibility
-        // Calculate the number of steps based on distance
-        float dx = x2 - x1;
-        float dy = y2 - y1;
-        float distance = std::sqrt(dx * dx + dy * dy);
-        int steps = static_cast<int>(distance * 5.0f); // 5 pixels per percentage unit
+        // Draw with thickness and gradient if enabled
+        if (theme_.lineThickness > 0.0f) {
+            if (theme_.useLineGradient) {
+                display_relative_draw_line_thick_gradient(x1, y1, x2, y2, theme_.lineThickness, theme_.lineGradient);
+            } else {
+                display_relative_draw_line_thick(x1, y1, x2, y2, theme_.lineThickness, theme_.lineColor);
+            }
+        } else {
+            // Fallback to thin line (pixel by pixel)
+            float dx = x2 - x1;
+            float dy = y2 - y1;
+            float distance = std::sqrt(dx * dx + dy * dy);
+            int steps = static_cast<int>(distance * 5.0f);
 
-        if (steps < 2) steps = 2;
+            if (steps < 2) steps = 2;
 
-        for (int step = 0; step <= steps; step++) {
-            float t = static_cast<float>(step) / static_cast<float>(steps);
-            float x = x1 + t * (x2 - x1);
-            float y = y1 + t * (y2 - y1);
-            display_relative_draw_pixel(x, y, theme_.lineColor);
+            for (int step = 0; step <= steps; step++) {
+                float t = static_cast<float>(step) / static_cast<float>(steps);
+                float x = x1 + t * (x2 - x1);
+                float y = y1 + t * (y2 - y1);
+                display_relative_draw_pixel(x, y, theme_.lineColor);
+            }
         }
     }
+}
+
+void TimeSeriesGraph::drawLiveIndicator() {
+    if (data_.y_values.empty()) {
+        return;
+    }
+
+    // Calculate or use cached Y range
+    double y_min, y_max;
+    if (range_cached_) {
+        y_min = cached_y_min_;
+        y_max = cached_y_max_;
+    } else {
+        y_min = *std::min_element(data_.y_values.begin(), data_.y_values.end());
+        y_max = *std::max_element(data_.y_values.begin(), data_.y_values.end());
+
+        if (std::abs(y_max - y_min) < 0.001) {
+            y_min -= 1.0;
+            y_max += 1.0;
+        }
+
+        cached_y_min_ = y_min;
+        cached_y_max_ = y_max;
+        range_cached_ = true;
+    }
+
+    // Get the last data point
+    size_t last_index = data_.y_values.size() - 1;
+    float x = mapXToScreen(last_index, data_.y_values.size());
+    float y = mapYToScreen(data_.y_values[last_index], y_min, y_max);
+
+    // Calculate pulsing radius using sine wave
+    float base_radius = theme_.liveIndicatorGradient.radius;
+    float pulse_factor = 0.5f + 0.5f * sinf(pulse_phase_);  // Oscillates between 0.5 and 1.0
+    float radius = base_radius * pulse_factor;
+
+    // Draw the radial gradient circle
+    display_relative_fill_circle_gradient(x, y, radius, theme_.liveIndicatorGradient);
 }
 
 float TimeSeriesGraph::mapYToScreen(double y_value, double y_min, double y_max) {

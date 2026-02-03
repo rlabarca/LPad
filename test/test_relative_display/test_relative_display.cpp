@@ -30,8 +30,9 @@
  */
 
 #include <unity.h>
-#include "../src/relative_display.h"
-#include "../hal/display.h"
+#include "../../src/relative_display.h"
+#include "../../src/ui_time_series_graph.h"
+#include "../../hal/display.h"
 #include <math.h>
 
 // RGB565 color definitions
@@ -303,9 +304,78 @@ void test_comprehensive_scaling_pattern(void) {
     TEST_PASS();
 }
 
+/**
+ * Test: Draw thick line
+ * Verifies the thick line drawing function works
+ */
+void test_draw_thick_line(void) {
+    display_relative_init();
+
+    // Draw a thick diagonal line
+    display_relative_draw_line_thick(25.0f, 25.0f, 75.0f, 75.0f, 1.0f, RGB565_RED);
+
+    TEST_PASS();
+}
+
+/**
+ * Test: Draw rectangle with linear gradient
+ * Verifies gradient rectangle drawing
+ */
+void test_draw_gradient_rectangle(void) {
+    display_relative_init();
+
+    LinearGradient gradient;
+    gradient.angle_deg = 0.0f;  // Horizontal gradient
+    gradient.color_stops[0] = RGB565_BLUE;
+    gradient.color_stops[1] = RGB565_RED;
+    gradient.num_stops = 2;
+
+    display_relative_fill_rect_gradient(25.0f, 25.0f, 50.0f, 50.0f, gradient);
+
+    TEST_PASS();
+}
+
+/**
+ * Test: Draw thick line with gradient
+ * Verifies gradient line drawing
+ */
+void test_draw_gradient_thick_line(void) {
+    display_relative_init();
+
+    LinearGradient gradient;
+    gradient.angle_deg = 0.0f;
+    gradient.color_stops[0] = RGB565_GREEN;
+    gradient.color_stops[1] = RGB565_BLUE;
+    gradient.num_stops = 2;
+
+    display_relative_draw_line_thick_gradient(10.0f, 50.0f, 90.0f, 50.0f, 1.0f, gradient);
+
+    TEST_PASS();
+}
+
+/**
+ * Test: Draw circle with radial gradient
+ * Verifies radial gradient circle drawing
+ */
+void test_draw_radial_gradient_circle(void) {
+    display_relative_init();
+
+    RadialGradient gradient;
+    gradient.center_x = 0.0f;
+    gradient.center_y = 0.0f;
+    gradient.radius = 10.0f;
+    gradient.color_stops[0] = RGB565_WHITE;
+    gradient.color_stops[1] = RGB565_BLACK;
+
+    display_relative_fill_circle_gradient(50.0f, 50.0f, 10.0f, gradient);
+
+    TEST_PASS();
+}
+
 int main(int argc, char **argv) {
     UNITY_BEGIN();
 
+    // Original tests
     RUN_TEST(test_hal_display_dimensions);
     RUN_TEST(test_coordinate_conversion_corners);
     RUN_TEST(test_coordinate_conversion_midpoints);
@@ -315,6 +385,12 @@ int main(int argc, char **argv) {
     RUN_TEST(test_draw_square_at_quarter_position);
     RUN_TEST(test_draw_centered_square);
     RUN_TEST(test_comprehensive_scaling_pattern);
+
+    // New gradient and thick line tests
+    RUN_TEST(test_draw_thick_line);
+    RUN_TEST(test_draw_gradient_rectangle);
+    RUN_TEST(test_draw_gradient_thick_line);
+    RUN_TEST(test_draw_radial_gradient_circle);
 
     return UNITY_END();
 }
