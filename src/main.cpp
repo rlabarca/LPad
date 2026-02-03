@@ -268,6 +268,9 @@ void loop() {
         // Update animation state
         g_graph->update(deltaTime);
 
+        // Redraw background to clear previous frame (ensures no pixel accumulation)
+        g_graph->drawBackground();
+
         // Redraw data layer (includes animated indicator)
         g_graph->drawData();
 
