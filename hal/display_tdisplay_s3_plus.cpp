@@ -276,14 +276,14 @@ void hal_display_canvas_draw(hal_canvas_handle_t canvas, int32_t x, int32_t y) {
 
     Arduino_Canvas *canvas_ptr = static_cast<Arduino_Canvas*>(canvas);
 
-    // Use Arduino_GFX's draw16bitBeRGBBitmap to blit the canvas to the display
+    // Use Arduino_GFX's draw16bitRGBBitmap to blit the canvas to the display
     // Get the canvas buffer and dimensions
     uint16_t *buffer = canvas_ptr->getFramebuffer();
     int16_t width = canvas_ptr->width();
     int16_t height = canvas_ptr->height();
 
     if (buffer != nullptr) {
-        g_gfx->draw16bitBeRGBBitmap(x, y, buffer, width, height);
+        g_gfx->draw16bitRGBBitmap(x, y, buffer, width, height);
     }
 }
 
