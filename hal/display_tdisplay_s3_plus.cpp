@@ -50,15 +50,13 @@ bool hal_display_init(void) {
 
     // Create SPI bus for display communication
     // Arduino_ESP32SPI(dc, cs, sck, mosi, miso, spi_num, is_shared_interface)
-    // Note: Using HSPI (SPI2) to match the original implementation
+    // Using default FSPI (SPI3) which is the standard for ESP32-S3
     g_bus = new Arduino_ESP32SPI(
         LCD_DC /* DC */,
         LCD_CS /* CS */,
         LCD_SCK /* SCK */,
         LCD_MOSI /* MOSI */,
-        GFX_NOT_DEFINED /* MISO */,
-        HSPI /* spi_num */,
-        true /* is_shared_interface */
+        GFX_NOT_DEFINED /* MISO */
     );
 
     if (!g_bus) {
