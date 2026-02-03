@@ -14,66 +14,28 @@ This feature provides a high-level animation timing service to ensure smooth, co
 
 ## Implementation Details
 
-- Create a new header file: `src/animation_ticker.h`
-- Create a corresponding implementation file: `src/animation_ticker.cpp`
-- These files will define and implement the `AnimationTicker` class.
+The Builder is responsible for creating the `AnimationTicker` class, which will provide the frame rate management service.
 
-### `src/animation_ticker.h`
-```cpp
-#pragma once
+1.  **File Creation:**
+    *   Create a header file: `src/animation_ticker.h`
+    *   Create an implementation file: `src/animation_ticker.cpp`
 
-#include <cstdint>
+2.  **Class Definition (`AnimationTicker`):**
+    *   **Public API:**
+        *   A constructor `AnimationTicker(uint32_t target_fps)` that accepts the desired frames per second.
+        *   A method `void waitForNextFrame()` that an application's animation loop can call to synchronize with the ticker.
+    *   **Private Members:**
+        *   The class should store the calculated time for a single frame in microseconds (e.g., `1,000,000 / target_fps`).
+        *   It should also store the timestamp for when the next frame is expected to occur.
 
-class AnimationTicker {
-public:
-    AnimationTicker(uint32_t target_fps);
-
-    // Call this at the end of your animation loop to wait for the next frame.
-    void waitForNextFrame();
-
-private:
-    const uint64_t frame_time_micros;
-    uint64_t next_frame_time;
-};
-```
-
-### `src/animation_ticker.cpp`
-```cpp
-#include "animation_ticker.h"
-#include <hal/display.h> // For hal_timer_get_micros()
-#include <Arduino.h>     // For delay()
-
-AnimationTicker::AnimationTicker(uint32_t target_fps) :
-    frame_time_micros(1000000 / target_fps),
-    next_frame_time(0) {
-    hal_timer_init(); // Ensure timer is initialized
-}
-
-void AnimationTicker::waitForNextFrame() {
-    uint64_t current_time = hal_timer_get_micros();
-
-    if (next_frame_time == 0) {
-        // First frame, just set the time and return
-        next_frame_time = current_time + frame_time_micros;
-        return;
-    }
-
-    if (current_time < next_frame_time) {
-        // We have time to spare, so delay
-        uint64_t wait_time_micros = next_frame_time - current_time;
-        delay(wait_time_micros / 1000); // delay() takes milliseconds
-    }
-
-    // Schedule the next frame
-    next_frame_time += frame_time_micros;
-
-    // A simple guard against falling too far behind (e.g., after a long blocking operation)
-    // This resets the ticker to prevent a "death spiral" of catch-up frames.
-    if (hal_timer_get_micros() > next_frame_time) {
-        next_frame_time = hal_timer_get_micros() + frame_time_micros;
-    }
-}
-```
+3.  **Behavioral Logic:**
+    *   **Constructor:** The constructor should calculate and store the per-frame time in microseconds. It should also ensure the underlying `hal_timer_init()` is called.
+    *   **`waitForNextFrame()` Method:**
+        *   On the first call, it should simply record the target time for the *next* frame and return immediately.
+        *   On subsequent calls, it must get the current time from `hal_timer_get_micros()`.
+        *   If the current time is less than the scheduled next frame time, it should calculate the difference and use a delay mechanism (e.g., `delay()`) to wait for the remaining time.
+        *   It must then advance the next frame time by one frame's duration.
+        *   **Catch-up Guard:** Implement a "death spiral" guard. If the current time is already past the next scheduled frame time (e.g., due to a long-running calculation), the ticker should reset its schedule based on the *current* time instead of trying to catch up on all the missed frames. This prevents the animation from freezing and then rapidly playing a series of frames.
 
 ## Unit Test Plan
 
