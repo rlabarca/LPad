@@ -104,6 +104,12 @@ void TimeSeriesGraph::update(float deltaTime) {
     }
 }
 
+void TimeSeriesGraph::updateIndicator() {
+    // Just redraw the indicator without redrawing the entire data line
+    // This is more efficient for animation loops
+    drawLiveIndicator();
+}
+
 void TimeSeriesGraph::drawAxes() {
     // Calculate graph area boundaries
     float x_min = GRAPH_MARGIN_LEFT;

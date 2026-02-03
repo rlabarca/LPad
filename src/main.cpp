@@ -45,12 +45,12 @@ GraphTheme createVaporwaveTheme() {
     theme.lineColor = RGB565_CYAN;
     theme.axisColor = RGB565_MAGENTA;
 
-    // Enable gradient background (3-color at 45 degrees)
+    // Enable gradient background (3-color vertical - FAST, optimized)
     theme.useBackgroundGradient = true;
-    theme.backgroundGradient.angle_deg = 45.0f;
-    theme.backgroundGradient.color_stops[0] = RGB565_DARK_PURPLE;  // Deep purple
-    theme.backgroundGradient.color_stops[1] = RGB565_MAGENTA;       // Magenta
-    theme.backgroundGradient.color_stops[2] = 0x4010;               // Dark blue-purple
+    theme.backgroundGradient.angle_deg = 90.0f;  // Vertical (top to bottom) - optimized!
+    theme.backgroundGradient.color_stops[0] = RGB565_DARK_PURPLE;  // Top: Deep purple
+    theme.backgroundGradient.color_stops[1] = RGB565_MAGENTA;       // Middle: Magenta
+    theme.backgroundGradient.color_stops[2] = 0x4010;               // Bottom: Dark blue-purple
     theme.backgroundGradient.num_stops = 3;
 
     // Enable gradient line (horizontal gradient)
@@ -65,8 +65,8 @@ GraphTheme createVaporwaveTheme() {
     theme.axisThickness = 0.8f;  // 0.8% thickness for axes
 
     // Enable tick marks on Y-axis
-    theme.tickColor = RGB565_MAGENTA;
-    theme.tickLength = 2.0f;  // 2% tick length
+    theme.tickColor = RGB565_WHITE;  // Bright white for visibility
+    theme.tickLength = 5.0f;  // 5% tick length (longer, more visible)
 
     // Enable pulsing live indicator
     theme.liveIndicatorGradient.center_x = 0.0f;
@@ -74,7 +74,7 @@ GraphTheme createVaporwaveTheme() {
     theme.liveIndicatorGradient.radius = 4.0f;  // 4% radius (larger)
     theme.liveIndicatorGradient.color_stops[0] = RGB565_WHITE;   // Bright center
     theme.liveIndicatorGradient.color_stops[1] = RGB565_CYAN;    // Cyan edge
-    theme.liveIndicatorPulseSpeed = 4.0f;  // 4 pulses per second (faster)
+    theme.liveIndicatorPulseSpeed = 6.0f;  // 6 pulses per second (very fast!)
 
     return theme;
 }
@@ -234,10 +234,10 @@ void loop() {
         // Update animation state
         g_graph->update(deltaTime);
 
-        // Redraw only the data layer (background is static)
-        g_graph->drawData();
+        // Redraw ONLY the indicator (not the entire line - avoids flickering)
+        g_graph->updateIndicator();
         hal_display_flush();
     }
 
-    delay(50);  // ~20 FPS for smooth animation
+    delay(30);  // ~33 FPS for smoother animation
 }

@@ -127,6 +127,14 @@ public:
      */
     void update(float deltaTime);
 
+    /**
+     * @brief Redraws only the animated live indicator
+     *
+     * This is more efficient than drawData() for animation loops
+     * since it doesn't redraw the entire data line.
+     */
+    void updateIndicator();
+
 private:
     GraphTheme theme_;
     GraphData data_;
