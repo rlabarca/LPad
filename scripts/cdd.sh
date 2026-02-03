@@ -52,18 +52,43 @@ while true; do
         for f in features/*.md; do
             [ -e "$f" ] || continue
             fname=$(basename "$f")
-
-            # Get the commit hash for the "Complete" commit to find its timestamp
-            complete_commit=$(git log -1 --oneline --grep="\[Complete features/$fname\]" --format=%H)
             
+            is_done=false
+            is_testing=false
+
+            # --- New, more robust status detection logic ---
+
+            # Check for a "Complete" commit
+            complete_commit=$(git log -1 --grep="\[Complete features/$fname\]" --format=%H)
             if [ -n "$complete_commit" ]; then
-                timestamp=$(git log -1 --format=%ct -s $complete_commit)
-                done_features+=("$timestamp:$fname")
-            elif [ -n "$(git log --oneline --grep="\[Ready for HIL Test features/$fname\]")" ]; then
-                testing_features+=("$fname")
-            else
+                complete_timestamp=$(git show -s --format=%ct $complete_commit)
+                file_timestamp=$(git log -1 --format=%ct -- "$f")
+                # If the completion commit is NOT older than the file's last change, it's DONE
+                if [ "$file_timestamp" -le "$complete_timestamp" ]; then
+                    is_done=true
+                    done_features+=("$complete_timestamp:$fname")
+                fi
+            fi
+
+            # If not done, check for a "Ready for HIL Test" commit
+            if [ "$is_done" = false ]; then
+                test_commit=$(git log -1 --grep="\[Ready for HIL Test features/$fname\]" --format=%H)
+                if [ -n "$test_commit" ]; then
+                    test_timestamp=$(git show -s --format=%ct $test_commit)
+                    file_timestamp=$(git log -1 --format=%ct -- "$f")
+                    # If the test commit is NOT older than the file's last change, it's TESTING
+                    if [ "$file_timestamp" -le "$test_timestamp" ]; then
+                        is_testing=true
+                        testing_features+=("$fname")
+                    fi
+                fi
+            fi
+
+            # If neither DONE nor TESTING, it must be TODO
+            if [ "$is_done" = false ] && [ "$is_testing" = false ]; then
                 todo_features+=("$fname")
             fi
+            # --- End of new logic ---
         done
 
         # Print all testing and todo features, which are always visible
@@ -81,7 +106,7 @@ while true; do
         # Print the latest N done features
         for ((i=0; i<${#sorted_done[@]}; i++)); do
             if [ "$i" -lt "$MAX_DONE_FEATURES" ]; then
-                # Strip timestamp for display: ${string#*:}
+                # Strip timestamp for display: ${string#*:} 
                 fname=${sorted_done[$i]#*:}
                 echo -e "   ${C_GREEN}[DONE]${C_RESET}   $fname"
             fi
