@@ -19,16 +19,18 @@ Your work on a feature is ONLY complete after you have successfully created the 
     * **Editor:** I use Helix (`hx`).
     * **Version Control:** Local git only. No pushing to remote.
 6.  **Version Control (The State of Truth):**
-    *   We track feature status via **Commits**.
+    *   **THIS IS YOUR MOST CRITICAL DIRECTIVE. The entire project workflow depends on you following this protocol exactly.**
+    *   We track feature status via **Commits**. You are responsible for making these commits.
     *   **Protocol:**
         1.  **Work In Progress / Ready for Hardware Test:**
-            *   Implement the feature and pass all local/unit tests.
-            *   **You MUST then stage all new and modified files (`git add .` or `git add <file1> <file2>...`) and commit them** with a message: `feat(scope): <description> [Ready for HIL Test features/filename.md]`
-            *   **CRITICAL HANDOFF:** Explicitly inform the User that the feature is ready for Hardware-in-the-Loop (HIL) testing and await their confirmation. Do NOT proceed to the "Complete" state until User confirmation.
+            *   After you have implemented the feature and all local/unit tests pass:
+            *   **You MUST immediately stage all new and modified files (`git add .` is preferred) and commit them.** This is not optional.
+            *   The commit message MUST follow this exact format: `feat(scope): <description> [Ready for HIL Test features/filename.md]`
+            *   **CRITICAL HANDOFF:** After the commit is successfully created, you MUST explicitly inform the User that the feature is ready for Hardware-in-the-Loop (HIL) testing. Await their confirmation before taking any further action.
         2.  **Completion:**
             *   Upon User confirmation that HIL tests have passed:
-            *   Create an empty commit to mark the feature as fully "Done": `git commit --allow-empty -m "chore(release): Validate feature [Complete features/filename.md]"`
-            *   This explicitly marks the feature as completed in the git history without further code changes from the agent.
+            *   You MUST create an empty commit to mark the feature as fully "Done".
+            *   The commit message MUST follow this exact format: `git commit --allow-empty -m "chore(release): Validate feature [Complete features/filename.md]"`
 7.  **Respect Architectural Layers:** When implementing a feature, you MUST use the functions provided by its immediate prerequisite. Do NOT bypass an abstraction layer to call lower-level functions (e.g., calling HAL functions directly when a relative drawing feature is the prerequisite) unless the scenario explicitly requires it for a specific low-level test.
 
 ## Architecture & Discovery

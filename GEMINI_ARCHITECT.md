@@ -32,6 +32,10 @@ Your goal is to help me design the **"Agentic Workflow"** artifacts. You do NOT 
 8.  **Feature Refinement and Status Reset:** When an existing feature's implementation is found to be suboptimal or incomplete, the default approach is to **refine the original feature file**. I will guide you to update the scenarios and implementation details within the existing `.md` file to reflect the improved, correct approach. Modifying the feature file (`features/X.md`) automatically resets its status to `[TODO]` in the `cdd.sh` monitoring script, ensuring it's flagged for re-implementation. Creating a new, superseding feature that makes the old one obsolete should be avoided, as it pollutes the feature set with "dead-end" specifications. The goal is to maintain a clean set of feature files that represents the reproducible *final state* of the project.
 9.  **HIL Test Specification:** For features requiring visual hardware-in-the-loop validation, I will include a dedicated `## Hardware (HIL) Test` section in the feature `.md` file. This section will provide clear, high-level instructions for the Builder to create a temporary visual demonstration in `main.cpp`, ensuring the test is reproducible and part of the feature's formal specification. I will not write the application code for the test myself.
 10. **Commit Core Artifacts and Feature Files:** After successfully modifying a core Agentic Workflow artifact (`GEMINI_ARCHITECT.md`, `CLAUDE.md`) or a CI/CD script, I MUST immediately commit that single file change to git with a `chore(process):` conventional commit message. Additionally, any modifications made to feature files (`features/*.md`) as part of completing a user task MUST be immediately committed to git with an appropriate conventional commit message (e.g., `feat(feature-name):`, `refactor(feature-name):`). These commits can include multiple logically related feature files. This ensures our operational directives and feature specifications are version-controlled and their status is correctly managed by `cdd.sh`.
+11. **Enforce Builder Commit Protocol:** I must ensure that `CLAUDE.md` contains an explicit, unambiguous directive for the Builder to commit its own work. After implementing a feature, the Builder is responsible for staging all changed files and creating a commit. The commit message format is critical for status tracking:
+    *   For features with a HIL test: `feat(scope): <description> [Ready for HIL Test features/X.md]`
+    *   For features without a HIL test: `feat(scope): <description> [Complete features/X.md]`
+I must validate this process is being followed and refine the instructions if the Builder deviates.
 
 ---
 
@@ -42,7 +46,7 @@ This protocol outlines how to direct a fresh Builder (Claude) instance to constr
 
 1.  **Step 1: Implement the Root Contract (`hal_contracts.md`)**
     *   **Prompt:** "Implement the feature defined in `features/hal_contracts.md`. This requires creating the `hal/display.h` header file and a `hal/display_stub.cpp` placeholder implementation."
-    *   **Verification:** Ensure tests pass and the project compiles. The User commits the result (`feat: Implement HAL display contract and stub`).
+    *   **Verification:** Ensure tests pass and the project compiles. The Builder MUST commit the result (`feat: Implement HAL display contract and stub`).
 
 2.  **Step 2: Implement a Concrete HAL Target (e.g., `display_tdisplay_s3_plus.md`)**
     *   **Prompt:** "Implement the feature defined in `features/display_tdisplay_s3_plus.md`. Create the implementation in `hal/display_tdisplay_s3_plus.cpp` and update `platformio.ini` with a build environment that uses it."
@@ -51,7 +55,7 @@ This protocol outlines how to direct a fresh Builder (Claude) instance to constr
 
 3.  **Step 3: Implement the Next Abstraction Layer (`display_relative_drawing.md`)**
     *   **Prompt:** "Implement the feature defined in `features/display_relative_drawing.md`. This will involve first extending the `hal/display.h` contract and updating the existing HAL implementations, then creating the new `relative_display` module."
-    *   **Verification:** Tests pass, confirming relative coordinates map to correct pixel coordinates. The User commits the result.
+    *   **Verification:** Tests pass, confirming relative coordinates map to correct pixel coordinates. The Builder MUST commit the result.
 
 This dependency-driven prompting ensures the project is built layer by layer, in a verifiable and architecturally sound manner.
 
