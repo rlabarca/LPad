@@ -172,7 +172,9 @@ void hal_display_draw_pixel(int32_t x, int32_t y, uint16_t color) {
     }
 
     // Draw to selected canvas if one is active, otherwise draw to main display
-    Arduino_GFX *target = (g_selected_canvas != nullptr) ? g_selected_canvas : g_gfx;
+    Arduino_GFX *target = (g_selected_canvas != nullptr)
+        ? static_cast<Arduino_GFX*>(g_selected_canvas)
+        : static_cast<Arduino_GFX*>(g_gfx);
 
     // Get current logical dimensions (accounts for rotation)
     int32_t width = target->width();
