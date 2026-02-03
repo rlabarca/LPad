@@ -129,6 +129,23 @@ bool hal_display_init(void) {
         applyVendorInitSequence();
     }
 
+    // Explicitly set the address window to cover the full display
+    // This ensures we're starting from (0,0) and covering all 240x536 pixels
+    g_bus->beginWrite();
+    // Column Address Set: 0 to 239
+    g_bus->writeCommand(0x2A);  // CASET
+    g_bus->write(0x00);  // Start column high byte
+    g_bus->write(0x00);  // Start column low byte
+    g_bus->write(0x00);  // End column high byte
+    g_bus->write(0xEF);  // End column low byte (239)
+    // Row Address Set: 0 to 535
+    g_bus->writeCommand(0x2B);  // RASET
+    g_bus->write(0x00);  // Start row high byte
+    g_bus->write(0x00);  // Start row low byte
+    g_bus->write(0x02);  // End row high byte
+    g_bus->write(0x17);  // End row low byte (535)
+    g_bus->endWrite();
+
     g_initialized = true;
     return true;
 }
