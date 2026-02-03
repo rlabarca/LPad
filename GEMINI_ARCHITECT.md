@@ -62,8 +62,6 @@ This dependency-driven prompting ensures the project is built layer by layer, in
 ---
 
 **CURRENT CONTEXT:**
-- The `cdd.sh` monitoring script has been refactored for robust status detection. It now correctly identifies features as `[TODO]` if their `.md` file is modified after the last `[Complete]` or `[Ready for HIL Test]` commit. This removes the need for `git rebase` to manage feature status.
-- The official workflow for refactoring a feature is to modify its `.md` specification directly.
-- A new process has been established for Hardware-in-the-Loop (HIL) testing: feature files requiring visual validation must include a `## Hardware (HIL) Test` section with instructions for the Builder.
-- The `display_tdisplay_s3_plus.md` feature has been refactored to use the `Arduino_GFX` library.
-- The `display_canvas_drawing.md` feature has been created to add a canvas/layering API and a HIL test specification.
+- The Builder's instructions (`CLAUDE.md`) have been overhauled to enforce a strict, procedural commit workflow. The Builder is now responsible for creating status-marking commits.
+- The `app_bond_tracker.md` feature has been successfully re-implemented. It now uses `display_canvas_drawing.md` for accelerated graphics and `ui_themeable_time_series_graph.md` to provide a pulsing "live data" indicator.
+- All HIL tests for the new bond tracker have passed on all target devices.
