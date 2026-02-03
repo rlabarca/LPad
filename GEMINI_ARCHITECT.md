@@ -58,9 +58,9 @@ This dependency-driven prompting ensures the project is built layer by layer, in
 ---
 
 **CURRENT CONTEXT:**
-- A multi-target HAL architecture is in place for the display.
-- A higher-level "Relative Drawing" abstraction layer has been designed to sit on top of the HAL, providing resolution-independent drawing primitives.
-- The Builder's instructions (`CLAUDE.md`) are updated with rules to enforce this layered architecture.
-- The 10Y Treasury Bond Tracker application, including data parsing and time series graph UI, has been implemented.
-- The `ui_themeable_time_series_graph.md` feature, which adds advanced theming, gradients, and animation capabilities, has been designed. It notes that current background drawing performance is not optimal for fast refreshes, and hardware acceleration for display primitives will be considered in future HAL improvements.
-- This `GEMINI_ARCHITECT.md` file is up-to-date with the current project state and bootstrap protocol.
+- The `cdd.sh` monitoring script has been refactored for robust status detection. It now correctly identifies features as `[TODO]` if their `.md` file is modified after the last `[Complete]` or `[Ready for HIL Test]` commit. This removes the need for `git rebase` to manage feature status.
+- The official workflow for refactoring a feature is to modify its `.md` specification directly.
+- A new process has been established for Hardware-in-the-Loop (HIL) testing: feature files requiring visual validation must include a `## Hardware (HIL) Test` section with instructions for the Builder.
+- The `display_tdisplay_s3_plus.md` feature has been refactored to use the `Arduino_GFX` library.
+- The `display_canvas_drawing.md` feature has been created to add a canvas/layering API and a HIL test specification.
+- The next step is for the user to prompt the Builder to implement `display_tdisplay_s3_plus.md`, followed by `display_canvas_drawing.md`.
