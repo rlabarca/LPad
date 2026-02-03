@@ -32,9 +32,8 @@
 // This is the same data from test_data/yahoo_chart_tnx_5m_1d.json
 const char* BOND_DATA_JSON = R"({"chart":{"result":[{"meta":{"currency":"USD","symbol":"^TNX","exchangeName":"CGI","fullExchangeName":"Cboe Indices","instrumentType":"INDEX","firstTradeDate":-252326400,"regularMarketTime":1770062392,"hasPrePostMarketData":false,"gmtoffset":-21600,"timezone":"CST","exchangeTimezoneName":"America/Chicago","regularMarketPrice":4.275,"fiftyTwoWeekHigh":4.997,"fiftyTwoWeekLow":3.345,"regularMarketDayHigh":4.261,"regularMarketDayLow":4.237,"regularMarketVolume":0,"longName":"CBOE Interest Rate 10 Year T No","shortName":"CBOE Interest Rate 10 Year T No","chartPreviousClose":4.227,"previousClose":4.227,"scale":3,"priceHint":4,"currentTradingPeriod":{"pre":{"timezone":"CST","end":1770038400,"start":1770038400,"gmtoffset":-21600},"regular":{"timezone":"CST","end":1770062400,"start":1770038400,"gmtoffset":-21600},"post":{"timezone":"CST","end":1770062400,"start":1770062400,"gmtoffset":-21600}},"tradingPeriods":[[{"timezone":"CST","end":1770062400,"start":1770038400,"gmtoffset":-21600}]],"dataGranularity":"5m","range":"1d","validRanges":["1d","5d","1mo","3mo","6mo","1y","2y","5y","10y","ytd","max"]},"timestamp":[1770057900,1770058200,1770058500,1770058800,1770059100,1770059400,1770059700,1770060000,1770060300,1770060600,1770060900,1770061200,1770061500,1770061800,1770062100],"indicators":{"quote":[{"open":[4.270999908447266,4.270999908447266,4.2729997634887695,4.275000095367432,4.275000095367432,4.2769999504089355,4.275000095367432,4.2769999504089355,4.279000282287598,4.279000282287598,4.2769999504089355,4.279000282287598,4.275000095367432,4.2729997634887695,4.2729997634887695],"close":[4.270999908447266,4.2729997634887695,4.275000095367432,4.275000095367432,4.2769999504089355,4.275000095367432,4.2769999504089355,4.279000282287598,4.279000282287598,4.2769999504089355,4.2769999504089355,4.275000095367432,4.2729997634887695,4.2729997634887695,4.275000095367432],"high":[4.2729997634887695,4.2729997634887695,4.275000095367432,4.2769999504089355,4.2769999504089355,4.2769999504089355,4.2769999504089355,4.279000282287598,4.279000282287598,4.279000282287598,4.279000282287598,4.279000282287598,4.275000095367432,4.2729997634887695,4.275000095367432],"volume":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"low":[4.270999908447266,4.270999908447266,4.2729997634887695,4.275000095367432,4.275000095367432,4.275000095367432,4.275000095367432,4.2769999504089355,4.2769999504089355,4.2769999504089355,4.2769999504089355,4.275000095367432,4.2729997634887695,4.2729997634887695,4.269000053405762]}]}}],"error":null}})";
 
-// Global variables for animation
-TimeSeriesGraph* g_graph = nullptr;
-unsigned long g_lastUpdate = 0;
+// Global variables
+hal_canvas_handle_t g_graph_canvas = nullptr;
 
 // Create vaporwave theme with ALL themeable features enabled
 GraphTheme createVaporwaveTheme() {
@@ -124,6 +123,24 @@ void setup() {
     Serial.println();
     delay(500);
 
+    // Create full-screen canvas for off-screen rendering
+    Serial.println("[2.5/5] Creating full-screen canvas...");
+    Serial.printf("  Canvas dimensions: %d x %d pixels\n", width, height);
+    g_graph_canvas = hal_display_canvas_create(width, height);
+
+    if (g_graph_canvas == nullptr) {
+        Serial.println("  [FAIL] Failed to create canvas");
+        displayError("Failed to create canvas");
+        while (1) delay(1000);
+    }
+
+    Serial.println("  [PASS] Canvas created");
+    Serial.println("  Selecting canvas as drawing target...");
+    hal_display_canvas_select(g_graph_canvas);
+    Serial.println("  [PASS] Canvas selected");
+    Serial.println();
+    delay(500);
+
     // Parse bond data from embedded JSON (Yahoo Chart API format)
     Serial.println("[3/5] Parsing 10-year treasury bond data...");
     Serial.println("  Source: Embedded JSON data (^TNX 5m 1d)");
@@ -164,9 +181,8 @@ void setup() {
     Serial.printf("  [DEBUG] Line Thickness: %.2f%%\n", theme.lineThickness);
     Serial.printf("  [DEBUG] Axis Thickness: %.2f%%\n", theme.axisThickness);
 
-    // Create graph (use static to keep it alive for loop())
-    static TimeSeriesGraph graph(theme);
-    g_graph = &graph;  // Store pointer for animation loop
+    // Create graph
+    TimeSeriesGraph graph(theme);
 
     Serial.println("  [PASS] Graph created");
     Serial.println();
@@ -182,63 +198,71 @@ void setup() {
     // Enable Y-axis tick marks every 0.002 (more visible with small data range)
     graph.setYTicks(0.002f);
 
-    // Draw the bond tracker graph
-    Serial.println("[5/5] Rendering themeable graph with all features...");
+    // Draw the bond tracker graph to the canvas
+    Serial.println("[5/5] Rendering themeable graph to canvas...");
     Serial.println("  Features enabled:");
     Serial.println("    - Gradient background (45-degree, 3-color)");
     Serial.println("    - Gradient data line (horizontal, cyan to magenta)");
-    Serial.println("    - Y-axis tick marks (every 0.01)");
+    Serial.println("    - Y-axis tick marks (every 0.002)");
     Serial.println("    - Animated pulsing live indicator");
+    Serial.println("  Drawing target: Off-screen canvas");
 
-    // Draw background once (static elements)
-    Serial.println("  Drawing background...");
+    // Draw background once (static elements) to canvas
+    Serial.println("  Drawing background to canvas...");
     unsigned long bgStart = millis();
     graph.drawBackground();
     unsigned long bgEnd = millis();
     Serial.printf("  [TIME] Background took %lu ms\n", bgEnd - bgStart);
 
-    // Draw initial data
-    Serial.println("  Drawing data...");
+    // Draw initial data to canvas
+    Serial.println("  Drawing data to canvas...");
     unsigned long dataStart = millis();
     graph.drawData();
     unsigned long dataEnd = millis();
     Serial.printf("  [TIME] Data took %lu ms\n", dataEnd - dataStart);
 
+    Serial.println("  [PASS] Graph rendered to canvas");
+    Serial.println();
+
+    // Re-select main display as drawing target
+    Serial.println("  Re-selecting main display...");
+    hal_display_canvas_select(nullptr);
+    Serial.println("  [PASS] Main display selected");
+
+    // Blit canvas to main display at (0, 0)
+    Serial.println("  Blitting canvas to display at (0, 0)...");
+    unsigned long blitStart = millis();
+    hal_display_canvas_draw(g_graph_canvas, 0, 0);
+    unsigned long blitEnd = millis();
+    Serial.printf("  [TIME] Blit took %lu ms\n", blitEnd - blitStart);
+
     hal_display_flush();
 
-    Serial.println("  [PASS] Graph rendered");
+    Serial.println("  [PASS] Canvas drawn to display");
+    Serial.println();
+
+    // Delete canvas to free memory (as per specification)
+    Serial.println("  Deleting canvas to free memory...");
+    hal_display_canvas_delete(g_graph_canvas);
+    g_graph_canvas = nullptr;
+    Serial.println("  [PASS] Canvas deleted");
     Serial.println();
 
     // Display summary
-    Serial.println("=== Themeable Graph Demo Ready ===");
+    Serial.println("=== 10-Year Treasury Bond Tracker Complete ===");
     Serial.println("Visual Verification:");
-    Serial.println("  [ ] Gradient background (purple to magenta)");
+    Serial.println("  [ ] Gradient background (purple to magenta to dark blue)");
     Serial.println("  [ ] Magenta axes with tick marks on Y-axis");
     Serial.println("  [ ] Gradient line (cyan to magenta)");
-    Serial.println("  [ ] Pulsing white/cyan indicator at last point");
+    Serial.println("  [ ] Live indicator at last data point");
     Serial.println();
-    Serial.println("Starting animation loop...");
+    Serial.println("Bond tracker display complete.");
     Serial.println();
-
-    // Initialize animation timing
-    g_lastUpdate = millis();
 }
 
 void loop() {
-    // Animate the live indicator by calling update() and redrawing data
-    unsigned long currentMillis = millis();
-    float deltaTime = (currentMillis - g_lastUpdate) / 1000.0f;  // Convert to seconds
-    g_lastUpdate = currentMillis;
-
-    if (g_graph != nullptr && deltaTime > 0.001f) {  // Avoid division by zero
-        // Update animation state
-        g_graph->update(deltaTime);
-
-        // Must redraw entire data layer to properly clear old indicator
-        // (slight flickering is unavoidable without clipping/layering support)
-        g_graph->drawData();
-        hal_display_flush();
-    }
-
-    delay(50);  // ~20 FPS (slower to reduce flickering)
+    // Bond tracker display is complete
+    // Loop function is kept empty as per feature specification
+    // Future enhancement: Could refresh the display with new data here
+    delay(1000);
 }
