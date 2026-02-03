@@ -62,7 +62,7 @@ static void applyVendorInitSequence() {
     g_bus->writeC8D8(0x07, 0x4F);
     g_bus->writeC8D8(0xFE, 0x01);  // SET PAGE 0
     g_bus->writeC8D8(0x2A, 0x02);
-    g_bus->writeC8D8(0x2B, 0x73);
+    g_bus->writeC8D8(0x2B, 0x00);  // Changed from 0x73 to 0x00 to fix Y-offset
     g_bus->writeC8D8(0xFE, 0x0A);  // SET PAGE 9
     g_bus->writeC8D8(0x29, 0x10);
     g_bus->writeC8D8(0xFE, 0x00);  // SET PAGE 0
