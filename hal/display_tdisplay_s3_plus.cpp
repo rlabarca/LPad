@@ -71,6 +71,7 @@ static void applyVendorInitSequence() {
     g_bus->writeC8D8(0x51, AMOLED_DEFAULT_BRIGHTNESS);  // Write Display Brightness
     g_bus->writeC8D8(0x53, 0x20);  // Write CTRL Display
     g_bus->writeC8D8(0x35, 0x00);  // Tearing Effect Line ON
+    g_bus->writeC8D8(0x3A, 0x75);  // Interface Pixel Format (vendor-specific)
     g_bus->writeC8D8(0xC4, 0x80);
 
     g_bus->endWrite();
