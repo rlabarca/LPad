@@ -126,8 +126,8 @@ while true; do
         calculated_current_lines_used=$((calculated_current_lines_used + 1)) # Blank line before footer
         calculated_current_lines_used=$((calculated_current_lines_used + 1)) # Footer "(Press Ctrl+C...)"
 
-        # Calculate MAX_DONE_FEATURES. Subtract 1 for the potential "...and N more done features." line
-        MAX_DONE_FEATURES=$((terminal_height - calculated_current_lines_used - 1)) 
+        # Calculate MAX_DONE_FEATURES. Subtract 2 to leave a guaranteed blank line at the bottom.
+        MAX_DONE_FEATURES=$((terminal_height - calculated_current_lines_used - 2)) 
         if [ "$MAX_DONE_FEATURES" -lt 0 ]; then MAX_DONE_FEATURES=0; fi # Ensure it's not negative
 
         # Print all testing and todo features, which are always visible
