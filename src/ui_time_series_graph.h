@@ -1,16 +1,19 @@
 /**
  * @file ui_time_series_graph.h
- * @brief UI Time Series Graph Component
+ * @brief UI Time Series Graph Component with Layered Rendering
  *
- * This module provides a reusable UI component for rendering time-series line graphs
- * using the RelativeDisplay abstraction for resolution-independent drawing.
+ * This module provides a high-performance time series graph using layered
+ * rendering with off-screen canvases. Uses RelativeDisplay class for all
+ * drawing operations.
  *
- * See features/ui_time_series_graph.md for complete specification.
+ * See features/ui_themeable_time_series_graph.md for complete specification.
  */
 
 #ifndef UI_TIME_SERIES_GRAPH_H
 #define UI_TIME_SERIES_GRAPH_H
 
+#include "relative_display.h"
+#include <Arduino_GFX_Library.h>
 #include <vector>
 #include <stdint.h>
 #include <cstddef>
@@ -70,23 +73,45 @@ struct GraphData {
 
 /**
  * @class TimeSeriesGraph
- * @brief Renders time-series data as a line graph
+ * @brief High-performance time series graph with layered rendering
  *
- * This component uses RelativeDisplay for all drawing operations,
- * ensuring resolution-independent rendering. It supports dynamic
- * data updates and automatic axis scaling.
+ * This component uses three drawing surfaces managed by RelativeDisplay:
+ * 1. Background canvas (off-screen, PSRAM) - static elements
+ * 2. Data canvas (off-screen, PSRAM) - data line
+ * 3. Main display - final composition with animations
  */
 class TimeSeriesGraph {
 public:
     /**
-     * @brief Constructs a time series graph with the given theme
+     * @brief Constructs a time series graph with layered rendering
      * @param theme Visual style configuration
+     * @param main_display Pointer to the main Arduino_GFX display
+     * @param width Display width in pixels
+     * @param height Display height in pixels
      */
-    explicit TimeSeriesGraph(const GraphTheme& theme);
+    TimeSeriesGraph(const GraphTheme& theme, Arduino_GFX* main_display,
+                    int32_t width, int32_t height);
+
+    /**
+     * @brief Destructor - cleans up off-screen canvases
+     */
+    ~TimeSeriesGraph();
+
+    /**
+     * @brief Initializes the layered rendering system
+     *
+     * Allocates off-screen canvases in PSRAM and creates RelativeDisplay
+     * instances for each layer.
+     *
+     * @return true if initialization succeeded, false if PSRAM not available
+     */
+    bool begin();
 
     /**
      * @brief Sets the data to be plotted
      * @param data Graph data containing x and y values
+     *
+     * Note: After setting data, call drawData() to update the data canvas
      */
     void setData(const GraphData& data);
 
@@ -97,51 +122,59 @@ public:
     void setYTicks(float increment);
 
     /**
-     * @brief Draws the graph on the display
+     * @brief Draws the background layer (axes, gradients)
      *
-     * Clears the background, draws axes, and plots the data line.
-     * Automatically scales data to fit the display area.
-     */
-    void draw();
-
-    /**
-     * @brief Draws only the background and axes
-     *
-     * This allows separating the static elements from the dynamic data.
-     * Call this once, then call drawData() to update only the data line.
+     * This renders static elements to the background canvas. Call this once
+     * during initialization or when the theme changes.
      */
     void drawBackground();
 
     /**
-     * @brief Draws only the data line
+     * @brief Draws the data layer (data line)
      *
-     * This allows updating the data without redrawing the background.
-     * Should be called after drawBackground() has been called at least once.
+     * This clears the data canvas to transparent and redraws the data line.
+     * Call this whenever data is updated via setData().
      */
     void drawData();
 
     /**
-     * @brief Updates animation state
+     * @brief Renders the final composition to the main display
+     *
+     * This blits the background canvas, then the data canvas on top.
+     * This method is fast and should be called every frame.
+     */
+    void render();
+
+    /**
+     * @brief Updates animation state and draws to main display
+     *
+     * This handles the pulsing live indicator animation, drawing directly
+     * to the main display AFTER render() has been called.
      *
      * @param deltaTime Time elapsed since last update (in seconds)
      */
     void update(float deltaTime);
 
-    /**
-     * @brief Redraws only the animated live indicator
-     *
-     * This is more efficient than drawData() for animation loops
-     * since it doesn't redraw the entire data line.
-     */
-    void updateIndicator();
-
 private:
     GraphTheme theme_;
     GraphData data_;
 
+    // Display dimensions
+    int32_t width_;
+    int32_t height_;
+
+    // Layered rendering system
+    Arduino_GFX* main_display_;           ///< Main hardware display
+    Arduino_Canvas* bg_canvas_;           ///< Background canvas (PSRAM)
+    Arduino_Canvas* data_canvas_;         ///< Data canvas (PSRAM)
+
+    RelativeDisplay* rel_main_;           ///< RelativeDisplay for main display
+    RelativeDisplay* rel_bg_;             ///< RelativeDisplay for background canvas
+    RelativeDisplay* rel_data_;           ///< RelativeDisplay for data canvas
+
     // Animation state
-    float pulse_phase_;          ///< Current phase of the pulse animation (0 to 2*PI)
-    float y_tick_increment_;     ///< Y-axis tick increment (0 = no ticks)
+    float pulse_phase_;                   ///< Current phase of pulse animation (0 to 2*PI)
+    float y_tick_increment_;              ///< Y-axis tick increment (0 = no ticks)
 
     // Cached data range for consistent drawing
     double cached_y_min_;
@@ -155,19 +188,19 @@ private:
     static constexpr float GRAPH_MARGIN_BOTTOM = 10.0f;
 
     /**
-     * @brief Draws the X and Y axes
+     * @brief Draws the X and Y axes to the given RelativeDisplay
      */
-    void drawAxes();
+    void drawAxes(RelativeDisplay* target);
 
     /**
-     * @brief Draws Y-axis tick marks if enabled
+     * @brief Draws Y-axis tick marks to the given RelativeDisplay
      */
-    void drawYTicks();
+    void drawYTicks(RelativeDisplay* target);
 
     /**
-     * @brief Draws the data line connecting all points
+     * @brief Draws the data line to the given RelativeDisplay
      */
-    void drawDataLine();
+    void drawDataLine(RelativeDisplay* target);
 
     /**
      * @brief Draws the live data indicator at the last point

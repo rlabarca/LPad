@@ -16,6 +16,7 @@
  */
 
 #include <Arduino.h>
+#include <Arduino_GFX_Library.h>
 #include "../hal/display.h"
 #include "relative_display.h"
 #include "ui_time_series_graph.h"
@@ -34,8 +35,7 @@
 // This is the same data from test_data/yahoo_chart_tnx_5m_1d.json
 const char* BOND_DATA_JSON = R"({"chart":{"result":[{"meta":{"currency":"USD","symbol":"^TNX","exchangeName":"CGI","fullExchangeName":"Cboe Indices","instrumentType":"INDEX","firstTradeDate":-252326400,"regularMarketTime":1770062392,"hasPrePostMarketData":false,"gmtoffset":-21600,"timezone":"CST","exchangeTimezoneName":"America/Chicago","regularMarketPrice":4.275,"fiftyTwoWeekHigh":4.997,"fiftyTwoWeekLow":3.345,"regularMarketDayHigh":4.261,"regularMarketDayLow":4.237,"regularMarketVolume":0,"longName":"CBOE Interest Rate 10 Year T No","shortName":"CBOE Interest Rate 10 Year T No","chartPreviousClose":4.227,"previousClose":4.227,"scale":3,"priceHint":4,"currentTradingPeriod":{"pre":{"timezone":"CST","end":1770038400,"start":1770038400,"gmtoffset":-21600},"regular":{"timezone":"CST","end":1770062400,"start":1770038400,"gmtoffset":-21600},"post":{"timezone":"CST","end":1770062400,"start":1770062400,"gmtoffset":-21600}},"tradingPeriods":[[{"timezone":"CST","end":1770062400,"start":1770038400,"gmtoffset":-21600}]],"dataGranularity":"5m","range":"1d","validRanges":["1d","5d","1mo","3mo","6mo","1y","2y","5y","10y","ytd","max"]},"timestamp":[1770057900,1770058200,1770058500,1770058800,1770059100,1770059400,1770059700,1770060000,1770060300,1770060600,1770060900,1770061200,1770061500,1770061800,1770062100],"indicators":{"quote":[{"open":[4.270999908447266,4.270999908447266,4.2729997634887695,4.275000095367432,4.275000095367432,4.2769999504089355,4.275000095367432,4.2769999504089355,4.279000282287598,4.279000282287598,4.2769999504089355,4.279000282287598,4.275000095367432,4.2729997634887695,4.2729997634887695],"close":[4.270999908447266,4.2729997634887695,4.275000095367432,4.275000095367432,4.2769999504089355,4.275000095367432,4.2769999504089355,4.279000282287598,4.279000282287598,4.2769999504089355,4.2769999504089355,4.275000095367432,4.2729997634887695,4.2729997634887695,4.275000095367432],"high":[4.2729997634887695,4.2729997634887695,4.275000095367432,4.2769999504089355,4.2769999504089355,4.2769999504089355,4.2769999504089355,4.279000282287598,4.279000282287598,4.279000282287598,4.279000282287598,4.279000282287598,4.275000095367432,4.2729997634887695,4.275000095367432],"volume":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"low":[4.270999908447266,4.270999908447266,4.2729997634887695,4.275000095367432,4.275000095367432,4.275000095367432,4.275000095367432,4.2769999504089355,4.2769999504089355,4.2769999504089355,4.2769999504089355,4.275000095367432,4.2729997634887695,4.2729997634887695,4.269000053405762]}]}}],"error":null}})";
 
-// Global variables for canvas and animation
-hal_canvas_handle_t g_graph_canvas = nullptr;
+// Global variables for graph and animation
 TimeSeriesGraph* g_graph = nullptr;
 AnimationTicker* g_ticker = nullptr;
 
@@ -135,21 +135,10 @@ void setup() {
     Serial.println();
     delay(500);
 
-    // Create full-screen canvas for off-screen rendering
-    Serial.println("[3/6] Creating full-screen canvas...");
-    Serial.printf("  Canvas dimensions: %d x %d pixels\n", width, height);
-    g_graph_canvas = hal_display_canvas_create(width, height);
-
-    if (g_graph_canvas == nullptr) {
-        Serial.println("  [FAIL] Failed to create canvas");
-        displayError("Failed to create canvas");
-        while (1) delay(1000);
-    }
-
-    Serial.println("  [PASS] Canvas created");
-    Serial.println("  Selecting canvas as drawing target...");
-    hal_display_canvas_select(g_graph_canvas);
-    Serial.println("  [PASS] Canvas selected");
+    // Note: Canvas creation is now handled by TimeSeriesGraph internally
+    Serial.println("[3/6] Preparing for layered rendering...");
+    Serial.printf("  Display size: %d x %d pixels\n", width, height);
+    Serial.println("  [INFO] TimeSeriesGraph will create layered canvases in PSRAM");
     Serial.println();
     delay(500);
 
@@ -181,17 +170,35 @@ void setup() {
     Serial.println();
     delay(500);
 
-    // Create TimeSeriesGraph with vaporwave theme
-    Serial.println("[5/6] Creating time-series graph...");
+    // Create TimeSeriesGraph with vaporwave theme and layered rendering
+    Serial.println("[5/6] Creating time-series graph with layered rendering...");
     Serial.println("  Theme: Vaporwave (Dark Purple, Cyan, Magenta)");
 
     GraphTheme theme = createVaporwaveTheme();
 
-    // Create graph (static to persist for animation loop)
-    static TimeSeriesGraph graph(theme);
+    // Get Arduino_GFX display pointer from HAL
+    Arduino_GFX* display = static_cast<Arduino_GFX*>(hal_display_get_gfx());
+    if (display == nullptr) {
+        Serial.println("  [FAIL] Could not get display object from HAL");
+        displayError("Display object unavailable");
+        while (1) delay(1000);
+    }
+
+    // Create graph with layered rendering (static to persist for animation loop)
+    static TimeSeriesGraph graph(theme, display, width, height);
     g_graph = &graph;
 
-    Serial.println("  [PASS] Graph created");
+    // Initialize layered rendering (allocates PSRAM canvases)
+    Serial.println("  Initializing layered rendering system...");
+    if (!graph.begin()) {
+        Serial.println("  [FAIL] Failed to initialize layered rendering");
+        Serial.println("  [INFO] PSRAM may not be available or insufficient");
+        displayError("Layered rendering init failed");
+        while (1) delay(1000);
+    }
+
+    Serial.println("  [PASS] Graph created with layered rendering");
+    Serial.println("  [INFO] Background and data canvases allocated in PSRAM");
     Serial.println();
     delay(500);
 
@@ -205,36 +212,37 @@ void setup() {
     // Enable Y-axis tick marks every 0.002
     graph.setYTicks(0.002f);
 
-    // Draw the bond tracker graph to the canvas
-    Serial.println("[6/6] Rendering graph to canvas...");
+    // Draw the bond tracker graph using layered rendering
+    Serial.println("[6/6] Rendering graph with layered architecture...");
     Serial.println("  Features enabled:");
-    Serial.println("    - Gradient background (45-degree, 3-color)");
-    Serial.println("    - Gradient data line (horizontal, cyan to magenta)");
+    Serial.println("    - Gradient background (vertical, 3-color)");
+    Serial.println("    - Solid color data line");
     Serial.println("    - Y-axis tick marks (every 0.002)");
     Serial.println("    - Animated pulsing live indicator (30fps)");
-    Serial.println("  Drawing target: Off-screen canvas");
+    Serial.println("  Architecture: Background canvas + Data canvas + Main display");
 
-    // Draw background once (static elements) to canvas
-    Serial.println("  Drawing background to canvas...");
+    // Draw background once (static elements) to background canvas
+    Serial.println("  Drawing background to background canvas...");
     unsigned long bgStart = millis();
     graph.drawBackground();
     unsigned long bgEnd = millis();
-    Serial.printf("  [TIME] Background took %lu ms\n", bgEnd - bgStart);
+    Serial.printf("  [TIME] Background layer took %lu ms\n", bgEnd - bgStart);
 
-    // Draw initial data to canvas
-    Serial.println("  Drawing data to canvas...");
+    // Draw initial data to data canvas
+    Serial.println("  Drawing data to data canvas...");
     unsigned long dataStart = millis();
     graph.drawData();
     unsigned long dataEnd = millis();
-    Serial.printf("  [TIME] Data took %lu ms\n", dataEnd - dataStart);
+    Serial.printf("  [TIME] Data layer took %lu ms\n", dataEnd - dataStart);
 
-    Serial.println("  [PASS] Graph rendered to canvas");
-    Serial.println();
+    // Perform initial render (blit canvases to main display)
+    Serial.println("  Compositing layers to main display...");
+    unsigned long renderStart = millis();
+    graph.render();
+    unsigned long renderEnd = millis();
+    Serial.printf("  [TIME] Composition took %lu ms\n", renderEnd - renderStart);
 
-    // Re-select main display as drawing target
-    Serial.println("  Re-selecting main display...");
-    hal_display_canvas_select(nullptr);
-    Serial.println("  [PASS] Main display selected");
+    Serial.println("  [PASS] Graph rendered with layered architecture");
     Serial.println();
 
     // Display summary
@@ -253,18 +261,14 @@ void loop() {
     // Wait for next frame and get deltaTime
     float deltaTime = g_ticker->waitForNextFrame();
 
-    if (g_graph != nullptr && g_graph_canvas != nullptr) {
-        // Select canvas as drawing target
-        hal_display_canvas_select(g_graph_canvas);
+    if (g_graph != nullptr) {
+        // Render: Composite background and data canvases to main display
+        g_graph->render();
 
-        // Update animation state and redraw (includes clearing old indicator and drawing new one)
+        // Update: Draw animated live indicator directly to main display
         g_graph->update(deltaTime);
 
-        // Re-select main display
-        hal_display_canvas_select(nullptr);
-
-        // Blit updated canvas to display at (0, 0)
-        hal_display_canvas_draw(g_graph_canvas, 0, 0);
+        // Flush to ensure display updates
         hal_display_flush();
     }
 }

@@ -1,11 +1,11 @@
 /**
  * @file ui_time_series_graph.cpp
- * @brief Implementation of UI Time Series Graph Component
+ * @brief Implementation of Layered Rendering Time Series Graph
  */
 
 #define _USE_MATH_DEFINES
 #include "ui_time_series_graph.h"
-#include "relative_display.h"
+#include <Arduino_GFX_Library.h>
 #include <algorithm>
 #include <cmath>
 
@@ -23,37 +23,64 @@ static uint16_t interpolate_color(uint16_t color1, uint16_t color2, float t) {
     uint8_t g2 = (color2 >> 5) & 0x3F;
     uint8_t b2 = color2 & 0x1F;
 
-    uint8_t r = (uint8_t)(r1 + t * (r2 - r1));
-    uint8_t g = (uint8_t)(g1 + t * (g2 - g1));
-    uint8_t b = (uint8_t)(b1 + t * (b2 - b1));
+    uint8_t r = static_cast<uint8_t>(r1 + t * (r2 - r1));
+    uint8_t g = static_cast<uint8_t>(g1 + t * (g2 - g1));
+    uint8_t b = static_cast<uint8_t>(b1 + t * (b2 - b1));
 
     return ((r & 0x1F) << 11) | ((g & 0x3F) << 5) | (b & 0x1F);
 }
 
-// Helper function to get color from gradient at position t
-static uint16_t get_gradient_color(const LinearGradient& gradient, float t) {
-    if (gradient.num_stops < 2) {
-        return gradient.color_stops[0];
-    }
-
-    if (t < 0.0f) t = 0.0f;
-    if (t > 1.0f) t = 1.0f;
-
-    if (gradient.num_stops == 2) {
-        return interpolate_color(gradient.color_stops[0], gradient.color_stops[1], t);
-    }
-
-    // For 3 stops, divide into two segments
-    if (t < 0.5f) {
-        return interpolate_color(gradient.color_stops[0], gradient.color_stops[1], t * 2.0f);
-    } else {
-        return interpolate_color(gradient.color_stops[1], gradient.color_stops[2], (t - 0.5f) * 2.0f);
-    }
+TimeSeriesGraph::TimeSeriesGraph(const GraphTheme& theme, Arduino_GFX* main_display,
+                                 int32_t width, int32_t height)
+    : theme_(theme), main_display_(main_display), width_(width), height_(height),
+      bg_canvas_(nullptr), data_canvas_(nullptr),
+      rel_main_(nullptr), rel_bg_(nullptr), rel_data_(nullptr),
+      pulse_phase_(0.0f), y_tick_increment_(0.0f),
+      cached_y_min_(0.0), cached_y_max_(0.0), range_cached_(false) {
 }
 
-TimeSeriesGraph::TimeSeriesGraph(const GraphTheme& theme)
-    : theme_(theme), pulse_phase_(0.0f), y_tick_increment_(0.0f),
-      cached_y_min_(0.0), cached_y_max_(0.0), range_cached_(false) {
+TimeSeriesGraph::~TimeSeriesGraph() {
+    // Clean up RelativeDisplay instances
+    delete rel_main_;
+    delete rel_bg_;
+    delete rel_data_;
+
+    // Clean up canvas instances (they free their PSRAM buffers)
+    delete bg_canvas_;
+    delete data_canvas_;
+}
+
+bool TimeSeriesGraph::begin() {
+#ifdef BOARD_HAS_PSRAM
+    // Check if PSRAM is available
+    if (psramInit()) {
+        // Allocate background canvas in PSRAM
+        bg_canvas_ = new Arduino_Canvas(width_, height_, main_display_);
+        if (!bg_canvas_ || !bg_canvas_->begin()) {
+            delete bg_canvas_;
+            bg_canvas_ = nullptr;
+            return false;
+        }
+
+        // Allocate data canvas in PSRAM
+        data_canvas_ = new Arduino_Canvas(width_, height_, main_display_);
+        if (!data_canvas_ || !data_canvas_->begin()) {
+            delete data_canvas_;
+            delete bg_canvas_;
+            data_canvas_ = nullptr;
+            bg_canvas_ = nullptr;
+            return false;
+        }
+
+        // Create RelativeDisplay instances for each layer
+        rel_main_ = new RelativeDisplay(main_display_, width_, height_);
+        rel_bg_ = new RelativeDisplay(bg_canvas_, width_, height_);
+        rel_data_ = new RelativeDisplay(data_canvas_, width_, height_);
+
+        return true;
+    }
+#endif
+    return false;
 }
 
 void TimeSeriesGraph::setData(const GraphData& data) {
@@ -65,310 +92,261 @@ void TimeSeriesGraph::setYTicks(float increment) {
     y_tick_increment_ = increment;
 }
 
-void TimeSeriesGraph::draw() {
-    drawBackground();
-    drawData();
-}
-
 void TimeSeriesGraph::drawBackground() {
-    // Fill entire screen with background color or gradient
+    if (!rel_bg_) return;
+
+    // Fill background canvas with color or gradient
     if (theme_.useBackgroundGradient) {
-        display_relative_fill_rect_gradient(0.0f, 0.0f, 100.0f, 100.0f, theme_.backgroundGradient);
+        // Draw gradient to background canvas using RelativeDisplay
+        int32_t x_start = 0;
+        int32_t y_start = 0;
+        int32_t x_end = width_;
+        int32_t y_end = height_;
+
+        float angle_rad = theme_.backgroundGradient.angle_deg * M_PI / 180.0f;
+        float dx = cosf(angle_rad);
+        float dy = sinf(angle_rad);
+
+        // Simple vertical gradient for performance
+        if (fabsf(theme_.backgroundGradient.angle_deg - 90.0f) < 5.0f) {
+            for (int32_t y = y_start; y < y_end; y++) {
+                float t = static_cast<float>(y - y_start) / static_cast<float>(y_end - y_start);
+                uint16_t color;
+                if (theme_.backgroundGradient.num_stops == 2) {
+                    color = interpolate_color(theme_.backgroundGradient.color_stops[0],
+                                            theme_.backgroundGradient.color_stops[1], t);
+                } else {
+                    if (t < 0.5f) {
+                        color = interpolate_color(theme_.backgroundGradient.color_stops[0],
+                                                theme_.backgroundGradient.color_stops[1], t * 2.0f);
+                    } else {
+                        color = interpolate_color(theme_.backgroundGradient.color_stops[1],
+                                                theme_.backgroundGradient.color_stops[2], (t - 0.5f) * 2.0f);
+                    }
+                }
+                float y_percent = (static_cast<float>(y) / static_cast<float>(height_)) * 100.0f;
+                rel_bg_->drawHorizontalLine(y_percent, 0.0f, 100.0f, color);
+            }
+        } else {
+            // Fallback to solid color for other gradient angles
+            rel_bg_->fillRect(0.0f, 0.0f, 100.0f, 100.0f, theme_.backgroundColor);
+        }
     } else {
-        display_relative_fill_rectangle(0.0f, 0.0f, 100.0f, 100.0f, theme_.backgroundColor);
+        rel_bg_->fillRect(0.0f, 0.0f, 100.0f, 100.0f, theme_.backgroundColor);
     }
 
-    // Draw axes
-    drawAxes();
+    // Draw axes to background canvas
+    drawAxes(rel_bg_);
 
     // Draw ticks if enabled
     if (y_tick_increment_ > 0.0f) {
-        drawYTicks();
+        drawYTicks(rel_bg_);
     }
 }
 
 void TimeSeriesGraph::drawData() {
+    if (!rel_data_) return;
+
+    // Clear data canvas to transparent (black with alpha = 0)
+    // Note: Arduino_Canvas doesn't support true transparency, so we use the background color
+    rel_data_->fillRect(0.0f, 0.0f, 100.0f, 100.0f, theme_.backgroundColor);
+
     if (!data_.y_values.empty()) {
-        drawDataLine();
-        drawLiveIndicator();
+        drawDataLine(rel_data_);
     }
+}
+
+void TimeSeriesGraph::render() {
+    if (!bg_canvas_ || !data_canvas_ || !main_display_) return;
+
+    // Blit background canvas to main display
+    bg_canvas_->flush();
+
+    // Blit data canvas on top
+    data_canvas_->flush();
 }
 
 void TimeSeriesGraph::update(float deltaTime) {
     // Update pulse animation phase
     pulse_phase_ += deltaTime * theme_.liveIndicatorPulseSpeed * 2.0f * M_PI;
-
-    // Keep phase in range [0, 2*PI]
-    while (pulse_phase_ >= 2.0f * M_PI) {
+    if (pulse_phase_ > 2.0f * M_PI) {
         pulse_phase_ -= 2.0f * M_PI;
     }
 
-    // Efficiently clear old indicator and draw new one
-    if (!data_.y_values.empty()) {
-        // Calculate indicator position (last data point)
-        double y_min = cached_y_min_;
-        double y_max = cached_y_max_;
-        if (!range_cached_) {
-            y_min = *std::min_element(data_.y_values.begin(), data_.y_values.end());
-            y_max = *std::max_element(data_.y_values.begin(), data_.y_values.end());
-            if (std::abs(y_max - y_min) < 0.001) {
-                y_min -= 1.0;
-                y_max += 1.0;
-            }
-        }
-
-        size_t last_index = data_.y_values.size() - 1;
-        float x = mapXToScreen(last_index, data_.y_values.size());
-        float y = mapYToScreen(data_.y_values[last_index], y_min, y_max);
-
-        // Clear the old indicator area by filling with background color
-        // Use maximum indicator radius plus a margin to ensure we clear all artifacts
-        float clear_radius = theme_.liveIndicatorGradient.radius * 1.2f;  // 20% margin for anti-aliasing
-        display_relative_fill_rectangle(
-            x - clear_radius,
-            y - clear_radius,
-            clear_radius * 2.0f,
-            clear_radius * 2.0f,
-            theme_.backgroundColor
-        );
-
-        // Redraw just the end portion of the data line to restore it
-        if (data_.y_values.size() >= 2) {
-            size_t prev_index = last_index - 1;
-            float x1 = mapXToScreen(prev_index, data_.y_values.size());
-            float y1 = mapYToScreen(data_.y_values[prev_index], y_min, y_max);
-
-            // Use gradient if enabled, otherwise use solid color
-            if (theme_.useLineGradient && theme_.lineThickness > 0.0f) {
-                display_relative_draw_line_thick_gradient(x1, y1, x, y, theme_.lineThickness, theme_.lineGradient);
-            } else if (theme_.lineThickness > 0.0f) {
-                display_relative_draw_line_thick(x1, y1, x, y, theme_.lineThickness, theme_.lineColor);
-            } else {
-                // Use thin line with minimal thickness
-                display_relative_draw_line_thick(x1, y1, x, y, 0.1f, theme_.lineColor);
-            }
-        }
-
-        // Draw new indicator
-        drawLiveIndicator();
-    }
-}
-
-void TimeSeriesGraph::updateIndicator() {
-    // Just redraw the indicator without redrawing the entire data line
-    // This is more efficient for animation loops
+    // Draw live indicator directly to main display (after render() has been called)
     drawLiveIndicator();
 }
 
-void TimeSeriesGraph::drawAxes() {
-    // Calculate graph area boundaries
+void TimeSeriesGraph::drawAxes(RelativeDisplay* target) {
     float x_min = GRAPH_MARGIN_LEFT;
     float x_max = 100.0f - GRAPH_MARGIN_RIGHT;
     float y_min = GRAPH_MARGIN_TOP;
     float y_max = 100.0f - GRAPH_MARGIN_BOTTOM;
 
-    // Draw axes with thickness if specified
-    if (theme_.axisThickness > 0.0f) {
-        // Draw Y-axis (vertical line at left edge)
-        display_relative_draw_line_thick(x_min, y_min, x_min, y_max, theme_.axisThickness, theme_.axisColor);
+    // Draw Y-axis (left edge)
+    target->drawVerticalLine(x_min, y_min, y_max, theme_.axisColor);
 
-        // Draw X-axis (horizontal line at bottom)
-        display_relative_draw_line_thick(x_min, y_max, x_max, y_max, theme_.axisThickness, theme_.axisColor);
-    } else {
-        // Fallback to thin lines
-        display_relative_draw_vertical_line(x_min, y_min, y_max, theme_.axisColor);
-        display_relative_draw_horizontal_line(y_max, x_min, x_max, theme_.axisColor);
-    }
+    // Draw X-axis (bottom edge)
+    target->drawHorizontalLine(y_max, x_min, x_max, theme_.axisColor);
 }
 
-void TimeSeriesGraph::drawYTicks() {
-    if (data_.y_values.empty() || y_tick_increment_ <= 0.0f) {
-        return;
-    }
+void TimeSeriesGraph::drawYTicks(RelativeDisplay* target) {
+    if (data_.y_values.empty()) return;
 
-    // Use cached range if available, otherwise calculate it
-    double y_min, y_max;
-    if (range_cached_) {
-        y_min = cached_y_min_;
-        y_max = cached_y_max_;
-    } else {
-        y_min = *std::min_element(data_.y_values.begin(), data_.y_values.end());
-        y_max = *std::max_element(data_.y_values.begin(), data_.y_values.end());
+    // Calculate data range
+    double y_min = *std::min_element(data_.y_values.begin(), data_.y_values.end());
+    double y_max = *std::max_element(data_.y_values.begin(), data_.y_values.end());
 
-        // Add padding
-        if (std::abs(y_max - y_min) < 0.001) {
-            y_min -= 1.0;
-            y_max += 1.0;
-        }
+    if (y_max - y_min < 0.001) return;
 
-        cached_y_min_ = y_min;
-        cached_y_max_ = y_max;
-        range_cached_ = true;
-    }
-
-    // Calculate graph area boundaries
     float x_axis = GRAPH_MARGIN_LEFT;
     float tick_end = x_axis + theme_.tickLength;
+    float screen_y_min = GRAPH_MARGIN_TOP;
+    float screen_y_max = 100.0f - GRAPH_MARGIN_BOTTOM;
 
     // Draw tick marks
-    double tick_value = ceil(y_min / y_tick_increment_) * y_tick_increment_;
-    while (tick_value <= y_max) {
+    for (double tick_value = y_min; tick_value <= y_max; tick_value += y_tick_increment_) {
         float y_screen = mapYToScreen(tick_value, y_min, y_max);
-
-        // Draw tick mark
-        if (theme_.axisThickness > 0.0f) {
-            display_relative_draw_line_thick(x_axis, y_screen, tick_end, y_screen, theme_.axisThickness, theme_.tickColor);
-        } else {
-            display_relative_draw_horizontal_line(y_screen, x_axis, tick_end, theme_.tickColor);
-        }
-
-        tick_value += y_tick_increment_;
+        target->drawHorizontalLine(y_screen, x_axis, tick_end, theme_.tickColor);
     }
 }
 
-void TimeSeriesGraph::drawDataLine() {
-    if (data_.y_values.size() < 2) {
-        // Need at least 2 points to draw a line
-        // For single point, just draw a small marker
-        if (data_.y_values.size() == 1) {
-            float x = GRAPH_MARGIN_LEFT + (100.0f - GRAPH_MARGIN_LEFT - GRAPH_MARGIN_RIGHT) / 2.0f;
-            float y = GRAPH_MARGIN_TOP + (100.0f - GRAPH_MARGIN_TOP - GRAPH_MARGIN_BOTTOM) / 2.0f;
+void TimeSeriesGraph::drawDataLine(RelativeDisplay* target) {
+    if (data_.y_values.size() < 2) return;
 
-            // Draw a small cross as a marker
-            if (theme_.lineThickness > 0.0f) {
-                display_relative_draw_line_thick(x - 1.0f, y, x + 1.0f, y, theme_.lineThickness, theme_.lineColor);
-                display_relative_draw_line_thick(x, y - 1.0f, x, y + 1.0f, theme_.lineThickness, theme_.lineColor);
-            } else {
-                display_relative_draw_horizontal_line(y, x - 1.0f, x + 1.0f, theme_.lineColor);
-                display_relative_draw_vertical_line(x, y - 1.0f, y + 1.0f, theme_.lineColor);
-            }
-        }
-        return;
+    // Calculate or use cached data range
+    if (!range_cached_) {
+        cached_y_min_ = *std::min_element(data_.y_values.begin(), data_.y_values.end());
+        cached_y_max_ = *std::max_element(data_.y_values.begin(), data_.y_values.end());
+        range_cached_ = true;
     }
 
-    // Calculate or use cached Y range
-    double y_min, y_max;
-    if (range_cached_) {
-        y_min = cached_y_min_;
-        y_max = cached_y_max_;
-    } else {
-        y_min = *std::min_element(data_.y_values.begin(), data_.y_values.end());
-        y_max = *std::max_element(data_.y_values.begin(), data_.y_values.end());
+    double y_min = cached_y_min_;
+    double y_max = cached_y_max_;
 
-        // Add small padding to avoid edge cases when all values are the same
-        if (std::abs(y_max - y_min) < 0.001) {
-            y_min -= 1.0;
-            y_max += 1.0;
-        }
-
-        cached_y_min_ = y_min;
-        cached_y_max_ = y_max;
-        range_cached_ = true;
+    if (y_max - y_min < 0.001) {
+        y_max = y_min + 1.0;
     }
 
     size_t point_count = data_.y_values.size();
 
-    // Draw lines connecting consecutive points
-    for (size_t i = 0; i < point_count - 1; i++) {
-        float x1 = mapXToScreen(i, point_count);
-        float y1 = mapYToScreen(data_.y_values[i], y_min, y_max);
+    // Draw line segments between consecutive points
+    for (size_t i = 1; i < point_count; i++) {
+        float x1 = mapXToScreen(i - 1, point_count);
+        float y1 = mapYToScreen(data_.y_values[i - 1], y_min, y_max);
+        float x2 = mapXToScreen(i, point_count);
+        float y2 = mapYToScreen(data_.y_values[i], y_min, y_max);
 
-        float x2 = mapXToScreen(i + 1, point_count);
-        float y2 = mapYToScreen(data_.y_values[i + 1], y_min, y_max);
+        // Draw simple line using horizontal/vertical segments approximation
+        int32_t x1_px = target->relativeToAbsoluteX(x1);
+        int32_t y1_px = target->relativeToAbsoluteY(y1);
+        int32_t x2_px = target->relativeToAbsoluteX(x2);
+        int32_t y2_px = target->relativeToAbsoluteY(y2);
 
-        // Determine color for this segment
-        uint16_t segment_color = theme_.lineColor;
-        if (theme_.useLineGradient) {
-            // Calculate position of this segment in the overall line (0.0 to 1.0)
-            float t = (float)i / (float)(point_count - 1);
-            segment_color = get_gradient_color(theme_.lineGradient, t);
-        }
+        // Use Bresenham's line algorithm
+        int32_t dx = abs(x2_px - x1_px);
+        int32_t dy = abs(y2_px - y1_px);
+        int32_t sx = (x1_px < x2_px) ? 1 : -1;
+        int32_t sy = (y1_px < y2_px) ? 1 : -1;
+        int32_t err = dx - dy;
 
-        // Draw with thickness
-        if (theme_.lineThickness > 0.0f) {
-            display_relative_draw_line_thick(x1, y1, x2, y2, theme_.lineThickness, segment_color);
-        } else {
-            // Fallback to thin line (pixel by pixel)
-            float dx = x2 - x1;
-            float dy = y2 - y1;
-            float distance = std::sqrt(dx * dx + dy * dy);
-            int steps = static_cast<int>(distance * 5.0f);
+        int32_t x = x1_px;
+        int32_t y = y1_px;
 
-            if (steps < 2) steps = 2;
+        while (true) {
+            float x_pct = (static_cast<float>(x) / static_cast<float>(width_)) * 100.0f;
+            float y_pct = (static_cast<float>(y) / static_cast<float>(height_)) * 100.0f;
+            target->drawPixel(x_pct, y_pct, theme_.lineColor);
 
-            for (int step = 0; step <= steps; step++) {
-                float t = static_cast<float>(step) / static_cast<float>(steps);
-                float x = x1 + t * (x2 - x1);
-                float y = y1 + t * (y2 - y1);
-                display_relative_draw_pixel(x, y, segment_color);
+            if (x == x2_px && y == y2_px) break;
+
+            int32_t e2 = 2 * err;
+            if (e2 > -dy) {
+                err -= dy;
+                x += sx;
+            }
+            if (e2 < dx) {
+                err += dx;
+                y += sy;
             }
         }
     }
 }
 
 void TimeSeriesGraph::drawLiveIndicator() {
-    if (data_.y_values.empty()) {
-        return;
-    }
+    if (!rel_main_ || data_.y_values.empty()) return;
 
-    // Calculate or use cached Y range
-    double y_min, y_max;
-    if (range_cached_) {
-        y_min = cached_y_min_;
-        y_max = cached_y_max_;
-    } else {
-        y_min = *std::min_element(data_.y_values.begin(), data_.y_values.end());
-        y_max = *std::max_element(data_.y_values.begin(), data_.y_values.end());
-
-        if (std::abs(y_max - y_min) < 0.001) {
-            y_min -= 1.0;
-            y_max += 1.0;
-        }
-
-        cached_y_min_ = y_min;
-        cached_y_max_ = y_max;
+    // Calculate or use cached data range
+    if (!range_cached_) {
+        cached_y_min_ = *std::min_element(data_.y_values.begin(), data_.y_values.end());
+        cached_y_max_ = *std::max_element(data_.y_values.begin(), data_.y_values.end());
         range_cached_ = true;
     }
 
-    // Get the last data point
+    double y_min = cached_y_min_;
+    double y_max = cached_y_max_;
+
+    if (y_max - y_min < 0.001) {
+        y_max = y_min + 1.0;
+    }
+
+    // Get position of last data point
     size_t last_index = data_.y_values.size() - 1;
     float x = mapXToScreen(last_index, data_.y_values.size());
     float y = mapYToScreen(data_.y_values[last_index], y_min, y_max);
 
-    // Calculate pulsing radius - grows from 0 to full size and back
-    float base_radius = theme_.liveIndicatorGradient.radius;
-    float pulse_factor = fabsf(sinf(pulse_phase_));  // Oscillates from 0 to 1 to 0
-    float radius = base_radius * pulse_factor;
+    // Calculate pulsing radius
+    float pulse_factor = (sinf(pulse_phase_) + 1.0f) / 2.0f;  // 0 to 1
+    float base_radius = 1.0f;  // Base radius in relative %
+    float radius = base_radius + (base_radius * 0.5f * pulse_factor);
 
-    // Draw the radial gradient circle
-    display_relative_fill_circle_gradient(x, y, radius, theme_.liveIndicatorGradient);
+    // Draw pulsing circle with radial gradient
+    int32_t center_x = rel_main_->relativeToAbsoluteX(x);
+    int32_t center_y = rel_main_->relativeToAbsoluteY(y);
+    int32_t radius_px = static_cast<int32_t>((radius / 100.0f) * ((width_ + height_) / 2.0f));
+
+    for (int32_t dy = -radius_px; dy <= radius_px; dy++) {
+        for (int32_t dx = -radius_px; dx <= radius_px; dx++) {
+            float dist = sqrtf(static_cast<float>(dx * dx + dy * dy));
+            if (dist <= radius_px) {
+                float t = dist / static_cast<float>(radius_px);
+                uint16_t color = interpolate_color(
+                    theme_.liveIndicatorGradient.color_stops[0],
+                    theme_.liveIndicatorGradient.color_stops[1],
+                    t
+                );
+
+                int32_t draw_x = center_x + dx;
+                int32_t draw_y = center_y + dy;
+
+                if (draw_x >= 0 && draw_x < width_ && draw_y >= 0 && draw_y < height_) {
+                    float x_pct = (static_cast<float>(draw_x) / static_cast<float>(width_)) * 100.0f;
+                    float y_pct = (static_cast<float>(draw_y) / static_cast<float>(height_)) * 100.0f;
+                    rel_main_->drawPixel(x_pct, y_pct, color);
+                }
+            }
+        }
+    }
 }
 
 float TimeSeriesGraph::mapYToScreen(double y_value, double y_min, double y_max) {
-    // Map Y value to graph area (inverted because screen Y increases downward)
-    float graph_top = GRAPH_MARGIN_TOP;
-    float graph_bottom = 100.0f - GRAPH_MARGIN_BOTTOM;
-    float graph_height = graph_bottom - graph_top;
+    float y_range = static_cast<float>(y_max - y_min);
+    float normalized = static_cast<float>(y_value - y_min) / y_range;
 
-    // Normalize to 0-1 range
-    double normalized = (y_value - y_min) / (y_max - y_min);
+    float screen_y_min = GRAPH_MARGIN_TOP;
+    float screen_y_max = 100.0f - GRAPH_MARGIN_BOTTOM;
+    float screen_range = screen_y_max - screen_y_min;
 
-    // Map to screen (inverted: high values at top)
-    float y_percent = graph_bottom - (normalized * graph_height);
-
-    return y_percent;
+    // Invert Y-axis (higher values at top)
+    return screen_y_max - (normalized * screen_range);
 }
 
 float TimeSeriesGraph::mapXToScreen(size_t x_index, size_t x_count) {
-    float graph_left = GRAPH_MARGIN_LEFT;
-    float graph_right = 100.0f - GRAPH_MARGIN_RIGHT;
-    float graph_width = graph_right - graph_left;
-
-    // Normalize to 0-1 range
     float normalized = static_cast<float>(x_index) / static_cast<float>(x_count - 1);
 
-    // Map to screen
-    float x_percent = graph_left + (normalized * graph_width);
+    float screen_x_min = GRAPH_MARGIN_LEFT;
+    float screen_x_max = 100.0f - GRAPH_MARGIN_RIGHT;
+    float screen_range = screen_x_max - screen_x_min;
 
-    return x_percent;
+    return screen_x_min + (normalized * screen_range);
 }

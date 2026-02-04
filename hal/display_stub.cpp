@@ -84,3 +84,7 @@ void hal_display_canvas_fill(hal_canvas_handle_t canvas, uint16_t color) {
     (void)canvas;
     (void)color;  // Stub doesn't support canvas filling
 }
+
+void* hal_display_get_gfx(void) {
+    return nullptr;  // Stub doesn't provide Arduino_GFX access
+}

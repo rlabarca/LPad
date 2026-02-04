@@ -80,6 +80,16 @@ int32_t hal_display_get_height_pixels(void);
  */
 void hal_display_set_rotation(int degrees);
 
+/**
+ * @brief Gets the underlying Arduino_GFX display object
+ *
+ * Returns a pointer to the underlying Arduino_GFX display object for
+ * advanced use cases that require direct access to the GFX API.
+ *
+ * @return void* Pointer to the Arduino_GFX object (must be cast appropriately)
+ */
+void* hal_display_get_gfx(void);
+
 // Canvas-based (Layered) Drawing API
 // See features/display_canvas_drawing.md for complete specification
 

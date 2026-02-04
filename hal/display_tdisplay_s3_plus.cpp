@@ -296,4 +296,8 @@ void hal_display_canvas_fill(hal_canvas_handle_t canvas, uint16_t color) {
     canvas_ptr->fillScreen(color);
 }
 
+void* hal_display_get_gfx(void) {
+    return static_cast<void*>(g_gfx);
+}
+
 #endif  // !UNIT_TEST
