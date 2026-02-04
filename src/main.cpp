@@ -1,114 +1,266 @@
 /**
  * @file main.cpp
- * @brief AnimationTicker HIL Test - Moving Box
+ * @brief 10-Year Treasury Bond Tracker Application
  *
- * TEMPORARY: This is a Hardware-In-Loop test for the AnimationTicker feature.
- * See features/app_animation_ticker.md for specification.
+ * This application displays real-time 10-year treasury bond yield data
+ * by orchestrating the YahooChartParser and TimeSeriesGraph components.
  *
- * To restore bond tracker, see git history.
+ * Features:
+ * - Parses Yahoo Chart API JSON data for ^TNX (10-year treasury)
+ * - Renders time-series graph with vaporwave aesthetic
+ * - Resolution-independent display via RelativeDisplay abstraction
+ * - Smooth 30fps animation via AnimationTicker
+ * - Canvas-based off-screen rendering for flicker-free updates
+ *
+ * See features/app_bond_tracker.md for specification.
  */
 
 #include <Arduino.h>
 #include "../hal/display.h"
 #include "relative_display.h"
+#include "ui_time_series_graph.h"
+#include "yahoo_chart_parser.h"
 #include "animation_ticker.h"
 
 // RGB565 color definitions
-#define RGB565_BLACK   0x0000
-#define RGB565_WHITE   0xFFFF
-#define RGB565_CYAN    0x07FF
-#define RGB565_RED     0xF800
+#define RGB565_BLACK       0x0000
+#define RGB565_WHITE       0xFFFF
+#define RGB565_CYAN        0x07FF
+#define RGB565_MAGENTA     0xF81F
+#define RGB565_DARK_PURPLE 0x4810
+#define RGB565_RED         0xF800
 
-// Animation state
-int32_t box_x = 0;
-int32_t box_y = 0;
-int32_t prev_box_x = 0;  // Track previous position for dirty rectangle
-const int32_t BOX_SIZE = 20;  // 20 pixels
-const int32_t BOX_SPEED = 3;  // pixels per frame (3 pixels = 90 pixels/sec at 30fps)
-int32_t display_width = 0;
-int32_t display_height = 0;
+// Global variables for canvas and animation
+hal_canvas_handle_t g_graph_canvas = nullptr;
+TimeSeriesGraph* g_graph = nullptr;
+AnimationTicker* g_ticker = nullptr;
 
-// Animation ticker for 30fps
-AnimationTicker ticker(30);
+// Create vaporwave theme with ALL themeable features enabled
+GraphTheme createVaporwaveTheme() {
+    GraphTheme theme = {};  // Zero-initialize all fields
+
+    // Basic colors
+    theme.backgroundColor = RGB565_DARK_PURPLE;
+    theme.lineColor = RGB565_CYAN;
+    theme.axisColor = RGB565_MAGENTA;
+
+    // Enable gradient background (3-color at 45 degrees - diagonal)
+    theme.useBackgroundGradient = true;
+    theme.backgroundGradient.angle_deg = 45.0f;  // 45-degree diagonal
+    theme.backgroundGradient.color_stops[0] = RGB565_DARK_PURPLE;  // Deep purple
+    theme.backgroundGradient.color_stops[1] = RGB565_MAGENTA;       // Magenta
+    theme.backgroundGradient.color_stops[2] = 0x4010;               // Dark blue-purple
+    theme.backgroundGradient.num_stops = 3;
+
+    // Enable gradient line (horizontal gradient)
+    theme.useLineGradient = true;
+    theme.lineGradient.angle_deg = 0.0f;  // Horizontal
+    theme.lineGradient.color_stops[0] = RGB565_CYAN;
+    theme.lineGradient.color_stops[1] = RGB565_MAGENTA;
+    theme.lineGradient.num_stops = 2;
+
+    // Set line and axis thickness for smooth rendering
+    theme.lineThickness = 2.0f;  // 2% thickness for smooth, visible lines
+    theme.axisThickness = 0.8f;  // 0.8% thickness for axes
+
+    // Enable tick marks on Y-axis
+    theme.tickColor = RGB565_WHITE;  // Bright white for visibility
+    theme.tickLength = 2.5f;  // 2.5% tick length (short, subtle)
+
+    // Enable pulsing live indicator
+    theme.liveIndicatorGradient.center_x = 0.0f;
+    theme.liveIndicatorGradient.center_y = 0.0f;
+    theme.liveIndicatorGradient.radius = 4.0f;  // 4% radius (larger)
+    theme.liveIndicatorGradient.color_stops[0] = RGB565_MAGENTA;  // Magenta/pink center
+    theme.liveIndicatorGradient.color_stops[1] = RGB565_CYAN;     // Cyan edge
+    theme.liveIndicatorPulseSpeed = 6.0f;  // 6 pulses per second
+
+    return theme;
+}
+
+void displayError(const char* message) {
+    // Clear to red background to indicate error
+    hal_display_clear(RGB565_RED);
+    hal_display_flush();
+
+    Serial.println("=== ERROR ===");
+    Serial.println(message);
+    Serial.println("=============");
+}
 
 void setup() {
     Serial.begin(115200);
     delay(1000);
 
-    Serial.println("=== AnimationTicker HIL Test ===");
+    Serial.println("=== 10-Year Treasury Bond Tracker ===");
     Serial.println();
 
     // Initialize display HAL
-    Serial.println("[1/3] Initializing display...");
+    Serial.println("[1/6] Initializing display HAL...");
     if (!hal_display_init()) {
         Serial.println("  [FAIL] Display initialization failed");
-        hal_display_clear(RGB565_RED);
-        hal_display_flush();
+        displayError("Display initialization failed");
         while (1) delay(1000);
     }
+    Serial.println("  [PASS] Display initialized");
 
+    // Apply rotation if configured via build flag
 #ifdef APP_DISPLAY_ROTATION
+    Serial.printf("  [INFO] Applying rotation: %d degrees\n", APP_DISPLAY_ROTATION);
     hal_display_set_rotation(APP_DISPLAY_ROTATION);
 #endif
 
-    display_width = hal_display_get_width_pixels();
-    display_height = hal_display_get_height_pixels();
-    Serial.printf("  [PASS] Display: %d x %d pixels\n", display_width, display_height);
+    int32_t width = hal_display_get_width_pixels();
+    int32_t height = hal_display_get_height_pixels();
+    Serial.printf("  [INFO] Display resolution: %d x %d pixels\n", width, height);
+    Serial.println();
+    delay(500);
 
-    // Initialize relative display
-    Serial.println("[2/3] Initializing RelativeDisplay...");
+    // Initialize relative display abstraction
+    Serial.println("[2/6] Initializing relative display abstraction...");
     display_relative_init();
-    Serial.println("  [PASS] RelativeDisplay initialized");
+    Serial.println("  [PASS] Relative display initialized");
+    Serial.println();
+    delay(500);
 
-    // Initialize box position
-    box_x = 0;
-    prev_box_x = 0;
-    box_y = display_height / 2 - BOX_SIZE / 2;
+    // Create 30fps AnimationTicker
+    Serial.println("[2.5/6] Creating 30fps AnimationTicker...");
+    static AnimationTicker ticker(30);
+    g_ticker = &ticker;
+    Serial.println("  [PASS] AnimationTicker created (30fps)");
+    Serial.println();
+    delay(500);
 
-    // Clear screen once
-    Serial.println("[3/3] Starting animation test...");
-    Serial.println("  Expect: Smooth 30fps moving box (cyan on black)");
-    Serial.printf("  Box size: %dpx, Speed: %dpx/frame = %dpx/sec at 30fps\n",
-                  BOX_SIZE, BOX_SPEED, BOX_SPEED * 30);
-    Serial.println("  Using dirty rectangle updates to minimize tearing");
-    hal_display_clear(RGB565_BLACK);
-    hal_display_flush();
+    // Create full-screen canvas for off-screen rendering
+    Serial.println("[3/6] Creating full-screen canvas...");
+    Serial.printf("  Canvas dimensions: %d x %d pixels\n", width, height);
+    g_graph_canvas = hal_display_canvas_create(width, height);
 
-    Serial.println("=== Test Running ===");
+    if (g_graph_canvas == nullptr) {
+        Serial.println("  [FAIL] Failed to create canvas");
+        displayError("Failed to create canvas");
+        while (1) delay(1000);
+    }
+
+    Serial.println("  [PASS] Canvas created");
+    Serial.println("  Selecting canvas as drawing target...");
+    hal_display_canvas_select(g_graph_canvas);
+    Serial.println("  [PASS] Canvas selected");
+    Serial.println();
+    delay(500);
+
+    // Parse bond data from file
+    Serial.println("[4/6] Parsing 10-year treasury bond data...");
+    Serial.println("  Source: test_data/yahoo_chart_tnx_5m_1d.json");
+
+    YahooChartParser parser("test_data/yahoo_chart_tnx_5m_1d.json");
+
+    if (!parser.parse()) {
+        Serial.println("  [FAIL] Failed to parse bond data");
+        displayError("Failed to parse bond data");
+        while (1) delay(1000);
+    }
+
+    const std::vector<long>& timestamps = parser.getTimestamps();
+    const std::vector<double>& closePrices = parser.getClosePrices();
+
+    Serial.printf("  [PASS] Data parsed successfully\n");
+    Serial.printf("  [INFO] Data points: %d\n", closePrices.size());
+    if (timestamps.size() > 0) {
+        Serial.printf("  [INFO] First timestamp: %ld\n", timestamps[0]);
+        Serial.printf("  [INFO] First yield: %.3f%%\n", closePrices[0]);
+    }
+    if (closePrices.size() > 1) {
+        Serial.printf("  [INFO] Last yield: %.3f%%\n", closePrices[closePrices.size() - 1]);
+    }
+
+    Serial.println();
+    delay(500);
+
+    // Create TimeSeriesGraph with vaporwave theme
+    Serial.println("[5/6] Creating time-series graph...");
+    Serial.println("  Theme: Vaporwave (Dark Purple, Cyan, Magenta)");
+
+    GraphTheme theme = createVaporwaveTheme();
+
+    // Create graph (static to persist for animation loop)
+    static TimeSeriesGraph graph(theme);
+    g_graph = &graph;
+
+    Serial.println("  [PASS] Graph created");
+    Serial.println();
+    delay(500);
+
+    // Prepare data for graph
+    GraphData graphData;
+    graphData.x_values = timestamps;
+    graphData.y_values = closePrices;
+
+    graph.setData(graphData);
+
+    // Enable Y-axis tick marks every 0.002
+    graph.setYTicks(0.002f);
+
+    // Draw the bond tracker graph to the canvas
+    Serial.println("[6/6] Rendering graph to canvas...");
+    Serial.println("  Features enabled:");
+    Serial.println("    - Gradient background (45-degree, 3-color)");
+    Serial.println("    - Gradient data line (horizontal, cyan to magenta)");
+    Serial.println("    - Y-axis tick marks (every 0.002)");
+    Serial.println("    - Animated pulsing live indicator (30fps)");
+    Serial.println("  Drawing target: Off-screen canvas");
+
+    // Draw background once (static elements) to canvas
+    Serial.println("  Drawing background to canvas...");
+    unsigned long bgStart = millis();
+    graph.drawBackground();
+    unsigned long bgEnd = millis();
+    Serial.printf("  [TIME] Background took %lu ms\n", bgEnd - bgStart);
+
+    // Draw initial data to canvas
+    Serial.println("  Drawing data to canvas...");
+    unsigned long dataStart = millis();
+    graph.drawData();
+    unsigned long dataEnd = millis();
+    Serial.printf("  [TIME] Data took %lu ms\n", dataEnd - dataStart);
+
+    Serial.println("  [PASS] Graph rendered to canvas");
+    Serial.println();
+
+    // Re-select main display as drawing target
+    Serial.println("  Re-selecting main display...");
+    hal_display_canvas_select(nullptr);
+    Serial.println("  [PASS] Main display selected");
+    Serial.println();
+
+    // Display summary
+    Serial.println("=== 10-Year Treasury Bond Tracker Ready ===");
+    Serial.println("Visual Verification:");
+    Serial.println("  [ ] Gradient background (purple to magenta to dark blue)");
+    Serial.println("  [ ] Magenta axes with tick marks on Y-axis");
+    Serial.println("  [ ] Gradient line (cyan to magenta)");
+    Serial.println("  [ ] Pulsing live indicator at last data point (30fps animation)");
+    Serial.println();
+    Serial.println("Starting animation loop (30fps via AnimationTicker)...");
     Serial.println();
 }
 
 void loop() {
-    // Update box position
-    box_x += BOX_SPEED;
+    // Wait for next frame and get deltaTime
+    float deltaTime = g_ticker->waitForNextFrame();
 
-    // Wrap around when box reaches right edge
-    if (box_x > display_width) {
-        box_x = -BOX_SIZE;
-        // Clear screen on wrap to avoid trail
-        hal_display_clear(RGB565_BLACK);
-        prev_box_x = box_x;
-    } else {
-        // Clear the old box position (only the non-overlapping part)
-        // This minimizes the pixels being updated, reducing tearing
-        for (int32_t dy = 0; dy < BOX_SIZE; dy++) {
-            for (int32_t dx = 0; dx < BOX_SPEED; dx++) {
-                hal_display_draw_pixel(prev_box_x + dx, box_y + dy, RGB565_BLACK);
-            }
-        }
-        prev_box_x = box_x;
+    if (g_graph != nullptr && g_graph_canvas != nullptr) {
+        // Select canvas as drawing target
+        hal_display_canvas_select(g_graph_canvas);
+
+        // Update animation state using deltaTime from AnimationTicker
+        g_graph->update(deltaTime);
+
+        // Re-select main display
+        hal_display_canvas_select(nullptr);
+
+        // Blit updated canvas to display at (0, 0)
+        hal_display_canvas_draw(g_graph_canvas, 0, 0);
+        hal_display_flush();
     }
-
-    // Draw the box at new position
-    for (int32_t dy = 0; dy < BOX_SIZE; dy++) {
-        for (int32_t dx = 0; dx < BOX_SIZE; dx++) {
-            hal_display_draw_pixel(box_x + dx, box_y + dy, RGB565_CYAN);
-        }
-    }
-
-    // Flush to display
-    hal_display_flush();
-
-    // Wait for next frame (30fps timing)
-    ticker.waitForNextFrame();
 }
