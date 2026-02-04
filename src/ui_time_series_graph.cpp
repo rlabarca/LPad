@@ -52,35 +52,65 @@ TimeSeriesGraph::~TimeSeriesGraph() {
 
 bool TimeSeriesGraph::begin() {
 #ifdef BOARD_HAS_PSRAM
+    // PSRAM should already be initialized by the HAL or Arduino framework
     // Check if PSRAM is available
-    if (psramInit()) {
-        // Allocate background canvas in PSRAM
-        bg_canvas_ = new Arduino_Canvas(width_, height_, main_display_);
-        if (!bg_canvas_ || !bg_canvas_->begin()) {
-            delete bg_canvas_;
-            bg_canvas_ = nullptr;
-            return false;
-        }
+    size_t psram_size = ESP.getPsramSize();
+    size_t psram_free = ESP.getFreePsram();
 
-        // Allocate data canvas in PSRAM
-        data_canvas_ = new Arduino_Canvas(width_, height_, main_display_);
-        if (!data_canvas_ || !data_canvas_->begin()) {
-            delete data_canvas_;
-            delete bg_canvas_;
-            data_canvas_ = nullptr;
-            bg_canvas_ = nullptr;
-            return false;
-        }
+    Serial.printf("  [INFO] PSRAM total: %zu bytes\n", psram_size);
+    Serial.printf("  [INFO] PSRAM free: %zu bytes\n", psram_free);
 
-        // Create RelativeDisplay instances for each layer
-        rel_main_ = new RelativeDisplay(main_display_, width_, height_);
-        rel_bg_ = new RelativeDisplay(bg_canvas_, width_, height_);
-        rel_data_ = new RelativeDisplay(data_canvas_, width_, height_);
-
-        return true;
+    if (psram_size == 0) {
+        Serial.println("  [ERROR] No PSRAM detected on this board");
+        return false;
     }
-#endif
+
+    // Calculate required memory (2 canvases * width * height * 2 bytes per pixel)
+    size_t required_bytes = 2 * width_ * height_ * 2;
+    Serial.printf("  [INFO] Required memory: %zu bytes\n", required_bytes);
+
+    if (psram_free < required_bytes) {
+        Serial.printf("  [ERROR] Insufficient PSRAM (need %zu, have %zu)\n",
+                     required_bytes, psram_free);
+        return false;
+    }
+
+    // Allocate background canvas in PSRAM
+    Serial.println("  [INFO] Allocating background canvas...");
+    bg_canvas_ = new Arduino_Canvas(width_, height_, main_display_);
+    if (!bg_canvas_ || !bg_canvas_->begin()) {
+        Serial.println("  [ERROR] Failed to create background canvas");
+        delete bg_canvas_;
+        bg_canvas_ = nullptr;
+        return false;
+    }
+    Serial.println("  [OK] Background canvas created");
+
+    // Allocate data canvas in PSRAM
+    Serial.println("  [INFO] Allocating data canvas...");
+    data_canvas_ = new Arduino_Canvas(width_, height_, main_display_);
+    if (!data_canvas_ || !data_canvas_->begin()) {
+        Serial.println("  [ERROR] Failed to create data canvas");
+        delete data_canvas_;
+        delete bg_canvas_;
+        data_canvas_ = nullptr;
+        bg_canvas_ = nullptr;
+        return false;
+    }
+    Serial.println("  [OK] Data canvas created");
+
+    // Create RelativeDisplay instances for each layer
+    Serial.println("  [INFO] Creating RelativeDisplay wrappers...");
+    rel_main_ = new RelativeDisplay(main_display_, width_, height_);
+    rel_bg_ = new RelativeDisplay(bg_canvas_, width_, height_);
+    rel_data_ = new RelativeDisplay(data_canvas_, width_, height_);
+    Serial.println("  [OK] RelativeDisplay wrappers created");
+
+    return true;
+#else
+    Serial.println("  [ERROR] BOARD_HAS_PSRAM not defined");
     return false;
+#endif
 }
 
 void TimeSeriesGraph::setData(const GraphData& data) {
