@@ -37,12 +37,15 @@ public:
      * execution as needed to maintain the target frame rate. If a frame
      * takes longer than the frame time, it implements a "catch-up guard"
      * to prevent animation freezing.
+     *
+     * @return Elapsed time in seconds since the last frame, or 0.0f on first call
      */
-    void waitForNextFrame();
+    float waitForNextFrame();
 
 private:
     uint64_t frame_time_micros;  ///< Time for a single frame in microseconds
     uint64_t next_frame_time;    ///< Timestamp when next frame should occur
+    uint64_t last_frame_micros;  ///< Timestamp of last frame for deltaTime calculation
     bool first_call;             ///< Flag to track first call to waitForNextFrame
 };
 

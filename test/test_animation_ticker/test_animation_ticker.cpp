@@ -161,6 +161,33 @@ void test_frame_rate_30fps(void) {
     TEST_ASSERT_UINT_WITHIN(100, 32333, total_delay_micros);
 }
 
+/**
+ * Test: Verify waitForNextFrame returns correct deltaTime values
+ */
+void test_returns_correct_delta_time(void) {
+    AnimationTicker ticker(30);
+
+    // First call should return 0.0f
+    mock_current_time_micros = 1000000;  // 1 second
+    float deltaTime = ticker.waitForNextFrame();
+    TEST_ASSERT_EQUAL_FLOAT(0.0f, deltaTime);
+
+    // Second call after 10ms should return 0.01 seconds
+    mock_current_time_micros += 10000;  // +10ms
+    deltaTime = ticker.waitForNextFrame();
+    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 0.01f, deltaTime);
+
+    // Third call after 50ms should return 0.05 seconds
+    mock_current_time_micros += 50000;  // +50ms
+    deltaTime = ticker.waitForNextFrame();
+    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 0.05f, deltaTime);
+
+    // Fourth call after exactly one frame (33333 microseconds)
+    mock_current_time_micros += 33333;
+    deltaTime = ticker.waitForNextFrame();
+    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 0.033333f, deltaTime);
+}
+
 int main(int argc, char **argv) {
     UNITY_BEGIN();
 
@@ -169,6 +196,7 @@ int main(int argc, char **argv) {
     RUN_TEST(test_no_delay_when_work_exceeds_frame_time);
     RUN_TEST(test_death_spiral_guard_resets_schedule);
     RUN_TEST(test_frame_rate_30fps);
+    RUN_TEST(test_returns_correct_delta_time);
 
     return UNITY_END();
 }

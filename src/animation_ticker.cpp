@@ -7,10 +7,17 @@
 
 #include "animation_ticker.h"
 #include "../hal/timer.h"
+
+#ifndef UNIT_TEST
 #include <Arduino.h>
+#else
+// Forward declarations for mocked Arduino functions in unit tests
+extern "C" void delay(unsigned long ms);
+extern "C" void delayMicroseconds(unsigned int us);
+#endif
 
 AnimationTicker::AnimationTicker(uint32_t target_fps)
-    : first_call(true), next_frame_time(0) {
+    : first_call(true), next_frame_time(0), last_frame_micros(0) {
     // Calculate the time for a single frame in microseconds
     frame_time_micros = 1000000ULL / target_fps;
 
@@ -18,23 +25,29 @@ AnimationTicker::AnimationTicker(uint32_t target_fps)
     hal_timer_init();
 }
 
-void AnimationTicker::waitForNextFrame() {
-    // On the first call, just record the target time for the next frame
+float AnimationTicker::waitForNextFrame() {
+    // On the first call, initialize timing state and return 0.0f
     if (first_call) {
-        next_frame_time = hal_timer_get_micros() + frame_time_micros;
+        uint64_t current_time = hal_timer_get_micros();
+        last_frame_micros = current_time;
+        next_frame_time = current_time + frame_time_micros;
         first_call = false;
-        return;
+        return 0.0f;
     }
 
     // Get the current time
     uint64_t current_time = hal_timer_get_micros();
+
+    // Calculate deltaTime (time elapsed since last frame) in seconds
+    float deltaTime = (current_time - last_frame_micros) / 1000000.0f;
 
     // Check if we're behind schedule (death spiral guard)
     if (current_time >= next_frame_time) {
         // We've missed the frame deadline - reset schedule based on current time
         // instead of trying to catch up on all missed frames
         next_frame_time = current_time + frame_time_micros;
-        return;
+        last_frame_micros = current_time;
+        return deltaTime;
     }
 
     // We're ahead of schedule - wait for the remaining time
@@ -53,4 +66,7 @@ void AnimationTicker::waitForNextFrame() {
 
     // Advance to the next frame time
     next_frame_time += frame_time_micros;
+    last_frame_micros = current_time;
+
+    return deltaTime;
 }
