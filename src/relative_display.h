@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Arduino_GFX_Library.h>
+#include <stdint.h>
 
 class RelativeDisplay {
 public:
@@ -30,3 +31,36 @@ private:
     int32_t _width;
     int32_t _height;
 };
+
+// ============================================================================
+// Backward Compatibility Layer - Procedural API
+// ============================================================================
+// These functions provide backward compatibility with code that uses the
+// old procedural API. They use a global RelativeDisplay instance internally.
+// New code should use the RelativeDisplay class directly.
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+// Forward declarations for C++ structs used by gradient functions
+#ifdef __cplusplus
+struct LinearGradient;
+struct RadialGradient;
+#endif
+
+void display_relative_init(void);
+void display_relative_draw_pixel(float x_percent, float y_percent, uint16_t color);
+void display_relative_draw_horizontal_line(float y_percent, float x_start_percent, float x_end_percent, uint16_t color);
+void display_relative_draw_vertical_line(float x_percent, float y_start_percent, float y_end_percent, uint16_t color);
+void display_relative_fill_rectangle(float x_start_percent, float y_start_percent, float width_percent, float height_percent, uint16_t color);
+void display_relative_draw_line_thick(float x1_percent, float y1_percent, float x2_percent, float y2_percent, float thickness_percent, uint16_t color);
+
+#ifdef __cplusplus
+}
+
+// C++ overloads for gradient functions
+void display_relative_fill_rect_gradient(float x_percent, float y_percent, float w_percent, float h_percent, const LinearGradient& gradient);
+void display_relative_draw_line_thick_gradient(float x1_percent, float y1_percent, float x2_percent, float y2_percent, float thickness_percent, const LinearGradient& gradient);
+void display_relative_fill_circle_gradient(float center_x_percent, float center_y_percent, float radius_percent, const RadialGradient& gradient);
+#endif
