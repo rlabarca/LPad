@@ -3,6 +3,7 @@
 > **Prerequisites:** 
 > - `features/ui_time_series_graph.md`
 > - `features/display_relative_drawing.md` (Object-Oriented version)
+> - `features/hal_dma_blitting.md`
 
 This feature refactors the `TimeSeriesGraph` to use a high-performance, layered rendering architecture. It uses multiple off-screen canvases, wrapped by the `RelativeDisplay` class, to eliminate flicker and allow for smooth 30fps animations.
 
@@ -66,8 +67,9 @@ The class will be updated to include:
 
 **Given** the background and data have been drawn to their respective canvases.
 **When** the `render()` method is called on the `TimeSeriesGraph`.
-**Then** the contents of the `bg_canvas` must be blitted to the main display's frame buffer.
-**And** the contents of the `data_canvas` must then be blitted over top of the background, with transparency.
+**Then** the `hal_display_fast_blit()` function MUST be used to transfer the `bg_canvas`'s buffer to the main display.
+**And** the `hal_display_fast_blit()` function MUST be used again to transfer the `data_canvas`'s buffer, overlaying it on the main display.
+**And** the implementation must retrieve the raw data pointer from the `GfxCanvas16` object using its `getBuffer()` method.
 
 ### Scenario: Animating the Live Indicator
 
