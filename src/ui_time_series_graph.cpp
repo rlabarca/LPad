@@ -177,9 +177,11 @@ void TimeSeriesGraph::drawBackground() {
 void TimeSeriesGraph::drawData() {
     if (!rel_data_) return;
 
-    // Clear data canvas to transparent (black with alpha = 0)
-    // Note: Arduino_Canvas doesn't support true transparency, so we use the background color
-    rel_data_->fillRect(0.0f, 0.0f, 100.0f, 100.0f, theme_.backgroundColor);
+    // Clear data canvas using chroma key color for transparency
+    // We use 0x0001 (nearly black) as our "transparent" color
+    // This will be skipped during compositing
+    constexpr uint16_t CHROMA_KEY = 0x0001;
+    rel_data_->fillRect(0.0f, 0.0f, 100.0f, 100.0f, CHROMA_KEY);
 
     if (!data_.y_values.empty()) {
         drawDataLine(rel_data_);
@@ -189,11 +191,27 @@ void TimeSeriesGraph::drawData() {
 void TimeSeriesGraph::render() {
     if (!bg_canvas_ || !data_canvas_ || !main_display_) return;
 
-    // Blit background canvas to main display
-    bg_canvas_->flush();
+    // Get canvas framebuffers
+    uint16_t* bg_buffer = bg_canvas_->getFramebuffer();
+    uint16_t* data_buffer = data_canvas_->getFramebuffer();
 
-    // Blit data canvas on top
-    data_canvas_->flush();
+    if (bg_buffer == nullptr || data_buffer == nullptr) return;
+
+    // Chroma key color used for transparency in data canvas
+    constexpr uint16_t CHROMA_KEY = 0x0001;
+
+    // Start write transaction for better performance
+    main_display_->startWrite();
+
+    // First, blit background canvas to main display
+    main_display_->draw16bitRGBBitmap(0, 0, bg_buffer, width_, height_);
+
+    // Then, composite data canvas on top using chroma key for transparency
+    // Use Arduino_GFX's built-in chroma key bitmap function if available
+    main_display_->draw16bitRGBBitmapWithTranColor(0, 0, data_buffer, CHROMA_KEY, width_, height_);
+
+    // End write transaction
+    main_display_->endWrite();
 }
 
 void TimeSeriesGraph::update(float deltaTime) {
