@@ -122,8 +122,8 @@ void TimeSeriesGraph::update(float deltaTime) {
         float y = mapYToScreen(data_.y_values[last_index], y_min, y_max);
 
         // Clear the old indicator area by filling with background color
-        // Use maximum indicator radius to ensure we clear everything
-        float clear_radius = theme_.liveIndicatorGradient.radius;
+        // Use maximum indicator radius plus a margin to ensure we clear all artifacts
+        float clear_radius = theme_.liveIndicatorGradient.radius * 1.2f;  // 20% margin for anti-aliasing
         display_relative_fill_rectangle(
             x - clear_radius,
             y - clear_radius,
@@ -138,10 +138,13 @@ void TimeSeriesGraph::update(float deltaTime) {
             float x1 = mapXToScreen(prev_index, data_.y_values.size());
             float y1 = mapYToScreen(data_.y_values[prev_index], y_min, y_max);
 
-            if (theme_.lineThickness > 0.0f) {
+            // Use gradient if enabled, otherwise use solid color
+            if (theme_.useLineGradient && theme_.lineThickness > 0.0f) {
+                display_relative_draw_line_thick_gradient(x1, y1, x, y, theme_.lineThickness, theme_.lineGradient);
+            } else if (theme_.lineThickness > 0.0f) {
                 display_relative_draw_line_thick(x1, y1, x, y, theme_.lineThickness, theme_.lineColor);
             } else {
-                // Use thin line via horizontal/vertical or thick line with minimal thickness
+                // Use thin line with minimal thickness
                 display_relative_draw_line_thick(x1, y1, x, y, 0.1f, theme_.lineColor);
             }
         }
