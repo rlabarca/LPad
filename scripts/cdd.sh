@@ -13,7 +13,7 @@ C_DIM="\033[2m"
 C_RESET="\033[0m"
 
 # --- Config ---
-MAX_DONE_FEATURES=5
+# MAX_DONE_FEATURES will be calculated dynamically
 
 # --- Icons ---
 ICON_BRAIN="🧠"
@@ -49,6 +49,7 @@ while true; do
         testing_features=()
         todo_features=()
 
+        # Determine feature status (done_features populated for sorting later)
         for f in features/*.md; do
             [ -e "$f" ] || continue
             fname=$(basename "$f")
@@ -90,6 +91,44 @@ while true; do
             fi
             # --- End of Final, Corrected Logic ---
         done
+
+        # --- Dynamic MAX_DONE_FEATURES Calculation ---
+        terminal_height=$(tput lines)
+        
+        # Calculate lines used by static parts of the display
+        calculated_current_lines_used=0
+        calculated_current_lines_used=$((calculated_current_lines_used + 3)) # Top banner (3 lines: ===, 🚀, ===)
+        calculated_current_lines_used=$((calculated_current_lines_used + 1)) # Blank line before WORKSPACE CONTEXT
+        calculated_current_lines_used=$((calculated_current_lines_used + 1)) # WORKSPACE CONTEXT header
+        
+        # Add lines for git status output
+        GIT_STATUS_LINES=$(git status --short | wc -l | xargs)
+        if [ -z "$(git status --porcelain)" ]; then # Clean state
+            calculated_current_lines_used=$((calculated_current_lines_used + 1)); # "Clean State" line
+        else
+            calculated_current_lines_used=$((calculated_current_lines_used + $GIT_STATUS_LINES)); # Actual git status lines
+            if [ "$GIT_STATUS_LINES" -gt 0 ]; then calculated_current_lines_used=$((calculated_current_lines_used + 1)); fi # "Work in Progress:" line if there's output
+        fi
+        
+        calculated_current_lines_used=$((calculated_current_lines_used + 1)) # Blank line before FEATURE QUEUE
+        calculated_current_lines_used=$((calculated_current_lines_used + 1)) # FEATURE QUEUE header
+        calculated_current_lines_used=$((calculated_current_lines_used + ${#testing_features[@]})) # TESTING features
+        calculated_current_lines_used=$((calculated_current_lines_used + ${#todo_features[@]}))   # TODO features
+        
+        calculated_current_lines_used=$((calculated_current_lines_used + 1)) # Blank line before LATEST SAVE
+        calculated_current_lines_used=$((calculated_current_lines_used + 1)) # LATEST SAVE header
+        calculated_current_lines_used=$((calculated_current_lines_used + 1)) # Git log output (1 line for -1 --format)
+        
+        calculated_current_lines_used=$((calculated_current_lines_used + 1)) # Blank line before TEST STATUS
+        calculated_current_lines_used=$((calculated_current_lines_used + 1)) # TEST STATUS header
+        calculated_current_lines_used=$((calculated_current_lines_used + 1)) # Test status output
+        
+        calculated_current_lines_used=$((calculated_current_lines_used + 1)) # Blank line before footer
+        calculated_current_lines_used=$((calculated_current_lines_used + 1)) # Footer "(Press Ctrl+C...)"
+
+        # Calculate MAX_DONE_FEATURES. Subtract 1 for the potential "...and N more done features." line
+        MAX_DONE_FEATURES=$((terminal_height - calculated_current_lines_used - 1)) 
+        if [ "$MAX_DONE_FEATURES" -lt 0 ]; then MAX_DONE_FEATURES=0; fi # Ensure it's not negative
 
         # Print all testing and todo features, which are always visible
         for fname in "${testing_features[@]}"; do
