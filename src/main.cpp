@@ -260,6 +260,9 @@ void loop() {
         // Update animation state using deltaTime from AnimationTicker
         g_graph->update(deltaTime);
 
+        // Redraw data layer (includes animated indicator)
+        g_graph->drawData();
+
         // Re-select main display
         hal_display_canvas_select(nullptr);
 
