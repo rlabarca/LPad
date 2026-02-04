@@ -257,11 +257,8 @@ void loop() {
         // Select canvas as drawing target
         hal_display_canvas_select(g_graph_canvas);
 
-        // Update animation state using deltaTime from AnimationTicker
+        // Update animation state and redraw (includes clearing old indicator and drawing new one)
         g_graph->update(deltaTime);
-
-        // Redraw data layer (includes animated indicator)
-        g_graph->drawData();
 
         // Re-select main display
         hal_display_canvas_select(nullptr);

@@ -50,18 +50,17 @@ float AnimationTicker::waitForNextFrame() {
         return deltaTime;
     }
 
-    // We're ahead of schedule - wait for the remaining time
+    // We're ahead of schedule - wait for the remaining time in microseconds
     uint64_t time_to_wait = next_frame_time - current_time;
 
-    // Convert microseconds to milliseconds for delay (Arduino's delay uses ms)
-    // Use delayMicroseconds for sub-millisecond delays
-    if (time_to_wait >= 1000) {
-        delay(time_to_wait / 1000);
+    // Use delayMicroseconds for microsecond precision
+    // For very long waits, break into chunks to avoid overflow
+    while (time_to_wait > 16383) {
+        delayMicroseconds(16383);
+        time_to_wait -= 16383;
     }
-    // For remaining microseconds or small delays, use delayMicroseconds
-    uint64_t remaining_micros = time_to_wait % 1000;
-    if (remaining_micros > 0) {
-        delayMicroseconds(remaining_micros);
+    if (time_to_wait > 0) {
+        delayMicroseconds(time_to_wait);
     }
 
     // Advance to the next frame time

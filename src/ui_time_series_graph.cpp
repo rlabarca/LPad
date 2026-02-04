@@ -102,6 +102,13 @@ void TimeSeriesGraph::update(float deltaTime) {
     while (pulse_phase_ >= 2.0f * M_PI) {
         pulse_phase_ -= 2.0f * M_PI;
     }
+
+    // Redraw the data layer to clear old indicator and draw new one
+    // This ensures no artifacts from previous frames
+    if (!data_.y_values.empty()) {
+        drawDataLine();
+        drawLiveIndicator();
+    }
 }
 
 void TimeSeriesGraph::updateIndicator() {
