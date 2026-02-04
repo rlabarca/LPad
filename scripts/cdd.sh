@@ -12,16 +12,12 @@ C_WHITE="\033[1;37m"
 C_DIM="\033[2m"
 C_RESET="\033[0m"
 
-# --- Config ---
-# MAX_DONE_FEATURES will be calculated dynamically
-
 # --- Icons ---
 ICON_BRAIN="🧠"
 ICON_TEST="🧪"
 ICON_CHECK="✔ "
 ICON_WORK="🔨"
 ICON_PENDING="⏳"
-ICON_GIT="DATA"
 
 # Hide cursor for a clean refresh, and set a trap to restore it on exit
 tput civis
@@ -37,22 +33,21 @@ while true; do
     output_buffer+="${C_CYAN}======================================================${C_RESET}\033[K\n"
 
     # --- Build Workspace Context ---
-    output_buffer+="\n\033[K" # Blank line
+    output_buffer+="\n\033[K"
     output_buffer+="${C_MAGENTA}=== ${ICON_BRAIN}  WORKSPACE CONTEXT (Git Status) ===${C_RESET}\033[K\n"
     
-    git_status_porcelain=$(git status --porcelain)
+git_status_porcelain=$(git status --porcelain)
     if [ -z "$git_status_porcelain" ]; then
         output_buffer+="   ${C_GREEN}${ICON_CHECK} Clean State${C_RESET} ${C_DIM}(Ready for next task)${C_RESET}\033[K\n"
     else
         output_buffer+="   ${C_YELLOW}${ICON_WORK}  Work in Progress:${C_RESET}\033[K\n"
-        # Process each line of git status output
         while IFS= read -r line; do
             output_buffer+="      ${line}\033[K\n"
         done <<< "$git_status_porcelain"
     fi
 
     # --- Build Feature Queue ---
-    output_buffer+="\n\033[K" # Blank line
+    output_buffer+="\n\033[K"
     output_buffer+="${C_CYAN}=== 📜 FEATURE QUEUE (features/*.md) ===${C_RESET}\033[K\n"
     
     if [ -d "features" ]; then
@@ -82,11 +77,11 @@ while true; do
         # --- Dynamic MAX_DONE_FEATURES Calculation ---
         terminal_height=$(tput lines)
         calculated_current_lines_used=0
-        ((calculated_current_lines_used+=4)) # Header + blank line
+        ((calculated_current_lines_used+=5)) # Header (3) + 2 blank lines
         ((calculated_current_lines_used+=1)) # Workspace header
         GIT_STATUS_LINES=$(echo "$git_status_porcelain" | sed '/^\s*$/d' | wc -l | xargs)
         if [ "$GIT_STATUS_LINES" -eq 0 ]; then ((calculated_current_lines_used+=1)); else ((calculated_current_lines_used+=($GIT_STATUS_LINES + 1))); fi
-        ((calculated_current_lines_used+=2)) # Blank line + Feature header
+        ((calculated_current_lines_used+=1)) # Feature header
         ((calculated_current_lines_used+=${#testing_features[@]}))
         ((calculated_current_lines_used+=${#todo_features[@]}))
         ((calculated_current_lines_used+=2)) # Blank line + LATEST SAVE header
@@ -94,7 +89,7 @@ while true; do
         ((calculated_current_lines_used+=2)) # Blank line + TEST STATUS header
         ((calculated_current_lines_used+=1)) # Test status output
         ((calculated_current_lines_used+=2)) # Blank line + Footer
-        MAX_DONE_FEATURES=$((terminal_height - calculated_current_lines_used - 1)) 
+        MAX_DONE_FEATURES=$((terminal_height - calculated_current_lines_used - 2)) 
         if [ "$MAX_DONE_FEATURES" -lt 0 ]; then MAX_DONE_FEATURES=0; fi
 
         # Append features to buffer
