@@ -5,6 +5,7 @@
 
 #define _USE_MATH_DEFINES
 #include "ui_time_series_graph.h"
+#include "../hal/display.h"
 #include <Arduino_GFX_Library.h>
 #include <algorithm>
 #include <cmath>
@@ -78,7 +79,7 @@ bool TimeSeriesGraph::begin() {
     // Allocate background canvas in PSRAM
     Serial.println("  [INFO] Allocating background canvas...");
     bg_canvas_ = new Arduino_Canvas(width_, height_, main_display_);
-    if (!bg_canvas_ || !bg_canvas_->begin()) {
+    if (!bg_canvas_ || !bg_canvas_->begin(GFX_SKIP_OUTPUT_BEGIN)) {
         Serial.println("  [ERROR] Failed to create background canvas");
         delete bg_canvas_;
         bg_canvas_ = nullptr;
@@ -89,7 +90,7 @@ bool TimeSeriesGraph::begin() {
     // Allocate data canvas in PSRAM
     Serial.println("  [INFO] Allocating data canvas...");
     data_canvas_ = new Arduino_Canvas(width_, height_, main_display_);
-    if (!data_canvas_ || !data_canvas_->begin()) {
+    if (!data_canvas_ || !data_canvas_->begin(GFX_SKIP_OUTPUT_BEGIN)) {
         Serial.println("  [ERROR] Failed to create data canvas");
         delete data_canvas_;
         delete bg_canvas_;
@@ -134,32 +135,68 @@ void TimeSeriesGraph::drawBackground() {
         int32_t y_end = height_;
 
         float angle_rad = theme_.backgroundGradient.angle_deg * M_PI / 180.0f;
+
+        // Calculate gradient direction vector
         float dx = cosf(angle_rad);
         float dy = sinf(angle_rad);
 
-        // Simple vertical gradient for performance
-        if (fabsf(theme_.backgroundGradient.angle_deg - 90.0f) < 5.0f) {
-            for (int32_t y = y_start; y < y_end; y++) {
-                float t = static_cast<float>(y - y_start) / static_cast<float>(y_end - y_start);
+        // Calculate gradient length (diagonal distance for proper normalization)
+        float gradient_length = sqrtf(static_cast<float>(width_ * width_ + height_ * height_));
+
+        // Draw gradient pixel by pixel (could be optimized with line-based rendering)
+        for (int32_t py = y_start; py < y_end; py++) {
+            for (int32_t px = x_start; px < x_end; px++) {
+                // Calculate position along gradient direction
+                // Project pixel position onto gradient vector
+                float proj = (px * dx + py * dy);
+
+                // Normalize to 0.0 - 1.0 range based on angle
+                float t;
+                if (fabsf(theme_.backgroundGradient.angle_deg - 90.0f) < 5.0f) {
+                    // Vertical gradient (optimized path)
+                    t = static_cast<float>(py) / static_cast<float>(height_);
+                } else if (fabsf(theme_.backgroundGradient.angle_deg - 0.0f) < 5.0f) {
+                    // Horizontal gradient (optimized path)
+                    t = static_cast<float>(px) / static_cast<float>(width_);
+                } else {
+                    // Diagonal gradient - normalize based on projection
+                    t = proj / gradient_length;
+                }
+
+                // Clamp t to [0, 1]
+                if (t < 0.0f) t = 0.0f;
+                if (t > 1.0f) t = 1.0f;
+
+                // Interpolate color based on number of stops
                 uint16_t color;
                 if (theme_.backgroundGradient.num_stops == 2) {
-                    color = interpolate_color(theme_.backgroundGradient.color_stops[0],
-                                            theme_.backgroundGradient.color_stops[1], t);
+                    color = interpolate_color(
+                        theme_.backgroundGradient.color_stops[0],
+                        theme_.backgroundGradient.color_stops[1],
+                        t
+                    );
                 } else {
+                    // 3-color gradient
                     if (t < 0.5f) {
-                        color = interpolate_color(theme_.backgroundGradient.color_stops[0],
-                                                theme_.backgroundGradient.color_stops[1], t * 2.0f);
+                        color = interpolate_color(
+                            theme_.backgroundGradient.color_stops[0],
+                            theme_.backgroundGradient.color_stops[1],
+                            t * 2.0f
+                        );
                     } else {
-                        color = interpolate_color(theme_.backgroundGradient.color_stops[1],
-                                                theme_.backgroundGradient.color_stops[2], (t - 0.5f) * 2.0f);
+                        color = interpolate_color(
+                            theme_.backgroundGradient.color_stops[1],
+                            theme_.backgroundGradient.color_stops[2],
+                            (t - 0.5f) * 2.0f
+                        );
                     }
                 }
-                float y_percent = (static_cast<float>(y) / static_cast<float>(height_)) * 100.0f;
-                rel_bg_->drawHorizontalLine(y_percent, 0.0f, 100.0f, color);
+
+                // Draw pixel in relative coordinates
+                float x_pct = (static_cast<float>(px) / static_cast<float>(width_)) * 100.0f;
+                float y_pct = (static_cast<float>(py) / static_cast<float>(height_)) * 100.0f;
+                rel_bg_->drawPixel(x_pct, y_pct, color);
             }
-        } else {
-            // Fallback to solid color for other gradient angles
-            rel_bg_->fillRect(0.0f, 0.0f, 100.0f, 100.0f, theme_.backgroundColor);
         }
     } else {
         rel_bg_->fillRect(0.0f, 0.0f, 100.0f, 100.0f, theme_.backgroundColor);
@@ -191,34 +228,64 @@ void TimeSeriesGraph::drawData() {
 void TimeSeriesGraph::render() {
     if (!bg_canvas_ || !data_canvas_ || !main_display_) return;
 
-    // Get canvas framebuffers
+    // OPTIMIZATION: Pre-composite layers in memory, then do single DMA blit
+    // This avoids multiple address window updates and is faster for sparse data
+
+    constexpr uint16_t CHROMA_KEY = 0x0001;
     uint16_t* bg_buffer = bg_canvas_->getFramebuffer();
     uint16_t* data_buffer = data_canvas_->getFramebuffer();
 
-    if (bg_buffer == nullptr || data_buffer == nullptr) return;
+    if (!bg_buffer || !data_buffer) return;
 
-    // Chroma key color used for transparency in data canvas
-    constexpr uint16_t CHROMA_KEY = 0x0001;
+    // Allocate temporary composite buffer in PSRAM (or reuse one)
+    static uint16_t* composite_buffer = nullptr;
+    static size_t composite_buffer_size = 0;
 
-    // Start write transaction for better performance
-    main_display_->startWrite();
+    size_t required_size = static_cast<size_t>(width_) * static_cast<size_t>(height_);
 
-    // First, blit background canvas to main display
-    main_display_->draw16bitRGBBitmap(0, 0, bg_buffer, width_, height_);
+    if (composite_buffer == nullptr || composite_buffer_size != required_size) {
+        if (composite_buffer != nullptr) {
+            free(composite_buffer);
+        }
+        composite_buffer = static_cast<uint16_t*>(ps_malloc(required_size * sizeof(uint16_t)));
+        composite_buffer_size = required_size;
+    }
 
-    // Then, composite data canvas on top using chroma key for transparency
-    // Use Arduino_GFX's built-in chroma key bitmap function if available
-    main_display_->draw16bitRGBBitmapWithTranColor(0, 0, data_buffer, CHROMA_KEY, width_, height_);
+    if (composite_buffer == nullptr) {
+        // Fallback: blit layers separately if allocation fails
+        hal_display_fast_blit(0, 0, width_, height_, bg_buffer);
+        hal_display_fast_blit_transparent(0, 0, width_, height_, data_buffer, CHROMA_KEY);
+        return;
+    }
 
-    // End write transaction
-    main_display_->endWrite();
+    // Composite: background + data (with transparency) in memory
+    for (size_t i = 0; i < required_size; i++) {
+        if (data_buffer[i] != CHROMA_KEY) {
+            composite_buffer[i] = data_buffer[i];  // Use data pixel
+        } else {
+            composite_buffer[i] = bg_buffer[i];     // Use background pixel
+        }
+    }
+
+    // Single fast DMA blit of the composited result
+    hal_display_fast_blit(0, 0, width_, height_, composite_buffer);
 }
 
 void TimeSeriesGraph::update(float deltaTime) {
-    // Update pulse animation phase
+    // Clamp deltaTime to prevent large jumps (max 100ms = 0.1s)
+    // This prevents animation glitches if a frame takes too long
+    if (deltaTime > 0.1f) {
+        deltaTime = 0.1f;
+    }
+
+    // Update pulse animation phase smoothly
+    // Phase advances continuously from 0 to 2π
     pulse_phase_ += deltaTime * theme_.liveIndicatorPulseSpeed * 2.0f * M_PI;
-    if (pulse_phase_ > 2.0f * M_PI) {
-        pulse_phase_ -= 2.0f * M_PI;
+
+    // Wrap phase smoothly using fmod for continuous motion
+    pulse_phase_ = fmodf(pulse_phase_, 2.0f * M_PI);
+    if (pulse_phase_ < 0) {
+        pulse_phase_ += 2.0f * M_PI;
     }
 
     // Draw live indicator directly to main display (after render() has been called)
@@ -278,20 +345,57 @@ void TimeSeriesGraph::drawDataLine(RelativeDisplay* target) {
 
     size_t point_count = data_.y_values.size();
 
-    // Draw line segments between consecutive points
+    // Calculate line thickness in pixels
+    float thickness_pct = theme_.lineThickness;  // Percentage
+    int32_t thickness_px = static_cast<int32_t>((thickness_pct / 100.0f) * ((width_ + height_) / 2.0f));
+    if (thickness_px < 1) thickness_px = 1;
+    int32_t half_thickness = thickness_px / 2;
+
+    // Draw thick line segments between consecutive points
     for (size_t i = 1; i < point_count; i++) {
         float x1 = mapXToScreen(i - 1, point_count);
         float y1 = mapYToScreen(data_.y_values[i - 1], y_min, y_max);
         float x2 = mapXToScreen(i, point_count);
         float y2 = mapYToScreen(data_.y_values[i], y_min, y_max);
 
-        // Draw simple line using horizontal/vertical segments approximation
+        // Calculate color for this segment (gradient support)
+        uint16_t segment_color;
+        if (theme_.useLineGradient && theme_.lineGradient.num_stops >= 2) {
+            // Interpolate color based on position along X axis
+            float t = static_cast<float>(i - 1) / static_cast<float>(point_count - 1);
+            if (theme_.lineGradient.num_stops == 2) {
+                segment_color = interpolate_color(
+                    theme_.lineGradient.color_stops[0],
+                    theme_.lineGradient.color_stops[1],
+                    t
+                );
+            } else {
+                // 3-color gradient
+                if (t < 0.5f) {
+                    segment_color = interpolate_color(
+                        theme_.lineGradient.color_stops[0],
+                        theme_.lineGradient.color_stops[1],
+                        t * 2.0f
+                    );
+                } else {
+                    segment_color = interpolate_color(
+                        theme_.lineGradient.color_stops[1],
+                        theme_.lineGradient.color_stops[2],
+                        (t - 0.5f) * 2.0f
+                    );
+                }
+            }
+        } else {
+            segment_color = theme_.lineColor;
+        }
+
+        // Draw thick line using filled rectangle perpendicular to line direction
         int32_t x1_px = target->relativeToAbsoluteX(x1);
         int32_t y1_px = target->relativeToAbsoluteY(y1);
         int32_t x2_px = target->relativeToAbsoluteX(x2);
         int32_t y2_px = target->relativeToAbsoluteY(y2);
 
-        // Use Bresenham's line algorithm
+        // For each pixel along the center line, draw perpendicular thickness
         int32_t dx = abs(x2_px - x1_px);
         int32_t dy = abs(y2_px - y1_px);
         int32_t sx = (x1_px < x2_px) ? 1 : -1;
@@ -302,9 +406,22 @@ void TimeSeriesGraph::drawDataLine(RelativeDisplay* target) {
         int32_t y = y1_px;
 
         while (true) {
-            float x_pct = (static_cast<float>(x) / static_cast<float>(width_)) * 100.0f;
-            float y_pct = (static_cast<float>(y) / static_cast<float>(height_)) * 100.0f;
-            target->drawPixel(x_pct, y_pct, theme_.lineColor);
+            // Draw thick point by drawing a small filled circle or square
+            for (int32_t ty = -half_thickness; ty <= half_thickness; ty++) {
+                for (int32_t tx = -half_thickness; tx <= half_thickness; tx++) {
+                    // Simple anti-aliasing: only draw if within circular distance
+                    float dist = sqrtf(static_cast<float>(tx * tx + ty * ty));
+                    if (dist <= static_cast<float>(half_thickness) + 0.5f) {
+                        int32_t px = x + tx;
+                        int32_t py = y + ty;
+                        if (px >= 0 && px < width_ && py >= 0 && py < height_) {
+                            float x_pct = (static_cast<float>(px) / static_cast<float>(width_)) * 100.0f;
+                            float y_pct = (static_cast<float>(py) / static_cast<float>(height_)) * 100.0f;
+                            target->drawPixel(x_pct, y_pct, segment_color);
+                        }
+                    }
+                }
+            }
 
             if (x == x2_px && y == y2_px) break;
 
@@ -343,10 +460,17 @@ void TimeSeriesGraph::drawLiveIndicator() {
     float x = mapXToScreen(last_index, data_.y_values.size());
     float y = mapYToScreen(data_.y_values[last_index], y_min, y_max);
 
-    // Calculate pulsing radius
-    float pulse_factor = (sinf(pulse_phase_) + 1.0f) / 2.0f;  // 0 to 1
-    float base_radius = 1.0f;  // Base radius in relative %
-    float radius = base_radius + (base_radius * 0.5f * pulse_factor);
+    // Calculate pulsing radius with smooth easing
+    // Use smoothstep for natural, continuous animation
+    // smoothstep formula: 3t² - 2t³ creates smooth acceleration and deceleration
+    float t = (sinf(pulse_phase_) + 1.0f) / 2.0f;  // 0 to 1
+    float pulse_factor = t * t * (3.0f - 2.0f * t);  // Smoothstep easing
+
+    // Animate between base size and 20% larger
+    // Small variation (20%) is more subtle and professional
+    float base_radius = 4.0f;  // Base radius in relative % (increased for visibility)
+    float size_variation = 0.20f;  // 20% size change
+    float radius = base_radius * (1.0f + size_variation * pulse_factor);
 
     // Draw pulsing circle with radial gradient
     int32_t center_x = rel_main_->relativeToAbsoluteX(x);

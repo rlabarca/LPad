@@ -23,13 +23,8 @@
 #include "yahoo_chart_parser.h"
 #include "animation_ticker.h"
 
-// RGB565 color definitions
-#define RGB565_BLACK       0x0000
-#define RGB565_WHITE       0xFFFF
-#define RGB565_CYAN        0x07FF
-#define RGB565_MAGENTA     0xF81F
-#define RGB565_DARK_PURPLE 0x4810
-#define RGB565_RED         0xF800
+// Additional RGB565 color definitions (Arduino_GFX already defines most colors)
+#define RGB565_DARK_PURPLE 0x4810  // Custom color for our theme
 
 // Embedded test data for ESP32 (since filesystem is not configured)
 // This is the same data from test_data/yahoo_chart_tnx_5m_1d.json
@@ -48,12 +43,12 @@ GraphTheme createVaporwaveTheme() {
     theme.lineColor = RGB565_CYAN;
     theme.axisColor = RGB565_MAGENTA;
 
-    // Enable gradient background (3-color at 45 degrees - diagonal)
+    // Enable gradient background (3-color diagonal gradient at 45 degrees)
     theme.useBackgroundGradient = true;
     theme.backgroundGradient.angle_deg = 45.0f;  // 45-degree diagonal
-    theme.backgroundGradient.color_stops[0] = RGB565_DARK_PURPLE;  // Deep purple
-    theme.backgroundGradient.color_stops[1] = RGB565_MAGENTA;       // Magenta
-    theme.backgroundGradient.color_stops[2] = 0x4010;               // Dark blue-purple
+    theme.backgroundGradient.color_stops[0] = RGB565_DARK_PURPLE;  // Deep purple (0x4810)
+    theme.backgroundGradient.color_stops[1] = RGB565_MAGENTA;       // Bright magenta
+    theme.backgroundGradient.color_stops[2] = 0x001F;               // Pure deep blue (R=0, G=0, B=31)
     theme.backgroundGradient.num_stops = 3;
 
     // Enable gradient line (horizontal gradient)
@@ -77,7 +72,7 @@ GraphTheme createVaporwaveTheme() {
     theme.liveIndicatorGradient.radius = 4.0f;  // 4% radius (larger)
     theme.liveIndicatorGradient.color_stops[0] = RGB565_MAGENTA;  // Magenta/pink center
     theme.liveIndicatorGradient.color_stops[1] = RGB565_CYAN;     // Cyan edge
-    theme.liveIndicatorPulseSpeed = 6.0f;  // 6 pulses per second
+    theme.liveIndicatorPulseSpeed = 0.5f;  // 0.5 pulses per second (slower for visual debugging)
 
     return theme;
 }
@@ -263,6 +258,7 @@ void loop() {
 
     if (g_graph != nullptr) {
         // Render: Composite background and data canvases to main display
+        // This clears the old indicator automatically
         g_graph->render();
 
         // Update: Draw animated live indicator directly to main display

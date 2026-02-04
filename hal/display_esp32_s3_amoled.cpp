@@ -269,4 +269,73 @@ void* hal_display_get_gfx(void) {
     return static_cast<void*>(g_gfx);
 }
 
+void hal_display_fast_blit(int16_t x, int16_t y, int16_t w, int16_t h, const uint16_t* data) {
+    if (!g_initialized || g_gfx == nullptr || data == nullptr) {
+        return;
+    }
+
+    // Use Arduino_GFX's optimized bulk transfer method
+    // This uses DMA/hardware acceleration instead of pixel-by-pixel loops
+    //
+    // The sequence is:
+    // 1. startWrite() - begin a write transaction
+    // 2. writeAddrWindow() - set the rectangular region
+    // 3. writePixels() - bulk DMA transfer of the entire buffer
+    // 4. endWrite() - end the transaction
+    //
+    // This is significantly faster than draw16bitRGBBitmap() which loops pixel-by-pixel
+
+    g_gfx->startWrite();
+    g_gfx->writeAddrWindow(x, y, w, h);
+    g_gfx->writePixels(const_cast<uint16_t*>(data), static_cast<uint32_t>(w) * static_cast<uint32_t>(h));
+    g_gfx->endWrite();
+}
+
+void hal_display_fast_blit_transparent(int16_t x, int16_t y, int16_t w, int16_t h,
+                                       const uint16_t* data, uint16_t transparent_color) {
+    if (!g_initialized || g_gfx == nullptr || data == nullptr) {
+        return;
+    }
+
+    // Optimized transparent blit using scanline DMA transfers
+    // Instead of checking every pixel individually, we:
+    // 1. Scan each row to find runs of non-transparent pixels
+    // 2. Use DMA (writePixels) to transfer each contiguous run
+    // This is much faster than pixel-by-pixel drawing
+
+    g_gfx->startWrite();
+
+    for (int16_t row = 0; row < h; row++) {
+        const uint16_t* row_data = data + (row * w);
+        int16_t col = 0;
+
+        while (col < w) {
+            // Skip transparent pixels
+            while (col < w && row_data[col] == transparent_color) {
+                col++;
+            }
+
+            if (col >= w) break;
+
+            // Find the start of a non-transparent run
+            int16_t run_start = col;
+
+            // Find the end of this run
+            while (col < w && row_data[col] != transparent_color) {
+                col++;
+            }
+
+            int16_t run_length = col - run_start;
+
+            // Blit this run using DMA
+            if (run_length > 0) {
+                g_gfx->writeAddrWindow(x + run_start, y + row, run_length, 1);
+                g_gfx->writePixels(const_cast<uint16_t*>(&row_data[run_start]), run_length);
+            }
+        }
+    }
+
+    g_gfx->endWrite();
+}
+
 #endif  // !UNIT_TEST

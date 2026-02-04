@@ -138,6 +138,38 @@ void hal_display_canvas_draw(hal_canvas_handle_t canvas, int32_t x, int32_t y);
  */
 void hal_display_canvas_fill(hal_canvas_handle_t canvas, uint16_t color);
 
+/**
+ * @brief Fast DMA-accelerated blit from memory buffer to display
+ *
+ * Transfers a rectangular block of RGB565 pixel data from a memory buffer
+ * to the display using hardware acceleration (DMA or bulk transfer).
+ * This function MUST NOT use pixel-by-pixel loops.
+ *
+ * @param x The top-left X-coordinate on the destination display
+ * @param y The top-left Y-coordinate on the destination display
+ * @param w The width of the block to blit
+ * @param h The height of the block to blit
+ * @param data Pointer to the source buffer containing RGB565 pixel data
+ */
+void hal_display_fast_blit(int16_t x, int16_t y, int16_t w, int16_t h, const uint16_t* data);
+
+/**
+ * @brief Fast blit with transparency using scanline optimization
+ *
+ * Transfers pixel data from buffer to display, skipping pixels that match
+ * the transparent color. Uses scanline-based DMA transfers for better
+ * performance than pixel-by-pixel drawing.
+ *
+ * @param x The top-left X-coordinate on the destination display
+ * @param y The top-left Y-coordinate on the destination display
+ * @param w The width of the block to blit
+ * @param h The height of the block to blit
+ * @param data Pointer to the source buffer containing RGB565 pixel data
+ * @param transparent_color The RGB565 color value to treat as transparent
+ */
+void hal_display_fast_blit_transparent(int16_t x, int16_t y, int16_t w, int16_t h,
+                                       const uint16_t* data, uint16_t transparent_color);
+
 #ifdef __cplusplus
 }
 #endif
