@@ -1,96 +1,79 @@
-# Feature: Themeable and Animated Time Series Graph
+# Feature: High-Performance Themeable Time Series Graph
 
-> **Prerequisite:** `features/ui_time_series_graph.md`
+> **Prerequisites:** 
+> - `features/ui_time_series_graph.md`
+> - `features/display_relative_drawing.md` (Object-Oriented version)
 
-This feature extends the `TimeSeriesGraph` with advanced theming and animation capabilities. It introduces a layered drawing approach for better performance and defines new graphical primitives for gradients, thick lines, and circles, which must be added to the `display_relative_drawing` abstraction.
-
----
-
-## Part 1: Extensions to Drawing Abstractions
-
-To support the new graph features, the `RelativeDisplay` module and the core `GraphTheme` data structure must be extended.
-
-### New Data Structures
-
-#### `LinearGradient`
-A structure to define a linear color gradient.
-- `angle_deg`: `float`, the angle of the gradient in degrees (e.g., 0 for left-to-right, 90 for top-to-bottom).
-- `color_stops`: An array or vector of up to 3 `uint16_t` color values.
-
-#### `RadialGradient`
-A structure to define a radial color gradient.
-- `center_x`, `center_y`: `float`, relative coordinates for the gradient's center.
-- `radius`: `float`, the radius of the gradient in relative units.
-- `color_stops`: An array or vector of 2 `uint16_t` color values (inner and outer).
-
-#### `GraphTheme` (Extended)
-The existing `GraphTheme` structure is updated to include:
-- `backgroundGradient`: `LinearGradient`, for the graph background.
-- `lineGradient`: `LinearGradient`, for the data line.
-- `lineThickness`: `float`, thickness of the data line in relative percentage units.
-- `axisThickness`: `float`, thickness of the axes in relative percentage units.
-- `tickColor`: `uint16_t`, color of the axis tick marks.
-- `tickLength`: `float`, length of tick marks in relative percentage units.
-- `liveIndicatorGradient`: `RadialGradient`, for the pulsing "live" data point indicator.
-- `liveIndicatorPulseSpeed`: `float`, cycles per second for the pulse animation.
-
-### New `RelativeDisplay` Functions
-
-The following functions must be added to `src/relative_display.h` and implemented in `src/relative_display.cpp`. They will likely require new underlying HAL primitives for efficient implementation.
-
-- `display_relative_fill_rect_gradient(float x, float y, float w, float h, const LinearGradient& gradient)`
-- `display_relative_draw_line_thick(float x1, float y1, float x2, float y2, float thickness, uint16_t color)`
-- `display_relative_draw_line_thick_gradient(float x1, float y1, float x2, float y2, float thickness, const LinearGradient& gradient)`
-- `display_relative_fill_circle_gradient(float center_x, float center_y, float radius, const RadialGradient& gradient)`
+This feature refactors the `TimeSeriesGraph` to use a high-performance, layered rendering architecture. It uses multiple off-screen canvases, wrapped by the `RelativeDisplay` class, to eliminate flicker and allow for smooth 30fps animations.
 
 ---
 
-## Part 2: TimeSeriesGraph Component Enhancements
+## Part 1: Layered Rendering Architecture
 
-### API Changes
+The `TimeSeriesGraph` component will manage three distinct drawing surfaces to achieve its performance goals.
 
-The `TimeSeriesGraph` class is modified:
-- `draw()` is split into `drawBackground()` and `drawData()`. This allows the data to be redrawn frequently without the expense of redrawing the background.
-- A new method `update(float deltaTime)` is added to handle animations like the pulsing indicator.
+1.  **Background Canvas (`bg_canvas`):** An off-screen canvas stored in **PSRAM**. It holds the static background elements, such as gradients and axis lines, which are rendered only once.
+2.  **Data Canvas (`data_canvas`):** A second off-screen canvas, also in **PSRAM**, with a transparent background. It holds the chart's data line, which is redrawn only when the underlying dataset changes.
+3.  **Main Display:** The final, visible hardware display.
 
-### Scenario: Rendering a Gradient Background
+Each of these surfaces will be managed via a `RelativeDisplay` instance, allowing the same relative drawing code to target any layer.
 
-**Given** a `TimeSeriesGraph` is initialized with an extended `GraphTheme`.
-**And** the theme specifies a 3-color `backgroundGradient` at a 45-degree angle.
-**When** the `drawBackground()` method is called.
-**Then** the graph's background area should be filled with a smooth linear gradient corresponding to the theme, drawn by `display_relative_fill_rect_gradient`.
-**And** the X and Y axes should be drawn using `display_relative_draw_line_thick` with the theme's `axisThickness` and `axisColor`.
+---
 
-### Scenario: Drawing a Thick, Gradient Data Line
+## Part 2: Component Implementation
 
-**Given** a `TimeSeriesGraph` has its background drawn.
-**And** data has been provided via `setData()`.
-**And** the theme specifies a `lineThickness` of 0.5 and a horizontal `lineGradient`.
-**When** the `drawData()` method is called.
-**Then** the data line should be drawn with the specified thickness and horizontal gradient, using one or more calls to `display_relative_draw_line_thick_gradient`.
+### `TimeSeriesGraph` Class Structure
 
-### Scenario: Displaying Axis Tick Marks
+The class will be updated to include:
+- A `RelativeDisplay` instance for `bg_canvas`.
+- A `RelativeDisplay` instance for `data_canvas`.
+- Pointers to the underlying `GfxCanvas16` objects for memory management.
+- The `draw()` method is replaced by `drawBackground()`, `drawData()`, and a new `render()` method.
+- The `update(float deltaTime)` method is retained for animations.
 
-**Given** a `TimeSeriesGraph` has its background drawn.
-**And** a method `setYTicks(float increment)` has been called with a value of 10.
-**When** `drawBackground()` is called.
-**Then** horizontal tick marks should be drawn on the Y-axis at every 10 units of data value.
-**And** the ticks should be drawn using `display_relative_draw_line_thick` with the theme's `tickColor` and `tickLength`.
+### Memory Management
+**Constraint:** The off-screen `GfxCanvas16` buffers for the background and data layers **MUST** be allocated in PSRAM to conserve internal SRAM. The implementation must check for PSRAM availability.
 
-### Scenario: Animating the "Live" Data Indicator
+### API and Behavior
 
-**Given** a `TimeSeriesGraph` is drawn with data.
-**And** the theme includes a `liveIndicatorGradient` and a `liveIndicatorPulseSpeed` of 1.0.
-**When** the `update(float deltaTime)` method is called repeatedly on the active drawing canvas.
-**Then** the data line of the graph should remain fully visible.
-**And** a filled circle, representing the live indicator, should be rendered at the position of the last data point, overlaying the data line.
-**And** the circle's radius should pulse (e.g., using a sine wave) once per second, appearing to grow and shrink without leaving artifacts from previous frames.
-**And** the circle should be filled with the specified radial gradient using `display_relative_fill_circle_gradient`.
+- **`drawBackground()`**: This method renders static elements (axes, gridlines, background gradients) to the `bg_canvas`. It should be called only once or when the theme changes.
+- **`drawData()`**: This method clears the `data_canvas` to be fully transparent, then draws the current data set (e.g., the line graph) onto it. It is called only when data is updated via `setData()`.
+- **`render()`**: This method performs the final composition to the main display. It first blits the `bg_canvas`, then blits the `data_canvas` on top of it. This method is fast and should be called every frame.
+- **`update(float deltaTime)`**: This method handles real-time animations. It draws primitives (like the pulsing live indicator) **directly to the main display** *after* `render()` has been called. This ensures the animation is drawn on top of all other layers without requiring any expensive canvas redraws.
 
-### Scenario: Independent Refresh
+---
 
-**Given** a `TimeSeriesGraph` is fully drawn.
-**When** new data is set via `setData()`.
-**And** only `drawData()` is called.
-**Then** the background gradient and axes should remain unchanged.
-**And** only the data line and live indicator should be updated to reflect the new data.
+## Part 3: Scenarios
+
+### Scenario: Initializing the Graph Layers
+
+**Given** a `TimeSeriesGraph` is initialized with specific dimensions.
+**When** the component is first drawn.
+**Then** it must allocate two `GfxCanvas16` buffers in PSRAM with the specified dimensions.
+**And** it must instantiate `RelativeDisplay` wrappers for the background canvas, data canvas, and main display.
+**And** the `drawBackground()` method should be called, which renders the axes and background gradient onto the `bg_canvas`.
+
+### Scenario: Updating Data
+
+**Given** the graph has been initialized and rendered.
+**When** new data is provided via the `setData()` method.
+**Then** the `drawData()` method must be called.
+**And** `drawData()` must first clear the `data_canvas` to be transparent.
+**And** it must then draw the new data line onto the `data_canvas` using its `RelativeDisplay` instance.
+**And** the `bg_canvas` must remain unchanged.
+
+### Scenario: Rendering a Full Frame
+
+**Given** the background and data have been drawn to their respective canvases.
+**When** the `render()` method is called on the `TimeSeriesGraph`.
+**Then** the contents of the `bg_canvas` must be blitted to the main display's frame buffer.
+**And** the contents of the `data_canvas` must then be blitted over top of the background, with transparency.
+
+### Scenario: Animating the Live Indicator
+
+**Given** a fully rendered graph from the `render()` method.
+**And** an `AnimationTicker` is driving the main application loop.
+**When** the `update(float deltaTime)` method is called on the `TimeSeriesGraph`.
+**Then** the pulsing live indicator circle should be drawn directly to the main display at the position of the last data point.
+**And** this operation must not modify the `bg_canvas` or `data_canvas`.
+**And** the animation should appear smooth and flicker-free, overlaying the static graph elements.

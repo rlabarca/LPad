@@ -1,119 +1,71 @@
 > Prerequisite: hal_contracts.md
 
-# Feature: Display Relative Drawing Abstraction
+# Feature: RelativeDisplay Class for Targetable Drawing
 
 ## Introduction
 
-This feature introduces a new display abstraction layer that allows drawing routines, text rendering, and animations to be defined using relative screen dimensions (percentages of width and height). This ensures that visual elements automatically scale and adapt across different display hardware with varying resolutions, maintaining consistent proportions and timing.
+This feature introduces a `RelativeDisplay` C++ class that acts as an abstraction layer over an `Arduino_GFX` drawing surface. This object-oriented approach allows drawing routines to use relative coordinates (percentages) on any target, be it the main hardware display or an off-screen canvas in memory. This is critical for advanced graphics techniques like layered rendering and ensures UI elements are resolution-independent.
 
-To achieve this, the HAL contract will first be extended to provide screen dimensions in pixels. A new module will then provide functions that convert relative coordinates to pixel coordinates and offer drawing primitives based on these relative units.
+This class supersedes the previous procedural design.
 
-## 1. Extension to Display HAL Contract
+## 1. `RelativeDisplay` Class Definition
 
-The `hal/display.h` interface needs to be extended to allow the abstraction layer to query the display's dimensions.
+The agent (Claude) will create `src/relative_display.h` and `src/relative_display.cpp` to define the `RelativeDisplay` class.
 
-### New HAL Functions:
+### Header (`relative_display.h`):
+```cpp
+#pragma once
 
-#### `hal_display_get_width_pixels(void)`
+#include <Arduino_GFX_Library.h>
 
-*   **Description:** Returns the width of the active display in pixels.
-*   **Parameters:** `void`
-*   **Returns:** `int32_t` - The width of the display in pixels.
+class RelativeDisplay {
+public:
+    // Constructor: Takes a pointer to any Arduino_GFX compatible canvas/display.
+    RelativeDisplay(Arduino_GFX* gfx, int32_t width, int32_t height);
 
-#### `hal_display_get_height_pixels(void)`
+    // Initialization logic if needed, e.g., setting up color formats.
+    void init();
 
-*   **Description:** Returns the height of the active display in pixels.
-*   **Parameters:** `void`
-*   **Returns:** `int32_t` - The height of the display in pixels.
+    // Converts relative units (0.0-100.0) to absolute pixel coordinates.
+    int32_t relativeToAbsoluteX(float x_percent) const;
+    int32_t relativeToAbsoluteY(float y_percent) const;
+    int32_t relativeToAbsoluteWidth(float width_percent) const;
+    int32_t relativeToAbsoluteHeight(float height_percent) const;
 
-## 2. Implementation Plan
+    // Drawing primitives using relative coordinates.
+    void drawPixel(float x_percent, float y_percent, uint16_t color);
+    void drawHorizontalLine(float y_percent, float x_start_percent, float x_end_percent, uint16_t color);
+    void drawVerticalLine(float x_percent, float y_start_percent, float y_end_percent, uint16_t color);
+    void fillRect(float x_start_percent, float y_start_percent, float width_percent, float height_percent, uint16_t color);
+    
+    // Direct access to the underlying GFX object if needed for advanced operations.
+    Arduino_GFX* getGfx() const;
 
-The agent (Claude) will:
+private:
+    Arduino_GFX* _gfx;
+    int32_t _width;
+    int32_t _height;
+};
+```
 
-1.  **Modify `hal/display.h`**: Add the declarations for `hal_display_get_width_pixels` and `hal_display_get_height_pixels`.
-2.  **Modify existing HAL implementations**:
-    *   Implement `hal_display_get_width_pixels` and `hal_display_get_height_pixels` in `hal/display_esp32_s3_amoled.cpp` to return the specific dimensions for that display.
-    *   Implement `hal_display_get_width_pixels` and `hal_display_get_height_pixels` in `hal/display_tdisplay_s3_plus.cpp` to return the specific dimensions for that display.
-3.  **Create a new module**: `src/relative_display.h` and `src/relative_display.cpp`. This module will provide the relative drawing functions.
+## 2. Scenarios
 
-### New Relative Drawing Functions:
+### Scenario: Instantiate `RelativeDisplay` for the Main Screen
 
-#### `display_relative_init(void)`
+**Given** a main display object `tft` is created (e.g., `Arduino_ESP32_S3_AMOLED`).
+**And** its dimensions are 240x536.
+**When** a `RelativeDisplay` is constructed: `RelativeDisplay rel_tft(tft, 240, 536);`
+**Then** the `rel_tft` object is ready to draw on the main screen using relative coordinates.
 
-*   **Description:** Initializes the relative display abstraction layer, querying the underlying HAL for screen dimensions.
-*   **Parameters:** `void`
-*   **Returns:** `void`
+### Scenario: Instantiate `RelativeDisplay` for an Off-screen Canvas
 
-#### `display_relative_draw_pixel(float x_percent, float y_percent, uint16_t color)`
+**Given** an off-screen canvas `canvas` is created in memory (e.g., `GfxCanvas16* canvas = new GfxCanvas16(100, 100);`).
+**When** a `RelativeDisplay` is constructed: `RelativeDisplay rel_canvas(canvas, 100, 100);`
+**Then** the `rel_canvas` object is ready to draw on the in-memory canvas using relative coordinates.
 
-*   **Description:** Draws a single pixel at a relative (x, y) coordinate (0.0 to 100.0 percent) with a given 16-bit RGB565 color.
-*   **Parameters:**
-    *   `float x_percent`: The X-coordinate as a percentage of screen width (0.0 = left, 100.0 = right).
-    *   `float y_percent`: The Y-coordinate as a percentage of screen height (0.0 = top, 100.0 = bottom).
-    *   `uint16_t color`: The 16-bit RGB565 color value.
-*   **Returns:** `void`.
+### Scenario: Draw a Rectangle on a Target
 
-#### `display_relative_draw_horizontal_line(float y_percent, float x_start_percent, float x_end_percent, uint16_t color)`
-
-*   **Description:** Draws a horizontal line across a relative segment of the display.
-*   **Parameters:**
-    *   `float y_percent`: The Y-coordinate as a percentage of screen height.
-    *   `float x_start_percent`: The starting X-coordinate as a percentage.
-    *   `float x_end_percent`: The ending X-coordinate as a percentage.
-    *   `uint16_t color`: The 16-bit RGB565 color value.
-*   **Returns:** `void`.
-
-#### `display_relative_draw_vertical_line(float x_percent, float y_start_percent, float y_end_percent, uint16_t color)`
-
-*   **Description:** Draws a vertical line across a relative segment of the display.
-*   **Parameters:**
-    *   `float x_percent`: The X-coordinate as a percentage of screen width.
-    *   `float y_start_percent`: The starting Y-coordinate as a percentage.
-    *   `float y_end_percent`: The ending Y-coordinate as a percentage.
-    *   `uint16_t color`: The 16-bit RGB565 color value.
-*   **Returns:** `void`.
-
-#### `display_relative_fill_rectangle(float x_start_percent, float y_start_percent, float width_percent, float height_percent, uint16_t color)`
-
-*   **Description:** Fills a rectangle defined by relative top-left corner and relative width/height.
-*   **Parameters:**
-    *   `float x_start_percent`: Top-left X-coordinate as a percentage.
-    *   `float y_start_percent`: Top-left Y-coordinate as a percentage.
-    *   `float width_percent`: Width of the rectangle as a percentage.
-    *   `float height_percent`: Height of the rectangle as a percentage.
-    *   `uint16_t color`: The 16-bit RGB565 color value.
-*   **Returns:** `void`.
-
-## 3. Scenarios
-
-**Scenario: Retrieve Display Dimensions via HAL**
-*   **Given:** The `hal_display_get_width_pixels` and `hal_display_get_height_pixels` functions are implemented in the specific HAL files.
-*   **When:** `hal_display_get_width_pixels()` is called for the `esp32s3` build target.
-*   **Then:** It must return `368`.
-*   **When:** `hal_display_get_height_pixels()` is called for the `esp32s3` build target.
-*   **Then:** It must return `448`.
-*   **When:** `hal_display_get_width_pixels()` is called for the `tdisplay_s3_plus` build target.
-*   **Then:** It must return `240`.
-*   **When:** `hal_display_get_height_pixels()` is called for the `tdisplay_s3_plus` build target.
-*   **Then:** It must return `536`.
-
-**Scenario: Initialize Relative Drawing Abstraction**
-*   **Given:** The HAL display contract including dimension retrieval is implemented.
-*   **When:** `display_relative_init()` is called.
-*   **Then:** The abstraction layer should correctly query and store the pixel dimensions from the HAL.
-
-**Scenario: Draw a Pixel at 50% / 50%**
-*   **Given:** The relative drawing abstraction is initialized.
-*   **And:** The underlying HAL drawing functions (`hal_display_draw_pixel` and `hal_display_flush`) are functional.
-*   **When:** `display_relative_draw_pixel(50.0f, 50.0f, 0xFFFF)` is called.
-*   **Then:** `hal_display_draw_pixel` should be called with the center pixel coordinates for the current build target. (e.g., (184, 224) for a 368x448 display, (120, 268) for a 240x536 display)
-
-**Scenario: Draw a Frame around the Screen at 10% Inset**
-*   **Given:** The relative drawing abstraction is initialized.
-*   **When:** `display_relative_fill_rectangle(10.0f, 10.0f, 80.0f, 80.0f, 0x07E0)` is called.
-*   **Then:** The underlying HAL drawing functions should be called to draw a green rectangle with a 10% margin on all sides.
-
-**Scenario: Draw a Horizontal Line across the top 10%**
-*   **Given:** The relative drawing abstraction is initialized.
-*   **When:** `display_relative_draw_horizontal_line(10.0f, 0.0f, 100.0f, 0xF800)` is called.
-*   **Then:** The underlying HAL drawing functions should be called to draw a red horizontal line at a 10% vertical position.
+**Given** a `RelativeDisplay` object `rel_surface` has been instantiated for a 200x200 pixel surface (either screen or canvas).
+**When** `rel_surface.fillRect(10.0f, 10.0f, 80.0f, 80.0f, 0xFFFF)` is called.
+**Then** the underlying `_gfx` object's `fillRect` method should be called with absolute pixel coordinates: `_gfx->fillRect(20, 20, 160, 160, 0xFFFF)`.
+**And** the drawing operation should be directed to the specific surface (main screen or canvas) that the `rel_surface` was constructed with.
