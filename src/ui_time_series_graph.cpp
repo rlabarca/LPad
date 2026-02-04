@@ -103,13 +103,49 @@ void TimeSeriesGraph::update(float deltaTime) {
         pulse_phase_ -= 2.0f * M_PI;
     }
 
-    // Redraw entire graph to clear old indicator and draw new one
-    // This ensures no artifacts from previous frames
+    // Efficiently clear old indicator and draw new one
     if (!data_.y_values.empty()) {
-        // Redraw background to clear old indicator
-        drawBackground();
-        // Draw data line
-        drawDataLine();
+        // Calculate indicator position (last data point)
+        double y_min = cached_y_min_;
+        double y_max = cached_y_max_;
+        if (!range_cached_) {
+            y_min = *std::min_element(data_.y_values.begin(), data_.y_values.end());
+            y_max = *std::max_element(data_.y_values.begin(), data_.y_values.end());
+            if (std::abs(y_max - y_min) < 0.001) {
+                y_min -= 1.0;
+                y_max += 1.0;
+            }
+        }
+
+        size_t last_index = data_.y_values.size() - 1;
+        float x = mapXToScreen(last_index, data_.y_values.size());
+        float y = mapYToScreen(data_.y_values[last_index], y_min, y_max);
+
+        // Clear the old indicator area by filling with background color
+        // Use maximum indicator radius to ensure we clear everything
+        float clear_radius = theme_.liveIndicatorGradient.radius;
+        display_relative_fill_rectangle(
+            x - clear_radius,
+            y - clear_radius,
+            clear_radius * 2.0f,
+            clear_radius * 2.0f,
+            theme_.backgroundColor
+        );
+
+        // Redraw just the end portion of the data line to restore it
+        if (data_.y_values.size() >= 2) {
+            size_t prev_index = last_index - 1;
+            float x1 = mapXToScreen(prev_index, data_.y_values.size());
+            float y1 = mapYToScreen(data_.y_values[prev_index], y_min, y_max);
+
+            if (theme_.lineThickness > 0.0f) {
+                display_relative_draw_line_thick(x1, y1, x, y, theme_.lineThickness, theme_.lineColor);
+            } else {
+                // Use thin line via horizontal/vertical or thick line with minimal thickness
+                display_relative_draw_line_thick(x1, y1, x, y, 0.1f, theme_.lineColor);
+            }
+        }
+
         // Draw new indicator
         drawLiveIndicator();
     }
