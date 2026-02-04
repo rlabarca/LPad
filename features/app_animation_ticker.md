@@ -23,7 +23,7 @@ The Builder is responsible for creating the `AnimationTicker` class, which will 
 2.  **Class Definition (`AnimationTicker`):**
     *   **Public API:**
         *   A constructor `AnimationTicker(uint32_t target_fps)` that accepts the desired frames per second.
-        *   A method `void waitForNextFrame()` that an application's animation loop can call to synchronize with the ticker.
+        *   A method `float waitForNextFrame()` that an application's animation loop can call to synchronize with the ticker. It will return the elapsed time in seconds (`float`) since its previous call, or `0.0f` on the first call.
     *   **Private Members:**
         *   The class should store the calculated time for a single frame in microseconds (e.g., `1,000,000 / target_fps`).
         *   It should also store the timestamp for when the next frame is expected to occur.
@@ -31,11 +31,13 @@ The Builder is responsible for creating the `AnimationTicker` class, which will 
 3.  **Behavioral Logic:**
     *   **Constructor:** The constructor should calculate and store the per-frame time in microseconds. It should also ensure the underlying `hal_timer_init()` is called.
     *   **`waitForNextFrame()` Method:**
-        *   On the first call, it should simply record the target time for the *next* frame and return immediately.
+        *   On the very first call, it should initialize its internal timing state (e.g., `last_frame_micros`) and return `0.0f`.
         *   On subsequent calls, it must get the current time from `hal_timer_get_micros()`.
+        *   It should then calculate the `deltaTime` (time elapsed since the *last* frame) in seconds.
         *   If the current time is less than the scheduled next frame time, it should calculate the difference and use a delay mechanism (e.g., `delay()`) to wait for the remaining time.
         *   It must then advance the next frame time by one frame's duration.
-        *   **Catch-up Guard:** Implement a "death spiral" guard. If the current time is already past the next scheduled frame time (e.g., due to a long-running calculation), the ticker should reset its schedule based on the *current* time instead of trying to catch up on all the missed frames. This prevents the animation from freezing and then rapidly playing a series of frames.
+        *   **Catch-up Guard:** If the current time is already past the next scheduled frame time (e.g., due to a long-running calculation), the ticker should reset its schedule based on the *current* time instead of trying to catch up on all the missed frames. This prevents the animation from freezing and then rapidly playing a series of frames.
+        *   It MUST return the calculated `deltaTime` (time in seconds since the last frame was processed).
 
 ## Unit Test Plan
 
