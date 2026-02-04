@@ -36,7 +36,10 @@ TimeSeriesGraph::TimeSeriesGraph(const GraphTheme& theme, Arduino_GFX* main_disp
     : theme_(theme), main_display_(main_display), width_(width), height_(height),
       bg_canvas_(nullptr), data_canvas_(nullptr),
       rel_main_(nullptr), rel_bg_(nullptr), rel_data_(nullptr),
+      composite_buffer_(nullptr), composite_buffer_size_(0),
       pulse_phase_(0.0f), y_tick_increment_(0.0f),
+      last_indicator_x_(0), last_indicator_y_(0), last_indicator_radius_(0),
+      has_drawn_indicator_(false),
       cached_y_min_(0.0), cached_y_max_(0.0), range_cached_(false) {
 }
 
@@ -49,6 +52,12 @@ TimeSeriesGraph::~TimeSeriesGraph() {
     // Clean up canvas instances (they free their PSRAM buffers)
     delete bg_canvas_;
     delete data_canvas_;
+
+    // Clean up composite buffer
+    if (composite_buffer_ != nullptr) {
+        free(composite_buffer_);
+        composite_buffer_ = nullptr;
+    }
 }
 
 bool TimeSeriesGraph::begin() {
@@ -237,21 +246,18 @@ void TimeSeriesGraph::render() {
 
     if (!bg_buffer || !data_buffer) return;
 
-    // Allocate temporary composite buffer in PSRAM (or reuse one)
-    static uint16_t* composite_buffer = nullptr;
-    static size_t composite_buffer_size = 0;
-
+    // Allocate composite buffer in PSRAM if needed
     size_t required_size = static_cast<size_t>(width_) * static_cast<size_t>(height_);
 
-    if (composite_buffer == nullptr || composite_buffer_size != required_size) {
-        if (composite_buffer != nullptr) {
-            free(composite_buffer);
+    if (composite_buffer_ == nullptr || composite_buffer_size_ != required_size) {
+        if (composite_buffer_ != nullptr) {
+            free(composite_buffer_);
         }
-        composite_buffer = static_cast<uint16_t*>(ps_malloc(required_size * sizeof(uint16_t)));
-        composite_buffer_size = required_size;
+        composite_buffer_ = static_cast<uint16_t*>(ps_malloc(required_size * sizeof(uint16_t)));
+        composite_buffer_size_ = required_size;
     }
 
-    if (composite_buffer == nullptr) {
+    if (composite_buffer_ == nullptr) {
         // Fallback: blit layers separately if allocation fails
         hal_display_fast_blit(0, 0, width_, height_, bg_buffer);
         hal_display_fast_blit_transparent(0, 0, width_, height_, data_buffer, CHROMA_KEY);
@@ -261,14 +267,14 @@ void TimeSeriesGraph::render() {
     // Composite: background + data (with transparency) in memory
     for (size_t i = 0; i < required_size; i++) {
         if (data_buffer[i] != CHROMA_KEY) {
-            composite_buffer[i] = data_buffer[i];  // Use data pixel
+            composite_buffer_[i] = data_buffer[i];  // Use data pixel
         } else {
-            composite_buffer[i] = bg_buffer[i];     // Use background pixel
+            composite_buffer_[i] = bg_buffer[i];     // Use background pixel
         }
     }
 
     // Single fast DMA blit of the composited result
-    hal_display_fast_blit(0, 0, width_, height_, composite_buffer);
+    hal_display_fast_blit(0, 0, width_, height_, composite_buffer_);
 }
 
 void TimeSeriesGraph::update(float deltaTime) {
@@ -288,7 +294,10 @@ void TimeSeriesGraph::update(float deltaTime) {
         pulse_phase_ += 2.0f * M_PI;
     }
 
-    // Draw live indicator directly to main display (after render() has been called)
+    // Erase old indicator by restoring from composite buffer
+    eraseOldIndicator();
+
+    // Draw new live indicator directly to main display
     drawLiveIndicator();
 }
 
@@ -438,6 +447,42 @@ void TimeSeriesGraph::drawDataLine(RelativeDisplay* target) {
     }
 }
 
+void TimeSeriesGraph::eraseOldIndicator() {
+    if (!has_drawn_indicator_ || composite_buffer_ == nullptr) return;
+
+    // Restore pixels from composite buffer where old indicator was drawn
+    int32_t x_min = last_indicator_x_ - last_indicator_radius_;
+    int32_t x_max = last_indicator_x_ + last_indicator_radius_;
+    int32_t y_min = last_indicator_y_ - last_indicator_radius_;
+    int32_t y_max = last_indicator_y_ + last_indicator_radius_;
+
+    // Clamp to screen bounds
+    if (x_min < 0) x_min = 0;
+    if (y_min < 0) y_min = 0;
+    if (x_max >= width_) x_max = width_ - 1;
+    if (y_max >= height_) y_max = height_ - 1;
+
+    // Restore pixels from composite buffer to main display
+    for (int32_t y = y_min; y <= y_max; y++) {
+        for (int32_t x = x_min; x <= x_max; x++) {
+            // Calculate distance from old center
+            int32_t dx = x - last_indicator_x_;
+            int32_t dy = y - last_indicator_y_;
+            float dist = sqrtf(static_cast<float>(dx * dx + dy * dy));
+
+            // Only restore pixels that were part of the circle
+            if (dist <= static_cast<float>(last_indicator_radius_)) {
+                size_t buffer_index = static_cast<size_t>(y) * static_cast<size_t>(width_) + static_cast<size_t>(x);
+                uint16_t color = composite_buffer_[buffer_index];
+
+                float x_pct = (static_cast<float>(x) / static_cast<float>(width_)) * 100.0f;
+                float y_pct = (static_cast<float>(y) / static_cast<float>(height_)) * 100.0f;
+                rel_main_->drawPixel(x_pct, y_pct, color);
+            }
+        }
+    }
+}
+
 void TimeSeriesGraph::drawLiveIndicator() {
     if (!rel_main_ || data_.y_values.empty()) return;
 
@@ -499,6 +544,12 @@ void TimeSeriesGraph::drawLiveIndicator() {
             }
         }
     }
+
+    // Track indicator position for next frame's erase
+    last_indicator_x_ = center_x;
+    last_indicator_y_ = center_y;
+    last_indicator_radius_ = radius_px;
+    has_drawn_indicator_ = true;
 }
 
 float TimeSeriesGraph::mapYToScreen(double y_value, double y_min, double y_max) {

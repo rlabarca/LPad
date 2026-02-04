@@ -172,9 +172,19 @@ private:
     RelativeDisplay* rel_bg_;             ///< RelativeDisplay for background canvas
     RelativeDisplay* rel_data_;           ///< RelativeDisplay for data canvas
 
+    // Composite buffer for efficient rendering
+    uint16_t* composite_buffer_;          ///< Composited frame buffer (PSRAM)
+    size_t composite_buffer_size_;        ///< Size of composite buffer in pixels
+
     // Animation state
     float pulse_phase_;                   ///< Current phase of pulse animation (0 to 2*PI)
     float y_tick_increment_;              ///< Y-axis tick increment (0 = no ticks)
+
+    // Live indicator tracking for efficient redraw
+    int32_t last_indicator_x_;            ///< Last drawn indicator center X (pixels)
+    int32_t last_indicator_y_;            ///< Last drawn indicator center Y (pixels)
+    int32_t last_indicator_radius_;       ///< Last drawn indicator radius (pixels)
+    bool has_drawn_indicator_;            ///< Whether indicator has been drawn yet
 
     // Cached data range for consistent drawing
     double cached_y_min_;
@@ -206,6 +216,11 @@ private:
      * @brief Draws the live data indicator at the last point
      */
     void drawLiveIndicator();
+
+    /**
+     * @brief Erases the old live indicator by restoring from composite buffer
+     */
+    void eraseOldIndicator();
 
     /**
      * @brief Maps a data Y value to screen percentage coordinate

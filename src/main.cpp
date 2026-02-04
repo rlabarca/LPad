@@ -257,11 +257,8 @@ void loop() {
     float deltaTime = g_ticker->waitForNextFrame();
 
     if (g_graph != nullptr) {
-        // Render: Composite background and data canvases to main display
-        // This clears the old indicator automatically
-        g_graph->render();
-
-        // Update: Draw animated live indicator directly to main display
+        // Update: Erase old indicator, draw new animated indicator to main display
+        // The graph was already rendered once in setup(), we only need to animate the indicator
         g_graph->update(deltaTime);
 
         // Flush to ensure display updates
