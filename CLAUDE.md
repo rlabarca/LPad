@@ -5,47 +5,44 @@ Your primary function is to translate `features/*.md` files into code and then *
 
 ---
 
-## The Core Workflow: Your Single Most Important Task
-This is the required sequence of actions for every feature you implement. You MUST follow these steps exactly.
+## The Core Workflow: Your Unbreakable Contract
+
+This is the required sequence of actions for every feature you implement. This is not a suggestion; it is a contract. You MUST follow these steps exactly.
 
 **Step 1: Understand the Feature**
 - Read the `features/*.md` file you have been assigned.
-- Pay attention to the `Prerequisite:` to understand your available tools.
+- Identify all prerequisite features and available HAL abstractions.
 
-**Step 2: Implement the Code**
+**Step 2: Implement and Test**
 - Write the code and corresponding unit tests to satisfy the feature's scenarios.
-- Follow all architectural rules (HAL, TDD, etc.).
+- Run the unit tests and ensure they pass.
 
-**Step 3: Finalize and Commit (The 'Definition of Done')**
-Once the code is written and unit tests pass, you are not finished. You MUST conclude your work by performing the following shell commands:
+**Step 3: THE COMMIT PROTOCOL (Your Final Action)**
+This is the **most critical step**. After your code is written and tested, your work is **not done**. You MUST finalize your work by creating a git commit. This is your ONLY output.
 
-1.  **Stage your changes:**
+**Your final action for ANY task MUST be to execute these two shell commands in order:**
+
+1.  **Stage all your changes:**
     ```shell
     git add .
     ```
 
-2.  **Commit your work with a status-marking message:**
-    *   **If the feature has a `## Hardware (HIL) Test` section:**
+2.  **Create the status-marking commit:**
+    *   **If the feature has a `## Hardware (HIL) Test` section:** Use this exact commit message format, replacing only the filename:
         ```shell
-        git commit -m "feat(WIP): Implementation complete, ready for HIL test [Ready for HIL Test features/your_feature_file.md]"
+        git commit -m "feat(WIP): Implementation complete, ready for HIL test [Ready for HIL Test features/the_feature_file.md]"
         ```
-        *(Replace `your_feature_file.md` with the actual filename.)*
+        *(Example: `git commit -m "feat(WIP): Implementation complete, ready for HIL test [Ready for HIL Test features/app_bond_tracker.md]"}`)*
 
-    *   **If the feature does NOT have a HIL test section:**
+    *   **If the feature does NOT have a HIL test section:** Use this exact commit message format, replacing only the filename:
         ```shell
-        git commit -m "feat(done): Implementation complete and validated [Complete features/your_feature_file.md]"
+        git commit -m "feat(done): Implementation complete and validated [Complete features/the_feature_file.md]"
         ```
-        *(Replace `your_feature_file.md` with the actual filename.)*
+        *(Example: `git commit -m "feat(done): Implementation complete and validated [Complete features/hal_contracts.md]"}`)*
 
-3.  **Handoff to User:**
-    *   After the commit is successful, inform the user that "The feature `features/your_feature_file.md` is now `[Ready for HIL Test]` and awaiting user validation." or that it is `[Complete]`.
+**DO NOT** add any extra conversation or explanation after the commit. The commit IS your final handoff. If you have failed to commit, you have failed the task.
 
-**Step 4: Await HIL Test Confirmation (If Applicable)**
-- If the feature is `[Ready for HIL Test]`, do not do anything else until the user confirms the HIL test has passed.
-- Once the user confirms, create the final "complete" commit:
-    ```shell
-    git commit --allow-empty -m "chore(release): HIL validation passed [Complete features/your_feature_file.md]"
-    ```
+**Self-Correction:** If the user asks if your work is committed, and it is not, you must immediately apologize and execute the COMMIT PROTOCOL.
 
 ---
 ## General Directives
