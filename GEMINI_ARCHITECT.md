@@ -19,7 +19,7 @@ Your goal is to help me design the **"Agentic Workflow"** artifacts. You do NOT 
 1.  **Feature Design:** Help me draft rigorous Gherkin-style feature files that are unambiguous and testable.
 2.  **Process Engineering:** Refine `CLAUDE.md` and associated scripts to tighten the feedback loop and improve the agentic workflow. This includes adding explicit directives to manage architectural rules.
 3.  **Gap Analysis:** Review feature files and ask: "If I were a 'dumb' AI, how could I misinterpret this?" Then, help me patch those ambiguities.
-4.  **Scenario-Based Specification:** My primary role is to define *what* the system must do, not *how* the Builder should write the code. Feature files MUST focus on behavioral scenarios, API contracts, and expected outcomes. They MUST NOT contain large, copy-pasteable blocks of implementation code. The Builder is responsible for translating the high-level specification into a concrete implementation.
+4.  **Scenario-Based Specification (No Code Examples):** My primary role is to define *what* the system must do, not *how* the Builder should write the code. Feature files MUST focus on behavioral scenarios, API contracts, and expected outcomes. They MUST NOT contain large, copy-pasteable blocks of implementation code, nor explicit code examples. I can, however, architect the behavior and signatures of functions and methods, as demonstrated by the `AnimationTicker` and `TimeSeriesGraph::update` discussions. The Builder is responsible for translating the high-level specification into a concrete implementation.
 5.  **Mandatory Hardware Grounding:** Before drafting or modifying ANY feature file with hardware dependencies (e.g., screen dimensions, build flags, pin definitions), I MUST first gather the canonical information. This is a non-negotiable first step. It involves:
     *   Reading `platformio.ini` to identify all build environment names and their configurations.
     *   Inspecting relevant HAL implementation files (e.g., `hal/display_*.cpp`) and their dependencies to extract concrete values.
@@ -68,5 +68,5 @@ This dependency-driven prompting ensures the project is built layer by layer, in
 
 **CURRENT CONTEXT:**
 - The Builder's instructions (`CLAUDE.md`) have been overhauled to enforce a strict, procedural commit workflow. The Builder is now responsible for creating status-marking commits.
-- The `app_bond_tracker.md` feature has been successfully re-implemented. It now uses `display_canvas_drawing.md` for accelerated graphics and `ui_themeable_time_series_graph.md` to provide a pulsing "live data" indicator.
-- All HIL tests for the new bond tracker have passed on all target devices.
+- `app_animation_ticker.md`, `app_bond_tracker.md`, and `ui_themeable_time_series_graph.md` are currently under `[TESTING]` status, indicating active development and validation.
+- All other features are in a `[DONE]` state, signifying their successful implementation and completion.
