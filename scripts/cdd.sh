@@ -24,7 +24,7 @@ ICON_PENDING="⏳"
 ICON_GIT="DATA"
 
 while true; do
-    clear
+    tput cup 0 0; tput ed
     echo -e "${C_CYAN}======================================================${C_RESET}"
     echo -e "${C_CYAN}   🚀 PROJECT MONITOR  ::  $(date +'%H:%M:%S')${C_RESET}"
     echo -e "${C_CYAN}======================================================${C_RESET}"
