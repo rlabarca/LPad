@@ -19,37 +19,31 @@ ICON_CHECK="✔ "
 ICON_WORK="🔨"
 ICON_PENDING="⏳"
 
-# Hide cursor for a clean refresh, and set a trap to restore it on exit
+# Restore cursor and exit gracefully
+trap "echo; tput cnorm; exit" INT TERM
 tput civis
-trap "tput cnorm; exit" INT TERM
 
 while true; do
-    # Initialize an empty output buffer for this frame
-    output_buffer=""
+    # Clear screen without flicker and move cursor to top
+    tput cup 0 0; tput ed
 
-    # --- Build Header ---
-    output_buffer+="${C_CYAN}======================================================${C_RESET}\033[K\n"
-    output_buffer+="${C_CYAN}   🚀 PROJECT MONITOR  ::  $(date +'%H:%M:%S')${C_RESET}\033[K\n"
-    output_buffer+="${C_CYAN}======================================================${C_RESET}\033[K\n"
+    # --- Header ---
+    echo -e "${C_CYAN}======================================================${C_RESET}"
+    echo -e "${C_CYAN}   🚀 PROJECT MONITOR  ::  $(date +'%H:%M:%S')${C_RESET}"
+    echo -e "${C_CYAN}======================================================${C_RESET}"
 
-    # --- Build Workspace Context ---
-    output_buffer+="\n\033[K"
-    output_buffer+="${C_MAGENTA}=== ${ICON_BRAIN}  WORKSPACE CONTEXT (Git Status) ===${C_RESET}\033[K\n"
-    
-git_status_porcelain=$(git status --porcelain)
+    # --- Workspace Context ---
+    echo -e "\n${C_MAGENTA}=== ${ICON_BRAIN}  WORKSPACE CONTEXT (Git Status) ===${C_RESET}"
+    git_status_porcelain=$(git status --porcelain)
     if [ -z "$git_status_porcelain" ]; then
-        output_buffer+="   ${C_GREEN}${ICON_CHECK} Clean State${C_RESET} ${C_DIM}(Ready for next task)${C_RESET}\033[K\n"
+        echo -e "   ${C_GREEN}${ICON_CHECK} Clean State${C_RESET} ${C_DIM}(Ready for next task)${C_RESET}"
     else
-        output_buffer+="   ${C_YELLOW}${ICON_WORK}  Work in Progress:${C_RESET}\033[K\n"
-        while IFS= read -r line; do
-            output_buffer+="      ${line}\033[K\n"
-        done <<< "$git_status_porcelain"
+        echo -e "   ${C_YELLOW}${ICON_WORK}  Work in Progress:${C_RESET}"
+        git status --short | sed 's/^/      /'
     fi
 
-    # --- Build Feature Queue ---
-    output_buffer+="\n\033[K"
-    output_buffer+="${C_CYAN}=== 📜 FEATURE QUEUE (features/*.md) ===${C_RESET}\033[K\n"
-    
+    # --- Feature Queue ---
+    echo -e "\n${C_CYAN}=== 📜 FEATURE QUEUE (features/*.md) ===${C_RESET}"
     if [ -d "features" ]; then
         done_features=()
         testing_features=()
@@ -74,12 +68,12 @@ git_status_porcelain=$(git status --porcelain)
             fi
         done
 
-        # --- Dynamic MAX_DONE_FEATURES Calculation ---
+        # Dynamic height calculation
         terminal_height=$(tput lines)
         calculated_current_lines_used=0
-        ((calculated_current_lines_used+=5)) # Header (3) + 2 blank lines
+        ((calculated_current_lines_used+=5)) # Header(3) + 2 blank lines
         ((calculated_current_lines_used+=1)) # Workspace header
-        GIT_STATUS_LINES=$(echo "$git_status_porcelain" | sed '/^\s*$/d' | wc -l | xargs)
+        GIT_STATUS_LINES=$(echo "$git_status_porcelain" | sed '/^\s*$/d' | wc -l)
         if [ "$GIT_STATUS_LINES" -eq 0 ]; then ((calculated_current_lines_used+=1)); else ((calculated_current_lines_used+=($GIT_STATUS_LINES + 1))); fi
         ((calculated_current_lines_used+=1)) # Feature header
         ((calculated_current_lines_used+=${#testing_features[@]}))
@@ -92,48 +86,40 @@ git_status_porcelain=$(git status --porcelain)
         MAX_DONE_FEATURES=$((terminal_height - calculated_current_lines_used - 2)) 
         if [ "$MAX_DONE_FEATURES" -lt 0 ]; then MAX_DONE_FEATURES=0; fi
 
-        # Append features to buffer
-        for fname in "${testing_features[@]}"; do output_buffer+="   ${C_BLUE}[TESTING]${C_RESET} $fname\033[K\n"; done
-        for fname in "${todo_features[@]}"; do output_buffer+="   ${C_YELLOW}[TODO]${C_RESET}   $fname\033[K\n"; done
+        # Print features
+        for fname in "${testing_features[@]}"; do echo -e "   ${C_BLUE}[TESTING]${C_RESET} $fname"; done
+        for fname in "${todo_features[@]}"; do echo -e "   ${C_YELLOW}[TODO]${C_RESET}   $fname"; done
 
         IFS=$'\n' sorted_done=($(sort -rn <<<"${done_features[*]}")); unset IFS
         for ((i=0; i<${#sorted_done[@]}; i++)); do
             if [ "$i" -lt "$MAX_DONE_FEATURES" ]; then
                 fname=${sorted_done[$i]#*:}
-                output_buffer+="   ${C_GREEN}[DONE]${C_RESET}   $fname\033[K\n"
+                echo -e "   ${C_GREEN}[DONE]${C_RESET}   $fname"
             fi
         done
         if [ "${#sorted_done[@]}" -gt "$MAX_DONE_FEATURES" ]; then
-            output_buffer+="   ${C_DIM}...and $((${#sorted_done[@]} - MAX_DONE_FEATURES)) more done features.${C_RESET}\033[K\n"
+            echo -e "   ${C_DIM}...and $((${#sorted_done[@]} - MAX_DONE_FEATURES)) more done features.${C_RESET}"
         fi
     else
-        output_buffer+="${C_RED}No features/ directory found.${C_RESET}\033[K\n"
+        echo -e "   ${C_RED}No features/ directory found.${C_RESET}"
     fi
 
-    # --- Build Footer ---
-    output_buffer+="\n\033[K" 
-    output_buffer+="${C_BLUE}=== 💾 LATEST SAVE (Last Commit) ===${C_RESET}\033[K\n"
-    last_commit=$(git log -1 --format="   %C(green)%h%Creset %s %C(dim white)(%cr)%Creset" 2>/dev/null)
-    if [ -n "$last_commit" ]; then output_buffer+="${last_commit}\033[K\n"; else output_buffer+="   ${C_DIM}No commits yet.${C_RESET}\033[K\n"; fi
+    # --- Footer ---
+    echo -e "\n${C_BLUE}=== 💾 LATEST SAVE (Last Commit) ===${C_RESET}"
+    git log -1 --format="   %C(green)%h%Creset %s %C(dim white)(%cr)%Creset" 2>/dev/null || echo -e "   ${C_DIM}No commits yet.${C_RESET}"
 
-    output_buffer+="\n\033[K"
-    output_buffer+="${C_MAGENTA}=== ${ICON_TEST}  TEST STATUS ===${C_RESET}\033[K\n"
+    echo -e "\n${C_MAGENTA}=== ${ICON_TEST}  TEST STATUS ===${C_RESET}"
     if [ -f ".pio/testing/last_summary.json" ]; then
         if grep -q "\"succeeded\": false" .pio/testing/last_summary.json; then
-             output_buffer+="   ${C_RED}✖  FAIL${C_RESET} - Logic Broken\033[K\n"
+             echo -e "   ${C_RED}✖  FAIL${C_RESET} - Logic Broken"
         else
-             output_buffer+="   ${C_GREEN}✔  PASS${C_RESET} - Systems Nominal\033[K\n"
+             echo -e "   ${C_GREEN}✔  PASS${C_RESET} - Systems Nominal"
         fi
     else
-        output_buffer+="   ${C_DIM}?  No Test History${C_RESET}\033[K\n"
+        echo -e "   ${C_DIM}?  No Test History${C_RESET}"
     fi
 
-    output_buffer+="\n\033[K"
-    output_buffer+="${C_DIM}(Press Ctrl+C to stop monitoring)${C_RESET}\033[K\n"
-
-    # --- Render Frame ---
-    printf "\033[1;1H"
-    printf "%b" "$output_buffer"
+    echo -e "\n${C_DIM}(Press Ctrl+C to stop monitoring)${C_RESET}"
     
     sleep 5
 done
