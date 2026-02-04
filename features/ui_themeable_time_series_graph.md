@@ -81,11 +81,11 @@ The `TimeSeriesGraph` class is modified:
 
 **Given** a `TimeSeriesGraph` is drawn with data.
 **And** the theme includes a `liveIndicatorGradient` and a `liveIndicatorPulseSpeed` of 1.0.
-**When** the `update(float deltaTime)` method is called repeatedly.
-**Then** a filled circle should be rendered at the position of the last data point.
-**And** the circle's radius should pulse (e.g., using a sine wave) once per second.
+**When** the `update(float deltaTime)` method is called repeatedly on the active drawing canvas.
+**Then** the data line of the graph should remain fully visible.
+**And** a filled circle, representing the live indicator, should be rendered at the position of the last data point, overlaying the data line.
+**And** the circle's radius should pulse (e.g., using a sine wave) once per second, appearing to grow and shrink without leaving artifacts from previous frames.
 **And** the circle should be filled with the specified radial gradient using `display_relative_fill_circle_gradient`.
-**And** calling `drawData()` should not erase the indicator.
 
 ### Scenario: Independent Refresh
 

@@ -33,11 +33,11 @@ The Builder is responsible for creating the `AnimationTicker` class, which will 
     *   **`waitForNextFrame()` Method:**
         *   On the very first call, it should initialize its internal timing state (e.g., `last_frame_micros`) and return `0.0f`.
         *   On subsequent calls, it must get the current time from `hal_timer_get_micros()`.
-        *   It should then calculate the `deltaTime` (time elapsed since the *last* frame) in seconds.
-        *   If the current time is less than the scheduled next frame time, it should calculate the difference and use a delay mechanism (e.g., `delay()`) to wait for the remaining time.
+        *   It MUST calculate the `deltaTime` (time elapsed since the *last* frame) in seconds, as a `float`, based on the high-resolution `hal_timer_get_micros()` value.
+        *   If the current time is less than the scheduled next frame time, it must calculate the remaining time in **microseconds** and use a delay mechanism that can wait for that specific microsecond duration (e.g., `delayMicroseconds()`). Using a millisecond-based delay is not acceptable as it lacks the required precision.
         *   It must then advance the next frame time by one frame's duration.
         *   **Catch-up Guard:** If the current time is already past the next scheduled frame time (e.g., due to a long-running calculation), the ticker should reset its schedule based on the *current* time instead of trying to catch up on all the missed frames. This prevents the animation from freezing and then rapidly playing a series of frames.
-        *   It MUST return the calculated `deltaTime` (time in seconds since the last frame was processed).
+        *   It MUST return the calculated `deltaTime`.
 
 ## Unit Test Plan
 
