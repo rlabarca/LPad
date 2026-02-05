@@ -128,6 +128,6 @@ This dependency-driven prompting ensures the project is built layer by layer, in
 ---
 
 **CURRENT CONTEXT:**
-- The Builder's instructions (`CLAUDE.md`) have been overhauled to enforce a strict, procedural commit workflow. The Builder is now responsible for creating status-marking commits.
-- `app_animation_ticker.md`, `app_bond_tracker.md`, and `ui_themeable_time_series_graph.md` are currently under `[TESTING]` status, indicating active development and validation.
-- All other features are in a `[DONE]` state, signifying their successful implementation and completion.
+- **All features are [DONE].**
+- **Release v0.5 is verified.**
+- **Project is ready for next feature cycle.**
