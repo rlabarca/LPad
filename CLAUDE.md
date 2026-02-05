@@ -15,12 +15,17 @@ This is the required sequence of actions for every feature you implement. This i
 - **Read the History:** Read `docs/IMPLEMENTATION_LOG.md`. Check if this problem has been solved (or failed) before. Do not repeat documented mistakes.
 - **Identify Dependencies:** Identify all prerequisite features and available HAL abstractions.
 
-**Step 2: Implement and Test**
+**Step 2: Recursive Dependency Check (Crucial)**
+- **Check Status:** Before implementing the target feature, check the git log for its prerequisites.
+- **The "Chain Reaction" Rule:** If a prerequisite feature is currently `[TODO]` (e.g., due to a documentation update), you **MUST** verify and commit the prerequisite *before* (or in the same turn as) the target feature.
+- **Verification Sweeps:** You are authorized to create multiple `feat(verify)` commits in a single turn to clear a chain of outdated dependencies. Work from the bottom up (leaves first).
+
+**Step 3: Implement and Test**
 - Write the code and corresponding unit tests to satisfy the feature's scenarios.
 - Run the unit tests and ensure they pass.
 - *Self-Correction:* If you encounter a complex technical hurdle and solve it, append a brief entry to `docs/IMPLEMENTATION_LOG.md` explaining the problem and your solution.
 
-**Step 3: THE COMMIT PROTOCOL (Your Final Action)**
+**Step 4: THE COMMIT PROTOCOL (Your Final Action)**
 This is the **most critical step**. The monitoring script (`cdd.sh`) is a **DUMB SCRIPT**. It looks for **EXACT STRING MATCHES**. It cannot understand "creative" variations.
 
 **Your final action for ANY task MUST be to execute these two shell commands in order:**
