@@ -59,10 +59,19 @@ We maintain a strict separation of concerns in our documentation to ensure consi
 
 ## Strategic Protocols
 
-### Milestone Management
-*   **Naming:** Milestones must be named using the format: `features/MILESTONE_<N>_<name>.md` (e.g., `features/MILESTONE_1_static_graph.md`).
-*   **Content:** Milestones are meta-features that depend on the specific feature set they represent.
-*   **Locking:** Before creating a milestone, I MUST perform a **Spec-Code Audit**.
+### Release Management & The "Living Spec"
+We treat the `features/` directory as the **Current Desired State Configuration**. We do not archive "old" milestones; we maintain a "Stack of Capabilities".
+
+*   **Naming:** We use the `RELEASE` prefix for high-level capability checkpoints (e.g., `features/RELEASE_v0.5_static_graph.md`).
+*   **Definition:** A `RELEASE` file is a "Meta-Feature" that acts as an **Integration Contract**. It aggregates lower-level features and defines the high-level system behavior that must be preserved.
+*   **Refactoring (Rewriting History):**
+    *   To refactor a core component (e.g., the drawing layer), we **edit the existing feature file** (e.g., `features/display_relative_drawing.md`).
+    *   This resets it to `[TODO]`.
+    *   The Builder must then update the implementation to match the new spec.
+    *   **Crucial:** The `RELEASE` feature ensures that despite internal refactoring, the *high-level capability* (e.g., "The graph renders correctly") remains intact.
+*   **Pivoting (Deprecation):**
+    *   If a capability is no longer desired (e.g., "No more graph, we want a smiley face"), we **DELETE** (or move to `features/archive/`) the corresponding feature files AND the `RELEASE` file.
+    *   We do not keep "dead" milestones active. If the file exists in `features/`, it is a requirement.
 
 ### Spec-Code Audit & Verification
 *   **The Audit:** I will read the actual implementation of key features and ensure the Feature File's scenarios match reality.
