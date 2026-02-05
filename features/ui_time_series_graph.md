@@ -14,10 +14,15 @@ This feature describes a reusable UI component for rendering a time-series line 
 A struct or class to define the visual style of the graph.
 
 - `backgroundColor`: Color of the graph area.
-- `lineColor`: Color of the data series line.
+- `lineColors`: A `std::vector` or array of colors for the data line.
+    - If 1 color: Solid line.
+    - If > 1 color: Linear gradient applied horizontally along the graph width (e.g., Left=Color[0], Right=Color[N]).
 - `axisColor`: Color of the X and Y axis lines.
 - `labelFont`: Font for axis labels.
 - `labelColor`: Color for axis labels.
+- `showTicks`: Boolean to enable/disable tick marks.
+- `tickColor`: Color of the tick marks.
+- `tickLen`: Length of the tick marks.
 
 ### `GraphData`
 
@@ -26,26 +31,20 @@ A struct or class to hold the data to be plotted.
 - `x_values`: A collection of x-axis values (e.g., timestamps).
 - `y_values`: A collection of y-axis values (e.g., prices).
 
-## Scenario: Initializing and rendering an empty graph
+## Scenario: Drawing a Graph with Gradient Line
 
-**Given** a `RelativeDisplay` instance is available.
-**And** a `GraphTheme` is defined with "vaporwave" colors (e.g., background: dark purple, line: cyan, labels: magenta).
-**When** a `TimeSeriesGraph` is initialized with the `RelativeDisplay` instance and the `GraphTheme`.
-**And** the graph's `draw()` method is called without any data.
-**Then** the graph's drawing area should be filled with the theme's `backgroundColor`.
-**And** the X and Y axes should be drawn using the theme's `axisColor`.
+**Given** a `GraphTheme` is defined with `lineColors` = {Cyan, Pink}.
+**When** the `draw()` method is called with data points.
+**Then** the line connecting the data points should change color smoothly from Cyan (at the far left X coordinate) to Pink (at the far right X coordinate).
 
-## Scenario: Drawing a graph with data
+## Scenario: Drawing Ticks
 
-**Given** a `TimeSeriesGraph` is initialized as in the previous scenario.
-**And** a `GraphData` object is created with a series of X and Y values.
-**When** the `setData()` method is called with the `GraphData` object.
-**And** the `draw()` method is called.
-**Then** a continuous line should be drawn connecting the data points, using the theme's `lineColor`.
-**And** the data points should be scaled to fit within the graph's drawing area.
-**And** labels for the min and max values of the Y-axis should be displayed using the theme's font and color.
+**Given** a `GraphTheme` has `showTicks` = true.
+**When** the `draw()` method is called.
+**Then** small tick marks should be drawn along the Y-axis (and optionally X-axis) corresponding to the label positions.
+**And** they should use the `tickColor`.
 
-## Scenario: Dynamically scaling the axes
+## Scenario: Dynamic Scaling (unchanged)
 
 **Given** a `TimeSeriesGraph` has been drawn with an initial dataset.
 **When** a new `GraphData` object is provided via `setData()` where the range of Y values is significantly different.
@@ -55,7 +54,9 @@ A struct or class to hold the data to be plotted.
 
 ## Implementation Notes
 
-- The `TimeSeriesGraph` should be implemented in its own module (e.g., `src/ui_time_series_graph.h`, `src/ui_time_series_graph.cpp`).
-- The component must rely exclusively on the `RelativeDisplay` for all drawing operations (`draw_line`, `fill_rect`, `print_text`, etc.). **This ensures that it draws to the currently active HAL target (which could be the main display or an off-screen canvas).**
-- The "vaporwave" theme should be the default or an easily selectable configuration.
-- The component should internally manage the mapping of data coordinates (e.g., timestamps, prices) to the relative screen coordinates provided by `RelativeDisplay`.
+- **Gradient Line Algorithm:**
+    - The gradient is applied based on the *X-coordinate* of the segment being drawn, relative to the graph's width.
+    - `t = (pixel_x - graph_x) / graph_width`.
+    - Interpolate between the colors in `lineColors` based on `t`.
+- **Canvas usage:** The component must rely exclusively on the `RelativeDisplay` or the active HAL target.
+- **Vaporwave Theme:** This remains a key default style to support (Cyan->Pink gradient lines).

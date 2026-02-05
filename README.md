@@ -77,7 +77,7 @@ graph TD
     subgraph Application_Layer ["Application Layer"]
         direction TB
         app_animation_ticker("**Animation Ticker**<br/><small>app_animation_ticker.md</small>"):::app
-        app_bond_tracker("**Bond Tracker App**<br/><small>app_bond_tracker.md</small>"):::app
+        app_demo_screen("**Demo Screen App**<br/><small>app_demo_screen.md</small>"):::app
     end
 
     subgraph Board_Drivers ["Board Drivers"]
@@ -93,6 +93,7 @@ graph TD
 
     subgraph Graphics_Engine ["Graphics Engine"]
         direction TB
+        display_background("**Background Drawing**<br/><small>display_background.md</small>"):::graphics
         display_canvas_drawing("**Canvas Drawing**<br/><small>display_canvas_drawing.md</small>"):::graphics
         display_relative_drawing("**Relative Coordinates**<br/><small>display_relative_drawing.md</small>"):::graphics
     end
@@ -108,11 +109,12 @@ graph TD
 
     subgraph Releases ["Releases"]
         direction TB
-        RELEASE_v0_5_static_graph("**Release v0.5 - Basic Animated Static Test Graph**<br/><small>RELEASE_v0.5_static_graph.md</small>"):::release
+        RELEASE_v0_5_static_graph("**Release v0.5 - Display Demo**<br/><small>RELEASE_v0.5_static_graph.md</small>"):::release
     end
 
     subgraph UI_Framework ["UI Framework"]
         direction TB
+        ui_live_indicator("**Live Indicator**<br/><small>ui_live_indicator.md</small>"):::ui
         ui_theme_support("**Theme Support**<br/><small>ui_theme_support.md</small>"):::ui
         ui_themeable_time_series_graph("**Themeable Graph**<br/><small>ui_themeable_time_series_graph.md</small>"):::ui
         ui_time_series_graph("**Time Series Graph**<br/><small>ui_time_series_graph.md</small>"):::ui
@@ -128,11 +130,12 @@ graph TD
     display_tdisplay_s3_plus --> RELEASE_v0_5_static_graph
     display_canvas_drawing --> RELEASE_v0_5_static_graph
     display_relative_drawing --> RELEASE_v0_5_static_graph
+    display_background --> RELEASE_v0_5_static_graph
     data_yahoo_chart_parser --> RELEASE_v0_5_static_graph
     app_animation_ticker --> RELEASE_v0_5_static_graph
     ui_time_series_graph --> RELEASE_v0_5_static_graph
-    ui_themeable_time_series_graph --> RELEASE_v0_5_static_graph
-    app_bond_tracker --> RELEASE_v0_5_static_graph
+    ui_live_indicator --> RELEASE_v0_5_static_graph
+    app_demo_screen --> RELEASE_v0_5_static_graph
     hal_contracts --> app_animation_ticker
     hal_contracts --> display_canvas_drawing
     hal_contracts --> display_tdisplay_s3_plus
