@@ -24,6 +24,7 @@ This project is not built by humans writing C++. It is constructed using a rigor
 ### Dependency Graph
 The following DAG (Directed Acyclic Graph) represents the current feature set and their dependencies. This is generated automatically from the `features/` directory.
 
+<!-- MERMAID_START -->
 ```mermaid
 graph TD
     %% Node Definitions
@@ -67,6 +68,7 @@ graph TD
     classDef release fill:#f96,stroke:#333,stroke-width:2px,color:black;
     classDef default fill:#e1f5fe,stroke:#01579b,stroke-width:1px,color:black;
 ```
+<!-- MERMAID_END -->
 
 ### Directory Structure
 
