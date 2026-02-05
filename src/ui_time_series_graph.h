@@ -214,13 +214,13 @@ private:
 
     /**
      * @brief Draws the live data indicator at the last point
+     *
+     * This method combines erase and draw into a single atomic blit operation
+     * to prevent tearing artifacts. It calculates the bounding box covering
+     * both old and new indicator positions, restores the background from the
+     * composite buffer, renders the new indicator, then blits in one operation.
      */
     void drawLiveIndicator();
-
-    /**
-     * @brief Erases the old live indicator by restoring from composite buffer
-     */
-    void eraseOldIndicator();
 
     /**
      * @brief Maps a data Y value to screen percentage coordinate

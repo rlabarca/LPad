@@ -294,10 +294,7 @@ void TimeSeriesGraph::update(float deltaTime) {
         pulse_phase_ += 2.0f * M_PI;
     }
 
-    // Erase old indicator by restoring from composite buffer
-    eraseOldIndicator();
-
-    // Draw new live indicator directly to main display
+    // Draw new live indicator (combines erase + draw in single blit to prevent tearing)
     drawLiveIndicator();
 }
 
@@ -447,56 +444,6 @@ void TimeSeriesGraph::drawDataLine(RelativeDisplay* target) {
     }
 }
 
-void TimeSeriesGraph::eraseOldIndicator() {
-    if (!has_drawn_indicator_ || composite_buffer_ == nullptr) return;
-
-    // Calculate bounding box for the old indicator (with 1px padding to ensure full coverage)
-    int32_t x_min = last_indicator_x_ - last_indicator_radius_ - 1;
-    int32_t y_min = last_indicator_y_ - last_indicator_radius_ - 1;
-    int32_t rect_width = (last_indicator_radius_ * 2) + 3;  // +3 for padding and rounding
-    int32_t rect_height = (last_indicator_radius_ * 2) + 3;
-
-    // Clamp to screen bounds
-    if (x_min < 0) {
-        rect_width += x_min;  // Reduce width if we're clipping left edge
-        x_min = 0;
-    }
-    if (y_min < 0) {
-        rect_height += y_min;  // Reduce height if we're clipping top edge
-        y_min = 0;
-    }
-    if (x_min + rect_width > width_) {
-        rect_width = width_ - x_min;
-    }
-    if (y_min + rect_height > height_) {
-        rect_height = height_ - y_min;
-    }
-
-    // Safety check
-    if (rect_width <= 0 || rect_height <= 0) return;
-
-    // Extract the rectangular region from the composite buffer
-    // We need to create a temporary buffer with just this region
-    uint16_t* region_buffer = static_cast<uint16_t*>(malloc(rect_width * rect_height * sizeof(uint16_t)));
-    if (region_buffer == nullptr) return;
-
-    // Copy pixels from composite buffer to region buffer
-    for (int32_t row = 0; row < rect_height; row++) {
-        int32_t src_y = y_min + row;
-        size_t src_offset = static_cast<size_t>(src_y) * static_cast<size_t>(width_) + static_cast<size_t>(x_min);
-        size_t dst_offset = static_cast<size_t>(row) * static_cast<size_t>(rect_width);
-
-        memcpy(&region_buffer[dst_offset], &composite_buffer_[src_offset], rect_width * sizeof(uint16_t));
-    }
-
-    // Fast blit the region from composite buffer to main display
-    hal_display_fast_blit(static_cast<int16_t>(x_min), static_cast<int16_t>(y_min),
-                          static_cast<int16_t>(rect_width), static_cast<int16_t>(rect_height),
-                          region_buffer);
-
-    free(region_buffer);
-}
-
 void TimeSeriesGraph::drawLiveIndicator() {
     if (!rel_main_ || data_.y_values.empty()) return;
 
@@ -525,40 +472,72 @@ void TimeSeriesGraph::drawLiveIndicator() {
     float t = (sinf(pulse_phase_) + 1.0f) / 2.0f;  // 0 to 1
     float pulse_factor = t * t * (3.0f - 2.0f * t);  // Smoothstep easing
 
-    // Animate between base size and 20% larger
-    // Small variation (20%) is more subtle and professional
-    float base_radius = 4.0f;  // Base radius in relative % (increased for visibility)
-    float size_variation = 0.20f;  // 20% size change
-    float radius = base_radius * (1.0f + size_variation * pulse_factor);
+    // Animate from 1 pixel to larger size for clear visibility
+    // Calculate 1 pixel in relative percentage
+    float avg_dimension = (static_cast<float>(width_) + static_cast<float>(height_)) / 2.0f;
+    float one_pixel_pct = (1.0f / avg_dimension) * 100.0f;
+    float max_radius = 6.0f;  // Maximum radius in relative %
 
-    // Draw pulsing circle with radial gradient using fast blit
+    // Pulse from 1 pixel to max_radius
+    float radius = one_pixel_pct + (max_radius - one_pixel_pct) * pulse_factor;
+
+    // Draw pulsing circle with radial gradient using single atomic blit
     int32_t center_x = rel_main_->relativeToAbsoluteX(x);
     int32_t center_y = rel_main_->relativeToAbsoluteY(y);
     int32_t radius_px = static_cast<int32_t>((radius / 100.0f) * ((width_ + height_) / 2.0f));
+    if (radius_px < 1) radius_px = 1;  // Ensure at least 1 pixel
 
-    // Calculate bounding box for the indicator
-    int32_t box_x = center_x - radius_px;
-    int32_t box_y = center_y - radius_px;
-    int32_t indicator_width = radius_px * 2 + 1;
-    int32_t indicator_height = radius_px * 2 + 1;
+    // Calculate bounding box that covers BOTH old and new indicator positions
+    // This ensures we erase the old indicator when drawing the new one
+    int32_t old_left = has_drawn_indicator_ ? (last_indicator_x_ - last_indicator_radius_ - 1) : center_x;
+    int32_t old_right = has_drawn_indicator_ ? (last_indicator_x_ + last_indicator_radius_ + 1) : center_x;
+    int32_t old_top = has_drawn_indicator_ ? (last_indicator_y_ - last_indicator_radius_ - 1) : center_y;
+    int32_t old_bottom = has_drawn_indicator_ ? (last_indicator_y_ + last_indicator_radius_ + 1) : center_y;
 
-    // Create a temporary buffer for the indicator (using chroma key for transparency)
-    constexpr uint16_t CHROMA_KEY = 0x0001;
-    size_t buffer_size = indicator_width * indicator_height;
-    uint16_t* indicator_buffer = static_cast<uint16_t*>(malloc(buffer_size * sizeof(uint16_t)));
-    if (indicator_buffer == nullptr) return;
+    int32_t new_left = center_x - radius_px - 1;
+    int32_t new_right = center_x + radius_px + 1;
+    int32_t new_top = center_y - radius_px - 1;
+    int32_t new_bottom = center_y + radius_px + 1;
 
-    // Fill buffer with chroma key (transparent)
-    for (size_t i = 0; i < buffer_size; i++) {
-        indicator_buffer[i] = CHROMA_KEY;
+    // Union of both bounding boxes
+    int32_t box_x = (old_left < new_left) ? old_left : new_left;
+    int32_t box_y = (old_top < new_top) ? old_top : new_top;
+    int32_t box_right = (old_right > new_right) ? old_right : new_right;
+    int32_t box_bottom = (old_bottom > new_bottom) ? old_bottom : new_bottom;
+
+    // Clamp to screen bounds
+    if (box_x < 0) box_x = 0;
+    if (box_y < 0) box_y = 0;
+    if (box_right >= width_) box_right = width_ - 1;
+    if (box_bottom >= height_) box_bottom = height_ - 1;
+
+    int32_t box_width = box_right - box_x + 1;
+    int32_t box_height = box_bottom - box_y + 1;
+
+    if (box_width <= 0 || box_height <= 0 || composite_buffer_ == nullptr) return;
+
+    // Allocate temp buffer for the region
+    size_t buffer_size = box_width * box_height;
+    uint16_t* region_buffer = static_cast<uint16_t*>(malloc(buffer_size * sizeof(uint16_t)));
+    if (region_buffer == nullptr) return;
+
+    // Step 1: Copy background from composite buffer (this erases old indicator)
+    for (int32_t row = 0; row < box_height; row++) {
+        int32_t src_y = box_y + row;
+        size_t src_offset = static_cast<size_t>(src_y) * static_cast<size_t>(width_) + static_cast<size_t>(box_x);
+        size_t dst_offset = static_cast<size_t>(row) * static_cast<size_t>(box_width);
+        memcpy(&region_buffer[dst_offset], &composite_buffer_[src_offset], box_width * sizeof(uint16_t));
     }
 
-    // Render the radial gradient circle to the buffer
-    for (int32_t dy = -radius_px; dy <= radius_px; dy++) {
-        for (int32_t dx = -radius_px; dx <= radius_px; dx++) {
+    // Step 2: Render new indicator into the temp buffer
+    for (int32_t py = box_y; py <= box_bottom; py++) {
+        for (int32_t px = box_x; px <= box_right; px++) {
+            int32_t dx = px - center_x;
+            int32_t dy = py - center_y;
             float dist = sqrtf(static_cast<float>(dx * dx + dy * dy));
-            if (dist <= radius_px) {
-                float t = dist / static_cast<float>(radius_px);
+
+            if (dist <= static_cast<float>(radius_px)) {
+                float t = (radius_px > 0) ? (dist / static_cast<float>(radius_px)) : 0.0f;
                 uint16_t color = interpolate_color(
                     theme_.liveIndicatorGradient.color_stops[0],
                     theme_.liveIndicatorGradient.color_stops[1],
@@ -566,22 +545,22 @@ void TimeSeriesGraph::drawLiveIndicator() {
                 );
 
                 // Write to buffer
-                int32_t buffer_x = dx + radius_px;
-                int32_t buffer_y = dy + radius_px;
-                size_t buffer_index = static_cast<size_t>(buffer_y) * static_cast<size_t>(indicator_width) + static_cast<size_t>(buffer_x);
-                indicator_buffer[buffer_index] = color;
+                int32_t buffer_x = px - box_x;
+                int32_t buffer_y = py - box_y;
+                size_t buffer_index = static_cast<size_t>(buffer_y) * static_cast<size_t>(box_width) + static_cast<size_t>(buffer_x);
+                region_buffer[buffer_index] = color;
             }
         }
     }
 
-    // Fast blit with transparency
-    hal_display_fast_blit_transparent(static_cast<int16_t>(box_x), static_cast<int16_t>(box_y),
-                                       static_cast<int16_t>(indicator_width), static_cast<int16_t>(indicator_height),
-                                       indicator_buffer, CHROMA_KEY);
+    // Step 3: Single atomic blit to display (erase + draw in one operation)
+    hal_display_fast_blit(static_cast<int16_t>(box_x), static_cast<int16_t>(box_y),
+                          static_cast<int16_t>(box_width), static_cast<int16_t>(box_height),
+                          region_buffer);
 
-    free(indicator_buffer);
+    free(region_buffer);
 
-    // Track indicator position for next frame's erase
+    // Track indicator position for next frame
     last_indicator_x_ = center_x;
     last_indicator_y_ = center_y;
     last_indicator_radius_ = radius_px;
