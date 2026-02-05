@@ -19,10 +19,8 @@
 #include "../hal/display.h"
 #include "relative_display.h"
 #include "ui_time_series_graph.h"
-#include "ui_live_indicator.h"
 #include "yahoo_chart_parser.h"
 #include "animation_ticker.h"
-#include <algorithm>
 
 // Custom RGB565 colors for the demo
 #define RGB565_DARK_PURPLE 0x4810  // Deep purple
@@ -33,12 +31,10 @@ const char* TEST_DATA_JSON = R"({"chart":{"result":[{"meta":{"currency":"USD","s
 
 // Global variables
 TimeSeriesGraph* g_graph = nullptr;
-LiveIndicator* g_indicator = nullptr;
 AnimationTicker* g_ticker = nullptr;
-RelativeDisplay* g_relDisplay = nullptr;
-GraphData g_graphData;  // Store data to calculate indicator position
+GraphData g_graphData;  // Store data for graph
 
-// Create Vaporwave theme with standalone background
+// Create Vaporwave theme with integrated live indicator
 GraphTheme createVaporwaveTheme() {
     GraphTheme theme = {};
 
@@ -68,10 +64,11 @@ GraphTheme createVaporwaveTheme() {
     theme.tickColor = RGB565_WHITE;
     theme.tickLength = 2.5f;
 
-    // Disable integrated live indicator (using standalone component)
-    theme.liveIndicatorGradient.color_stops[0] = 0;
-    theme.liveIndicatorGradient.color_stops[1] = 0;
-    theme.liveIndicatorPulseSpeed = 0.0f;
+    // Enable integrated live indicator with dirty-rect optimization
+    // Note: Using integrated indicator for flicker-free animation
+    theme.liveIndicatorGradient.color_stops[0] = RGB565_MAGENTA;  // Pink/magenta center
+    theme.liveIndicatorGradient.color_stops[1] = RGB565_CYAN;     // Cyan edge
+    theme.liveIndicatorPulseSpeed = 0.5f;  // 0.5 pulses per second (2 second cycle)
 
     return theme;
 }
@@ -110,7 +107,7 @@ void setup() {
     Serial.println();
     delay(500);
 
-    // [2/6] Initialize RelativeDisplay
+    // [2/6] Initialize RelativeDisplay API
     Serial.println("[2/6] Initializing RelativeDisplay abstraction...");
     display_relative_init();
     Arduino_GFX* display = static_cast<Arduino_GFX*>(hal_display_get_gfx());
@@ -118,8 +115,6 @@ void setup() {
         displayError("Display object unavailable");
         while (1) delay(1000);
     }
-    static RelativeDisplay relDisplay(display, width, height);
-    g_relDisplay = &relDisplay;
     Serial.println("  [PASS] RelativeDisplay initialized");
     Serial.println();
     delay(500);
@@ -149,7 +144,7 @@ void setup() {
     // [5/6] Create UI components
     Serial.println("[5/6] Creating UI components...");
 
-    // TimeSeriesGraph with layered rendering
+    // TimeSeriesGraph with layered rendering and integrated live indicator
     Serial.println("  Creating TimeSeriesGraph with Vaporwave theme...");
     GraphTheme theme = createVaporwaveTheme();
     static TimeSeriesGraph graph(theme, display, width, height);
@@ -162,20 +157,7 @@ void setup() {
 
     graph.setData(g_graphData);
     graph.setYTicks(0.002f);
-    Serial.println("  [PASS] TimeSeriesGraph created");
-
-    // LiveIndicator (standalone component)
-    Serial.println("  Creating LiveIndicator component...");
-    IndicatorTheme indicatorTheme;
-    indicatorTheme.innerColor = RGB565_MAGENTA;  // Pink/magenta center
-    indicatorTheme.outerColor = RGB565_CYAN;     // Cyan edge
-    indicatorTheme.minRadius = 1.0f;
-    indicatorTheme.maxRadius = 6.0f;
-    indicatorTheme.pulseDuration = 2000.0f;  // 2 second pulse cycle
-
-    static LiveIndicator indicator(indicatorTheme, g_relDisplay);
-    g_indicator = &indicator;
-    Serial.println("  [PASS] LiveIndicator created");
+    Serial.println("  [PASS] TimeSeriesGraph created with integrated indicator");
     Serial.println();
     delay(500);
 
@@ -212,35 +194,14 @@ void loop() {
     // Wait for next frame and get deltaTime
     float deltaTime = g_ticker->waitForNextFrame();
 
-    if (g_graph == nullptr || g_indicator == nullptr || g_graphData.y_values.empty()) {
+    if (g_graph == nullptr) {
         return;
     }
 
-    // Update indicator animation
-    g_indicator->update(deltaTime);
+    // Update the graph with integrated live indicator animation
+    // This uses dirty-rect optimization to avoid flashing
+    g_graph->update(deltaTime);
 
-    // Calculate position of last data point using graph's exact mapping
-    size_t last_idx = g_graphData.y_values.size() - 1;
-
-    // X position: normalized position mapped to graph area (10% left margin, 5% right margin)
-    float x_normalized = static_cast<float>(last_idx) / static_cast<float>(g_graphData.y_values.size() - 1);
-    float x_percent = 10.0f + (x_normalized * 85.0f);  // 10% to 95% (100 - 5)
-
-    // Y position: data value mapped to graph area (5% top margin, 10% bottom margin, inverted)
-    double y_min = *std::min_element(g_graphData.y_values.begin(), g_graphData.y_values.end());
-    double y_max = *std::max_element(g_graphData.y_values.begin(), g_graphData.y_values.end());
-    if (y_max - y_min < 0.001) y_max = y_min + 1.0;
-
-    double y_value = g_graphData.y_values[last_idx];
-    float y_normalized = static_cast<float>(y_value - y_min) / static_cast<float>(y_max - y_min);
-    float y_percent = 90.0f - (y_normalized * 85.0f);  // 90% to 5% (inverted, from 100-10 to 5)
-
-    // Re-render the graph to erase the old indicator
-    // This ensures the pulsing animation is smooth and the old circle is erased
-    g_graph->render();
-
-    // Draw the new indicator on top
-    g_indicator->draw(x_percent, y_percent);
-
+    // Flush to ensure display updates
     hal_display_flush();
 }
