@@ -1,0 +1,22 @@
+<svg width="245" height="370" viewBox="0 0 245 370" xmlns="http://www.w3.org/2000/svg">
+    <!-- Top Stem (Darkest Khaki Shadows) -->
+    <path id="Path" fill="#6A6556" stroke="none" d="M 5 50 L 95 5 L 95 95 Z"/>
+    <path id="path1" fill="#797361" stroke="none" d="M 5 50 L 95 95 L 5 140 Z"/>
+    <!-- Mid Stem -->
+    <path id="path2" fill="#88816D" stroke="none" d="M 5 140 L 95 95 L 95 185 Z"/>
+    <!-- Lower Stem -->
+    <path id="path3" fill="#978F78" stroke="none" d="M 5 140 L 95 185 L 5 230 Z"/>
+    <!-- Bottom Stem -->
+    <path id="path4" fill="#A69D84" stroke="none" d="M 5 230 L 95 185 L 95 275 Z"/>
+    <path id="Path-copy-2" fill="#B5AB8F" stroke="none" d="M 5 230 L 95 275 L 5 320 Z"/>
+    <!-- The Fold/Heel (Lightest Highlight) -->
+    <path id="Path-copy" fill="#C4B99B" stroke="none" d="M 5 320 L 95 275 L 95 365 Z"/>
+    
+    <!-- === FOOT SEQUENCE (Khaki -> Chamoisee) === -->
+    <!-- 1. Arm Left/Bottom (Base Khaki) -->
+    <path id="path5" fill="#B6AD90" stroke="none" d="M 95 365 L 164 320 L 95 275 Z"/>
+    <!-- 2. Arm Middle/Top (Light Khaki) -->
+    <path id="path6" fill="#C9C0A3" stroke="none" d="M 95 275 L 164 320 L 164 227 Z"/>
+    <!-- 3. Arm Right/Tip (Chamoisee - Accent) -->
+    <path id="path7" fill="#AC855E" stroke="none" d="M 164 227 L 164 320 L 240 264 Z"/>
+</svg>
