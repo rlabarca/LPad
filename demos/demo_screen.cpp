@@ -83,14 +83,26 @@ void displayError(const char* message) {
 
 void setup() {
     Serial.begin(115200);
-    delay(1000);
+    delay(2000);  // Longer delay for ESP32-S3 USB CDC
 
-    Serial.println("=== LPad Base UI Demo Application ===");
-    Serial.println();
+    Serial.println("\n\n\n=== LPad Base UI Demo Application ===");
+    Serial.println("DEBUG: Entered setup()");
+    Serial.flush();
+    delay(100);
 
     // [1/6] Initialize display HAL
     Serial.println("[1/6] Initializing display HAL...");
-    if (!hal_display_init()) {
+    Serial.flush();
+    delay(100);
+
+    Serial.println("DEBUG: About to call hal_display_init()");
+    Serial.flush();
+
+    bool init_result = hal_display_init();
+    Serial.printf("DEBUG: hal_display_init() returned: %d\n", init_result);
+    Serial.flush();
+
+    if (!init_result) {
         displayError("Display initialization failed");
         while (1) delay(1000);
     }
@@ -109,7 +121,14 @@ void setup() {
 
     // [2/6] Initialize RelativeDisplay API
     Serial.println("[2/6] Initializing RelativeDisplay abstraction...");
+    Serial.flush();
+
+    Serial.println("DEBUG: About to call display_relative_init()");
+    Serial.flush();
     display_relative_init();
+
+    Serial.println("DEBUG: About to get GFX object");
+    Serial.flush();
     Arduino_GFX* display = static_cast<Arduino_GFX*>(hal_display_get_gfx());
     if (display == nullptr) {
         displayError("Display object unavailable");
@@ -121,15 +140,28 @@ void setup() {
 
     // [3/6] Create AnimationTicker
     Serial.println("[3/6] Creating 30fps AnimationTicker...");
+    Serial.flush();
+
+    Serial.println("DEBUG: About to create AnimationTicker");
+    Serial.flush();
     static AnimationTicker ticker(30);
     g_ticker = &ticker;
+    Serial.println("DEBUG: AnimationTicker created");
+    Serial.flush();
     Serial.println("  [PASS] AnimationTicker created (30fps)");
     Serial.println();
     delay(500);
 
     // [4/6] Parse test data
     Serial.println("[4/6] Parsing test data from embedded JSON...");
+    Serial.flush();
+
+    Serial.println("DEBUG: About to create YahooChartParser");
+    Serial.flush();
     YahooChartParser parser("");
+
+    Serial.println("DEBUG: About to parse JSON");
+    Serial.flush();
     if (!parser.parseFromString(TEST_DATA_JSON)) {
         displayError("Failed to parse test data");
         while (1) delay(1000);
@@ -143,12 +175,24 @@ void setup() {
 
     // [5/6] Create UI components
     Serial.println("[5/6] Creating UI components...");
+    Serial.flush();
 
     // TimeSeriesGraph with layered rendering and integrated live indicator
     Serial.println("  Creating TimeSeriesGraph with Vaporwave theme...");
+    Serial.flush();
+
+    Serial.println("DEBUG: About to create theme");
+    Serial.flush();
     GraphTheme theme = createVaporwaveTheme();
+
+    Serial.println("DEBUG: About to create TimeSeriesGraph object");
+    Serial.printf("DEBUG: Display dimensions: %d x %d\n", width, height);
+    Serial.flush();
     static TimeSeriesGraph graph(theme, display, width, height);
     g_graph = &graph;
+
+    Serial.println("DEBUG: TimeSeriesGraph object created, about to call begin()");
+    Serial.flush();
 
     if (!graph.begin()) {
         displayError("Graph initialization failed");
