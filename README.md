@@ -113,6 +113,7 @@ graph TD
 
     subgraph UI_Framework ["UI Framework"]
         direction TB
+        ui_theme_support("**Theme Support**<br/><small>ui_theme_support.md</small>"):::ui
         ui_themeable_time_series_graph("**Themeable Graph**<br/><small>ui_themeable_time_series_graph.md</small>"):::ui
         ui_time_series_graph("**Time Series Graph**<br/><small>ui_time_series_graph.md</small>"):::ui
     end
@@ -136,6 +137,7 @@ graph TD
     hal_contracts --> display_canvas_drawing
     hal_contracts --> display_tdisplay_s3_plus
     hal_contracts --> hal_timer_esp32
+    display_canvas_drawing --> ui_theme_support
 ```
 <!-- MERMAID_END -->
 
