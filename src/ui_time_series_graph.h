@@ -12,32 +12,12 @@
 #ifndef UI_TIME_SERIES_GRAPH_H
 #define UI_TIME_SERIES_GRAPH_H
 
+#include "gradients.h"
 #include "relative_display.h"
 #include <Arduino_GFX_Library.h>
 #include <vector>
 #include <stdint.h>
 #include <cstddef>
-
-/**
- * @struct LinearGradient
- * @brief Defines a linear color gradient
- */
-struct LinearGradient {
-    float angle_deg;               ///< Gradient angle in degrees (0=left-to-right, 90=top-to-bottom)
-    uint16_t color_stops[3];       ///< Up to 3 color values (RGB565)
-    size_t num_stops;              ///< Number of color stops (2-3)
-};
-
-/**
- * @struct RadialGradient
- * @brief Defines a radial color gradient
- */
-struct RadialGradient {
-    float center_x;                ///< Center X coordinate (relative percentage)
-    float center_y;                ///< Center Y coordinate (relative percentage)
-    float radius;                  ///< Radius in relative percentage units
-    uint16_t color_stops[2];       ///< Inner and outer color values (RGB565)
-};
 
 /**
  * @struct GraphTheme

@@ -12,7 +12,7 @@
 
 #define _USE_MATH_DEFINES
 #include "relative_display.h"
-#include "ui_time_series_graph.h"
+#include "gradients.h"
 #include "../hal/display.h"
 #include <cmath>
 #include <algorithm>
@@ -98,6 +98,37 @@ void RelativeDisplay::fillRect(float x_start_percent, float y_start_percent, flo
 
 Arduino_GFX* RelativeDisplay::getGfx() const {
     return _gfx;
+}
+
+// ============================================================================
+// Background Drawing Methods (features/display_background.md)
+// ============================================================================
+
+void RelativeDisplay::drawSolidBackground(uint16_t color) {
+    fillRect(0.0f, 0.0f, 100.0f, 100.0f, color);
+}
+
+void RelativeDisplay::drawGradientBackground(uint16_t colorA, uint16_t colorB, float angle_deg) {
+    // Use the existing gradient primitive with 2-color LinearGradient
+    LinearGradient gradient;
+    gradient.angle_deg = angle_deg;
+    gradient.color_stops[0] = colorA;
+    gradient.color_stops[1] = colorB;
+    gradient.num_stops = 2;
+
+    display_relative_fill_rect_gradient(0.0f, 0.0f, 100.0f, 100.0f, gradient);
+}
+
+void RelativeDisplay::drawGradientBackground(uint16_t colorA, uint16_t colorB, uint16_t colorC, float angle_deg) {
+    // Use the existing gradient primitive with 3-color LinearGradient
+    LinearGradient gradient;
+    gradient.angle_deg = angle_deg;
+    gradient.color_stops[0] = colorA;
+    gradient.color_stops[1] = colorB;
+    gradient.color_stops[2] = colorC;
+    gradient.num_stops = 3;
+
+    display_relative_fill_rect_gradient(0.0f, 0.0f, 100.0f, 100.0f, gradient);
 }
 
 // ============================================================================
@@ -384,4 +415,33 @@ void display_relative_fill_circle_gradient(float center_x_percent, float center_
             }
         }
     }
+}
+
+// ============================================================================
+// Background Drawing C-style Wrapper Functions (features/display_background.md)
+// ============================================================================
+
+void display_relative_draw_solid_background(uint16_t color) {
+    display_relative_fill_rectangle(0.0f, 0.0f, 100.0f, 100.0f, color);
+}
+
+void display_relative_draw_gradient_background_2color(uint16_t colorA, uint16_t colorB, float angle_deg) {
+    LinearGradient gradient;
+    gradient.angle_deg = angle_deg;
+    gradient.color_stops[0] = colorA;
+    gradient.color_stops[1] = colorB;
+    gradient.num_stops = 2;
+
+    display_relative_fill_rect_gradient(0.0f, 0.0f, 100.0f, 100.0f, gradient);
+}
+
+void display_relative_draw_gradient_background_3color(uint16_t colorA, uint16_t colorB, uint16_t colorC, float angle_deg) {
+    LinearGradient gradient;
+    gradient.angle_deg = angle_deg;
+    gradient.color_stops[0] = colorA;
+    gradient.color_stops[1] = colorB;
+    gradient.color_stops[2] = colorC;
+    gradient.num_stops = 3;
+
+    display_relative_fill_rect_gradient(0.0f, 0.0f, 100.0f, 100.0f, gradient);
 }

@@ -244,6 +244,41 @@ void test_non_square_surface(void) {
     TEST_ASSERT_EQUAL_INT16(429, mockGfx->calls[0].h);  // 80% of 536 (rounded)
 }
 
+/**
+ * Test: Draw Solid Background (features/display_background.md)
+ * Scenario: Drawing a Solid Background
+ * Given the RelativeDisplay is initialized
+ * When drawSolidBackground(0xF800) (Red) is called
+ * Then the entire drawing area should be filled with red
+ */
+void test_draw_solid_background(void) {
+    relDisplay->drawSolidBackground(RGB565_RED);
+
+    TEST_ASSERT_EQUAL_UINT32(1, mockGfx->calls.size());
+    TEST_ASSERT_EQUAL(MockArduinoGFX::DrawCall::FILLRECT, mockGfx->calls[0].type);
+    TEST_ASSERT_EQUAL_INT16(0, mockGfx->calls[0].x);    // 0% of width
+    TEST_ASSERT_EQUAL_INT16(0, mockGfx->calls[0].y);    // 0% of height
+    TEST_ASSERT_EQUAL_INT16(200, mockGfx->calls[0].w);  // 100% of width (200px)
+    TEST_ASSERT_EQUAL_INT16(200, mockGfx->calls[0].h);  // 100% of height (200px)
+    TEST_ASSERT_EQUAL_UINT16(RGB565_RED, mockGfx->calls[0].color);
+}
+
+/**
+ * Test: C-style solid background wrapper
+ * Verifies the backward-compatible C API for solid backgrounds
+ */
+void test_c_style_solid_background(void) {
+    // Initialize the procedural API with our mock
+    display_relative_init();
+
+    // Call the C-style function
+    display_relative_draw_solid_background(RGB565_BLUE);
+
+    // The procedural API should have called fillRect on the entire surface
+    // Note: This test verifies the function can be called; full verification
+    // would require HAL mocking which is beyond the scope of this unit test
+}
+
 int main(int argc, char **argv) {
     UNITY_BEGIN();
 
@@ -257,6 +292,8 @@ int main(int argc, char **argv) {
     RUN_TEST(test_fill_rect_scenario);
     RUN_TEST(test_get_gfx);
     RUN_TEST(test_non_square_surface);
+    RUN_TEST(test_draw_solid_background);
+    RUN_TEST(test_c_style_solid_background);
 
     return UNITY_END();
 }

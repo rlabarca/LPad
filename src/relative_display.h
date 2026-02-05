@@ -23,6 +23,11 @@ public:
     void drawVerticalLine(float x_percent, float y_start_percent, float y_end_percent, uint16_t color);
     void fillRect(float x_start_percent, float y_start_percent, float width_percent, float height_percent, uint16_t color);
 
+    // Background drawing methods (features/display_background.md)
+    void drawSolidBackground(uint16_t color);
+    void drawGradientBackground(uint16_t colorA, uint16_t colorB, float angle_deg);
+    void drawGradientBackground(uint16_t colorA, uint16_t colorB, uint16_t colorC, float angle_deg);
+
     // Direct access to the underlying GFX object if needed for advanced operations.
     Arduino_GFX* getGfx() const;
 
@@ -39,14 +44,13 @@ private:
 // old procedural API. They use a global RelativeDisplay instance internally.
 // New code should use the RelativeDisplay class directly.
 
+// Include gradient type definitions (must be before extern "C")
 #ifdef __cplusplus
-extern "C" {
+#include "gradients.h"
 #endif
 
-// Forward declarations for C++ structs used by gradient functions
 #ifdef __cplusplus
-struct LinearGradient;
-struct RadialGradient;
+extern "C" {
 #endif
 
 void display_relative_init(void);
@@ -63,4 +67,9 @@ void display_relative_draw_line_thick(float x1_percent, float y1_percent, float 
 void display_relative_fill_rect_gradient(float x_percent, float y_percent, float w_percent, float h_percent, const LinearGradient& gradient);
 void display_relative_draw_line_thick_gradient(float x1_percent, float y1_percent, float x2_percent, float y2_percent, float thickness_percent, const LinearGradient& gradient);
 void display_relative_fill_circle_gradient(float center_x_percent, float center_y_percent, float radius_percent, const RadialGradient& gradient);
+
+// Background drawing functions (features/display_background.md)
+void display_relative_draw_solid_background(uint16_t color);
+void display_relative_draw_gradient_background_2color(uint16_t colorA, uint16_t colorB, float angle_deg);
+void display_relative_draw_gradient_background_3color(uint16_t colorA, uint16_t colorB, uint16_t colorC, float angle_deg);
 #endif
