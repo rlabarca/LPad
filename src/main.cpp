@@ -22,6 +22,7 @@
 #include "ui_live_indicator.h"
 #include "yahoo_chart_parser.h"
 #include "animation_ticker.h"
+#include <algorithm>
 
 // Custom RGB565 colors for the demo
 #define RGB565_DARK_PURPLE 0x4810  // Deep purple
@@ -35,18 +36,26 @@ TimeSeriesGraph* g_graph = nullptr;
 LiveIndicator* g_indicator = nullptr;
 AnimationTicker* g_ticker = nullptr;
 RelativeDisplay* g_relDisplay = nullptr;
-Arduino_Canvas* g_main_canvas = nullptr;
+GraphData g_graphData;  // Store data to calculate indicator position
 
-// Create Vaporwave theme for the graph
+// Create Vaporwave theme with standalone background
 GraphTheme createVaporwaveTheme() {
     GraphTheme theme = {};
 
-    // Basic colors (no background gradient in graph itself)
+    // Basic colors
     theme.backgroundColor = RGB565_DARK_PURPLE;
     theme.lineColor = RGB565_CYAN;
     theme.axisColor = RGB565_MAGENTA;
 
-    // Graph line with horizontal gradient (Cyan to Pink)
+    // Enable 45-degree background gradient (Purple -> Pink -> Dark Blue)
+    theme.useBackgroundGradient = true;
+    theme.backgroundGradient.angle_deg = 45.0f;
+    theme.backgroundGradient.color_stops[0] = RGB565_DARK_PURPLE;
+    theme.backgroundGradient.color_stops[1] = RGB565_MAGENTA;
+    theme.backgroundGradient.color_stops[2] = RGB565_DARK_BLUE;
+    theme.backgroundGradient.num_stops = 3;
+
+    // Enable gradient line (horizontal, Cyan to Pink)
     theme.useLineGradient = true;
     theme.lineGradient.angle_deg = 0.0f;
     theme.lineGradient.color_stops[0] = RGB565_CYAN;
@@ -59,9 +68,8 @@ GraphTheme createVaporwaveTheme() {
     theme.tickColor = RGB565_WHITE;
     theme.tickLength = 2.5f;
 
-    // Disable integrated background and indicator (we'll use standalone components)
-    theme.useBackgroundGradient = false;
-    theme.liveIndicatorGradient.color_stops[0] = 0;  // Not used
+    // Disable integrated live indicator (using standalone component)
+    theme.liveIndicatorGradient.color_stops[0] = 0;
     theme.liveIndicatorGradient.color_stops[1] = 0;
     theme.liveIndicatorPulseSpeed = 0.0f;
 
@@ -83,8 +91,8 @@ void setup() {
     Serial.println("=== LPad Base UI Demo Application ===");
     Serial.println();
 
-    // [1/7] Initialize display HAL
-    Serial.println("[1/7] Initializing display HAL...");
+    // [1/6] Initialize display HAL
+    Serial.println("[1/6] Initializing display HAL...");
     if (!hal_display_init()) {
         displayError("Display initialization failed");
         while (1) delay(1000);
@@ -102,8 +110,8 @@ void setup() {
     Serial.println();
     delay(500);
 
-    // [2/7] Initialize RelativeDisplay
-    Serial.println("[2/7] Initializing RelativeDisplay abstraction...");
+    // [2/6] Initialize RelativeDisplay
+    Serial.println("[2/6] Initializing RelativeDisplay abstraction...");
     display_relative_init();
     Arduino_GFX* display = static_cast<Arduino_GFX*>(hal_display_get_gfx());
     if (display == nullptr) {
@@ -116,58 +124,47 @@ void setup() {
     Serial.println();
     delay(500);
 
-    // [3/7] Create AnimationTicker
-    Serial.println("[3/7] Creating 30fps AnimationTicker...");
+    // [3/6] Create AnimationTicker
+    Serial.println("[3/6] Creating 30fps AnimationTicker...");
     static AnimationTicker ticker(30);
     g_ticker = &ticker;
     Serial.println("  [PASS] AnimationTicker created (30fps)");
     Serial.println();
     delay(500);
 
-    // [4/7] Create main canvas
-    Serial.println("[4/7] Creating off-screen main canvas...");
-    Serial.printf("  Canvas size: %d x %d pixels\n", width, height);
-    static Arduino_Canvas canvas(width, height, display, 0, 0, true);  // Use PSRAM
-    g_main_canvas = &canvas;
-    if (!canvas.begin()) {
-        Serial.println("  [WARN] PSRAM allocation may have failed");
-    }
-    Serial.println("  [PASS] Main canvas created");
-    Serial.println();
-    delay(500);
-
-    // [5/7] Parse test data
-    Serial.println("[5/7] Parsing test data from embedded JSON...");
+    // [4/6] Parse test data
+    Serial.println("[4/6] Parsing test data from embedded JSON...");
     YahooChartParser parser("");
     if (!parser.parseFromString(TEST_DATA_JSON)) {
         displayError("Failed to parse test data");
         while (1) delay(1000);
     }
 
-    const std::vector<long>& timestamps = parser.getTimestamps();
-    const std::vector<double>& closePrices = parser.getClosePrices();
-    Serial.printf("  [PASS] Parsed %d data points\n", closePrices.size());
+    g_graphData.x_values = parser.getTimestamps();
+    g_graphData.y_values = parser.getClosePrices();
+    Serial.printf("  [PASS] Parsed %d data points\n", g_graphData.y_values.size());
     Serial.println();
     delay(500);
 
-    // [6/7] Create UI components
-    Serial.println("[6/7] Creating UI components...");
+    // [5/6] Create UI components
+    Serial.println("[5/6] Creating UI components...");
 
-    // TimeSeriesGraph
+    // TimeSeriesGraph with layered rendering
     Serial.println("  Creating TimeSeriesGraph with Vaporwave theme...");
     GraphTheme theme = createVaporwaveTheme();
-    static TimeSeriesGraph graph(theme, g_main_canvas, width, height);
+    static TimeSeriesGraph graph(theme, display, width, height);
     g_graph = &graph;
 
-    GraphData graphData;
-    graphData.x_values = timestamps;
-    graphData.y_values = closePrices;
-    graph.setData(graphData);
-    graph.setYTicks(0.002f);
+    if (!graph.begin()) {
+        displayError("Graph initialization failed");
+        while (1) delay(1000);
+    }
 
+    graph.setData(g_graphData);
+    graph.setYTicks(0.002f);
     Serial.println("  [PASS] TimeSeriesGraph created");
 
-    // LiveIndicator
+    // LiveIndicator (standalone component)
     Serial.println("  Creating LiveIndicator component...");
     IndicatorTheme indicatorTheme;
     indicatorTheme.innerColor = RGB565_MAGENTA;  // Pink/magenta center
@@ -182,37 +179,19 @@ void setup() {
     Serial.println();
     delay(500);
 
-    // [7/7] Initial render
-    Serial.println("[7/7] Performing initial render...");
+    // [6/6] Initial render
+    Serial.println("[6/6] Performing initial render...");
 
-    // Select main canvas as drawing target
-    hal_display_select_canvas(g_main_canvas);
-
-    // Draw 45-degree gradient background (Purple -> Pink -> Dark Blue)
-    Serial.println("  Drawing gradient background...");
-    g_relDisplay->drawGradientBackground(
-        RGB565_DARK_PURPLE,  // Top-left: Deep purple
-        RGB565_MAGENTA,      // Middle: Bright magenta/pink
-        RGB565_DARK_BLUE,    // Bottom-right: Pure deep blue
-        45.0f                // 45-degree diagonal
-    );
-
-    // Draw graph (axes, ticks, data line)
-    Serial.println("  Drawing time series graph...");
-    if (!graph.begin()) {
-        displayError("Graph initialization failed");
-        while (1) delay(1000);
-    }
+    // Draw static layers to canvases
+    Serial.println("  Drawing background layer...");
     graph.drawBackground();
+
+    Serial.println("  Drawing data layer...");
     graph.drawData();
 
-    // Note: LiveIndicator will be drawn in the animation loop
-
-    // Blit main canvas to display
-    Serial.println("  Blitting main canvas to display...");
-    hal_display_select_canvas(nullptr);  // Select main display
-    hal_display_fast_blit(0, 0, width, height,
-        static_cast<uint16_t*>(g_main_canvas->getFramebuffer()));
+    // Composite and render to display
+    Serial.println("  Compositing to display...");
+    graph.render();
     hal_display_flush();
 
     Serial.println("  [PASS] Initial render complete");
@@ -233,66 +212,33 @@ void loop() {
     // Wait for next frame and get deltaTime
     float deltaTime = g_ticker->waitForNextFrame();
 
-    if (g_graph == nullptr || g_indicator == nullptr || g_relDisplay == nullptr) {
+    if (g_graph == nullptr || g_indicator == nullptr || g_graphData.y_values.empty()) {
         return;
     }
 
     // Update indicator animation
     g_indicator->update(deltaTime);
 
-    // TODO: Get last data point position from graph
-    // For now, manually calculate the last point position
-    // This should match the graph's mapXToScreen and mapYToScreen logic
+    // Calculate position of last data point
+    size_t last_idx = g_graphData.y_values.size() - 1;
 
-    // Draw updated indicator directly to display
-    // (The background+graph composite is already on the display from setup)
+    // X position (maps to graph's drawing area: 10% to 90%)
+    float x_percent = 10.0f + (80.0f * static_cast<float>(last_idx) /
+                               static_cast<float>(g_graphData.y_values.size() - 1));
 
-    // For simplicity in this demo, we'll redraw the entire frame
-    // In a production app, you'd use dirty rect optimization
+    // Y position (maps to graph's drawing area: 10% to 90%, inverted for screen coords)
+    double y_min = *std::min_element(g_graphData.y_values.begin(), g_graphData.y_values.end());
+    double y_max = *std::max_element(g_graphData.y_values.begin(), g_graphData.y_values.end());
+    if (y_max - y_min < 0.001) y_max = y_min + 1.0;
 
-    // Select main canvas
-    hal_display_select_canvas(g_main_canvas);
+    double y_value = g_graphData.y_values[last_idx];
+    float y_normalized = static_cast<float>(y_value - y_min) / static_cast<float>(y_max - y_min);
+    float y_percent = 10.0f + (80.0f * (1.0f - y_normalized));  // Inverted for screen coords
 
-    // Redraw background
-    g_relDisplay->drawGradientBackground(
-        RGB565_DARK_PURPLE,
-        RGB565_MAGENTA,
-        RGB565_DARK_BLUE,
-        45.0f
-    );
+    // Draw indicator directly on top of the graph
+    // Note: This draws directly to the display, on top of the already-rendered graph
+    // For a production implementation, you'd use dirty-rect optimization
+    g_indicator->draw(x_percent, y_percent);
 
-    // Redraw graph
-    g_graph->drawBackground();
-    g_graph->drawData();
-
-    // Draw indicator at last data point
-    // Calculate position (this mirrors TimeSeriesGraph's calculation)
-    const GraphData& data = g_graph->getData();
-    if (!data.y_values.empty()) {
-        size_t last_idx = data.y_values.size() - 1;
-
-        // Simple position calculation (matches graph's logic)
-        float x_percent = 10.0f + (80.0f * static_cast<float>(last_idx) /
-                                   static_cast<float>(data.y_values.size() - 1));
-
-        // Y position needs to map data value to screen space
-        double y_min = *std::min_element(data.y_values.begin(), data.y_values.end());
-        double y_max = *std::max_element(data.y_values.begin(), data.y_values.end());
-        if (y_max - y_min < 0.001) y_max = y_min + 1.0;
-
-        double y_value = data.y_values[last_idx];
-        float y_normalized = static_cast<float>(y_value - y_min) /
-                            static_cast<float>(y_max - y_min);
-        float y_percent = 10.0f + (80.0f * (1.0f - y_normalized));  // Inverted for screen coords
-
-        g_indicator->draw(x_percent, y_percent);
-    }
-
-    // Blit to display
-    hal_display_select_canvas(nullptr);
-    int32_t width = hal_display_get_width_pixels();
-    int32_t height = hal_display_get_height_pixels();
-    hal_display_fast_blit(0, 0, width, height,
-        static_cast<uint16_t*>(g_main_canvas->getFramebuffer()));
     hal_display_flush();
 }
