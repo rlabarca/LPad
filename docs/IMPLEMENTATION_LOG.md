@@ -105,15 +105,21 @@ TimeSeriesGraph already has a highly optimized indicator with dirty-rect:
 **Pros:** Already implemented and flicker-free, proven in production
 **Cons:** Couples the indicator to the graph, not a standalone component
 
-### Decision for v0.5 Demo
-The Base UI Demo (main.cpp) uses **Approach B (current)** for the HIL test to demonstrate:
-- The standalone LiveIndicator API
-- Separation of concerns between components
-- That the indicator positioning and animation logic is correct
+### Decision for v0.5 Demo (UPDATED)
+Initially attempted **Approach B** with standalone LiveIndicator, but flashing was unacceptable for HIL testing.
 
-**Known Issue:** Flashing artifacts during animation due to full graph re-render.
+**Final Implementation:** Uses **Option C (Integrated TimeSeriesGraph Indicator)**
+- Flicker-free 30fps animation
+- Dirty-rect optimization with composite buffer restoration
+- Production-ready implementation
+- Still demonstrates all v0.5 visual requirements
 
-**Future Work:** Implement Option A (dirty-rect in LiveIndicator) for v0.6 if the standalone indicator is required for other use cases. Otherwise, Option C (integrated) is the recommended production approach.
+The standalone `LiveIndicator` component remains:
+- Fully implemented and unit-tested (5 tests passing)
+- Available for use cases where dirty-rect can be managed by the caller
+- Documented as a reusable component for future work
+
+**Conclusion:** For SPI-based displays where bandwidth is limited, integrated components with tight coupling to the rendering pipeline are the pragmatic choice over pure component separation.
 
 ### Key Lessons
 1. **Dirty-rect optimization is not optional** for smooth animation on SPI displays
