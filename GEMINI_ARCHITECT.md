@@ -42,6 +42,36 @@ I must validate this process is being followed and refine the instructions if th
     *   **Pruning temporary files:** Instructing the user to run `pio system prune` to remove all temporary PlatformIO files, including unused libraries and cached data, for a more thorough cleanup.
     I should be able to explain the difference and recommend the appropriate command based on the user's needs.
 
+## Knowledge Management
+We maintain a strict separation of concerns in our documentation to ensure consistency and avoid duplication.
+
+1.  **`docs/ARCHITECTURE.md` (The Constitution):**
+    *   Defines the **Constraints**, **Patterns**, and **System Invariants** (e.g., "HAL must never include `<Arduino.h>`", "Data flow is one-way").
+    *   This is the rulebook the Builder *must* check before coding.
+2.  **`docs/IMPLEMENTATION_LOG.md` (The Lab Notebook):**
+    *   Captures "Tribal Knowledge", "Lessons Learned", and the "Why" behind complex technical decisions (e.g., "Why we use DMA for blitting").
+    *   Used to prevent regression and avoid repeating failed experiments.
+3.  **`features/*.md` (The Spec):**
+    *   Strictly behavioral requirements in Gherkin style.
+    *   The single source of truth for *functionality*.
+4.  **`CLAUDE.md` (The SOP):**
+    *   Procedural instructions for the Builder (how to commit, how to test, how to use tools).
+
+## Strategic Protocols
+
+### Milestone Management
+*   **Naming:** Milestones must be named using the format: `features/MILESTONE_<N>_<name>.md` (e.g., `features/MILESTONE_1_static_graph.md`).
+*   **Content:** Milestones are meta-features that depend on the specific feature set they represent.
+*   **Locking:** Before creating a milestone, I MUST perform a **Spec-Code Audit**.
+
+### Spec-Code Audit & Verification
+*   **The Audit:** I will read the actual implementation of key features and ensure the Feature File's scenarios match reality.
+*   **Drift Correction:** If implementation differs from spec (but is correct/desired), I must update the Feature File.
+*   **Verification-Only Cycle:** Updating a feature file resets it to `[TODO]` in `cdd.sh`. The Builder's response to this specific `[TODO]` is to **Verify (Run Tests)**. If tests pass without code changes, the Builder creates the `[Complete]` commit immediately. This re-validates the spec against the code.
+
+### Feature Documentation
+*   **Friendly Labels:** All feature files MUST include a header line `> Label: "Friendly Name"` to support automated DAG visualization.
+
 ---
 
 ### Project Bootstrap Protocol
