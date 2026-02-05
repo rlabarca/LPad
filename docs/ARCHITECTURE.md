@@ -52,6 +52,12 @@ graph TD
 2.  **Frame Rate:** The system targets a stable 30fps.
 3.  **Delta Time:** All animations (e.g., pulsing indicator) must be calculated based on `deltaTime` provided by the ticker, never on raw frame counts.
 
+### E. Persistent HIL Tests & Demos
+1.  **Isolate Demo Code:** To preserve valuable Hardware-in-the-Loop (HIL) test code, it MUST NOT be written in `src/main.cpp`. A dedicated `demos/` directory will house these runnable examples.
+2.  **Naming Convention:** Each demo should correspond to a feature and be named appropriately, e.g., `demos/demo_ui_base.cpp`.
+3.  **Activation via Build Environment:** Demos are compiled and run using dedicated build environments in `platformio.ini`. These environments MUST use the `src_filter` option to exclude the main application (`-:<src/>`) and include only the target demo file (`+<demos/demo_name.cpp>`).
+4.  **Self-Contained:** Each demo file must be self-contained and provide its own `setup()` and `loop()` functions.
+
 ## 4. Design System & Theming
 
 ### A. Theme Architecture

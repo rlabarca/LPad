@@ -37,8 +37,21 @@ This feature defines the main demo application. It orchestrates all UI component
 4.  **Draw Indicator:** Update the `LiveIndicator` (pulse animation) and draw it at the position of the last data point.
 5.  **Blit to Screen:** Select the main display (nullptr) and draw `main_canvas` to (0,0).
 
-## Implementation Notes
+## Hardware (HIL) Test
 
-- **Separation of Concerns:** The application logic (`main.cpp`) should only coordinate these components. It should not contain raw drawing code.
-- **Data Binding:** The `LiveIndicator`'s position must be updated every frame (or whenever data changes) to match the screen coordinates of the newest point on the graph.
-- **Performance:** Ensure the full-screen redraw and blit can occur within the 33ms frame budget (for 30fps).
+To visually confirm the correct operation of this feature, a persistent demo must be created, following the rules in `docs/ARCHITECTURE.md`.
+
+**Instructions for the Builder:**
+
+1.  **Create Demo File:** Create a new file at `demos/demo_screen.cpp`.
+2.  **Implement Demo Logic:** Implement the full demo logic (as described in the "Application Startup" and "Application Loop" scenarios) inside `demos/demo_screen.cpp`. This file must contain its own `setup()` and `loop()` functions.
+3.  **Create Build Environment:** Add a new build environment to `platformio.ini` named `[env:demo_screen]` that is configured to build *only* the `demos/demo_screen.cpp` file.
+    *   It should inherit from a common board configuration (if one exists).
+    *   It MUST use `src_filter` to exclude `src/main.cpp` and include `demos/demo_screen.cpp`.
+    *   Example `src_filter` configuration:
+        ```ini
+        src_filter =
+          -<.git/>, -<svn/>, -<example/>, -<examples/>, -<test/>, -<tests/>
+          -<src/>
+          +<demos/demo_screen.cpp>
+        ```
