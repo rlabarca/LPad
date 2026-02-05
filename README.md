@@ -48,6 +48,16 @@ This project is not built by humans writing C++. It is constructed using a rigor
 
 ---
 
+### Agent Configuration
+
+This project includes a `.gemini/settings.json` file. This file provides project-specific configuration for the Gemini CLI agent, which plays the "Architect" role.
+
+-   **`context.fileName`**: This setting automatically loads the `GEMINI_ARCHITECT.md` file into the agent's context at the start of a session. This ensures the "Architect" agent is always aware of its core mission, responsibilities, and the project's development philosophy without needing to be manually prompted.
+
+By checking this file into the repository, we ensure that any developer (or agent) using this project will have their tools configured consistently.
+
+---
+
 ## 🏗️ Project Architecture
 
 ### Dependency Graph
