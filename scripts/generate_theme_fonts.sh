@@ -4,16 +4,23 @@
 #
 # Usage: ./scripts/generate_theme_fonts.sh [path_to_fontconvert]
 
-FONTCONVERT=${1:-./fontconvert}
+FONTCONVERT=${1:-./lib/Adafruit-GFX-Library/fontconvert/fontconvert}
 
-if ! [ -x "$(command -v $FONTCONVERT)" ]; then
+# Fallback: Check if it's in the current directory or PATH
+if ! [ -x "$FONTCONVERT" ]; then
+    if [ -x "./fontconvert" ]; then
+        FONTCONVERT="./fontconvert"
+    elif command -v fontconvert >/dev/null 2>&1; then
+        FONTCONVERT="fontconvert"
+    fi
+fi
+
+if ! [ -x "$FONTCONVERT" ]; then
   echo "Error: fontconvert executable not found at '$FONTCONVERT'"
-  echo "Please build it from Adafruit-GFX-Library/fontconvert"
+  echo "Please build it from lib/Adafruit-GFX-Library/fontconvert"
   echo "Instructions:"
-  echo "1. Clone https://github.com/adafruit/Adafruit-GFX-Library"
-  echo "2. cd Adafruit-GFX-Library/fontconvert"
-  echo "3. make"
-  echo "4. Copy the 'fontconvert' executable to this project's root or pass its path to this script."
+  echo "1. cd lib/Adafruit-GFX-Library/fontconvert"
+  echo "2. make (or gcc -I/opt/homebrew/include/freetype2 fontconvert.c -L/opt/homebrew/lib -lfreetype -o fontconvert)"
   exit 1
 fi
 
