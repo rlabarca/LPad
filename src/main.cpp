@@ -219,25 +219,27 @@ void loop() {
     // Update indicator animation
     g_indicator->update(deltaTime);
 
-    // Calculate position of last data point
+    // Calculate position of last data point using graph's exact mapping
     size_t last_idx = g_graphData.y_values.size() - 1;
 
-    // X position (maps to graph's drawing area: 10% to 90%)
-    float x_percent = 10.0f + (80.0f * static_cast<float>(last_idx) /
-                               static_cast<float>(g_graphData.y_values.size() - 1));
+    // X position: normalized position mapped to graph area (10% left margin, 5% right margin)
+    float x_normalized = static_cast<float>(last_idx) / static_cast<float>(g_graphData.y_values.size() - 1);
+    float x_percent = 10.0f + (x_normalized * 85.0f);  // 10% to 95% (100 - 5)
 
-    // Y position (maps to graph's drawing area: 10% to 90%, inverted for screen coords)
+    // Y position: data value mapped to graph area (5% top margin, 10% bottom margin, inverted)
     double y_min = *std::min_element(g_graphData.y_values.begin(), g_graphData.y_values.end());
     double y_max = *std::max_element(g_graphData.y_values.begin(), g_graphData.y_values.end());
     if (y_max - y_min < 0.001) y_max = y_min + 1.0;
 
     double y_value = g_graphData.y_values[last_idx];
     float y_normalized = static_cast<float>(y_value - y_min) / static_cast<float>(y_max - y_min);
-    float y_percent = 10.0f + (80.0f * (1.0f - y_normalized));  // Inverted for screen coords
+    float y_percent = 90.0f - (y_normalized * 85.0f);  // 90% to 5% (inverted, from 100-10 to 5)
 
-    // Draw indicator directly on top of the graph
-    // Note: This draws directly to the display, on top of the already-rendered graph
-    // For a production implementation, you'd use dirty-rect optimization
+    // Re-render the graph to erase the old indicator
+    // This ensures the pulsing animation is smooth and the old circle is erased
+    g_graph->render();
+
+    // Draw the new indicator on top
     g_indicator->draw(x_percent, y_percent);
 
     hal_display_flush();
