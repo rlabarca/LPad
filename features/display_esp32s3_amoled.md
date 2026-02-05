@@ -3,7 +3,7 @@
 # Feature: Display Baseline for ESP32-S3-Touch-AMOLED
 
 > Label: "ESP32-S3 AMOLED Driver"
-> Category: "Hardware Layer"
+> Category: "Board Drivers"
 
 This feature describes the work required to implement the Display HAL contract for the ESP32-S3-Touch-AMOLED target hardware.
 

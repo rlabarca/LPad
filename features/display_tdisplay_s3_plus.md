@@ -3,7 +3,7 @@
 # Feature: Refactor Display HAL for T-Display-S3 AMOLED Plus using Arduino_GFX
 
 > Label: "T-Display S3+ Driver"
-> Category: "Hardware Layer"
+> Category: "Board Drivers"
 
 This feature describes the work required to refactor the Display HAL contract for the T-Display-S3 AMOLED Plus, replacing the manual SPI implementation with one based on the `Arduino_GFX` library. This standardizes the display driver architecture and enables more advanced features like canvas-based drawing.
 
