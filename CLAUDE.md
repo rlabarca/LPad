@@ -9,16 +9,19 @@ Your primary function is to translate `features/*.md` files into code and then *
 
 This is the required sequence of actions for every feature you implement. This is not a suggestion; it is a contract. You MUST follow these steps exactly.
 
-**Step 1: Understand the Feature**
-- Read the `features/*.md` file you have been assigned.
-- Identify all prerequisite features and available HAL abstractions.
+**Step 1: Understand & Research**
+- **Read the Spec:** Read the `features/*.md` file you have been assigned.
+- **Read the Constitution:** Read `docs/ARCHITECTURE.md`. You MUST adhere to the constraints defined there (e.g., HAL separation, Data Flow).
+- **Read the History:** Read `docs/IMPLEMENTATION_LOG.md`. Check if this problem has been solved (or failed) before. Do not repeat documented mistakes.
+- **Identify Dependencies:** Identify all prerequisite features and available HAL abstractions.
 
 **Step 2: Implement and Test**
 - Write the code and corresponding unit tests to satisfy the feature's scenarios.
 - Run the unit tests and ensure they pass.
+- *Self-Correction:* If you encounter a complex technical hurdle and solve it, append a brief entry to `docs/IMPLEMENTATION_LOG.md` explaining the problem and your solution.
 
 **Step 3: THE COMMIT PROTOCOL (Your Final Action)**
-This is the **most critical step**. After your code is written and tested, your work is **not done**. You MUST finalize your work by creating a git commit. This is your ONLY output.
+This is the **most critical step**. The monitoring script (`cdd.sh`) is a **DUMB SCRIPT**. It looks for **EXACT STRING MATCHES**. It cannot understand "creative" variations.
 
 **Your final action for ANY task MUST be to execute these two shell commands in order:**
 
@@ -28,21 +31,19 @@ This is the **most critical step**. After your code is written and tested, your 
     ```
 
 2.  **Create the status-marking commit:**
-    *   **If the feature has a `## Hardware (HIL) Test` section:** Use this exact commit message format, replacing only the filename:
+    *   **If the feature has a `## Hardware (HIL) Test` section:** Use this EXACT format. Do not change the text inside the brackets:
         ```shell
-        git commit -m "feat(WIP): Implementation complete, ready for HIL test [Ready for HIL Test features/the_feature_file.md]"
+        git commit -m "feat(WIP): <Brief Description> [Ready for HIL Test features/FILENAME.md]"
         ```
-        *(Example: `git commit -m "feat(WIP): Implementation complete, ready for HIL test [Ready for HIL Test features/app_bond_tracker.md]"}`)*
+        *(Example: `git commit -m "feat(WIP): Implemented bonding logic [Ready for HIL Test features/app_bond_tracker.md]"}`)*
 
-    *   **If the feature does NOT have a HIL test section:** Use this exact commit message format, replacing only the filename:
+    *   **If the feature does NOT have a HIL test section:** Use this EXACT format. Do not change the text inside the brackets:
         ```shell
-        git commit -m "feat(done): Implementation complete and validated [Complete features/the_feature_file.md]"
+        git commit -m "feat(done): <Brief Description> [Complete features/FILENAME.md]"
         ```
-        *(Example: `git commit -m "feat(done): Implementation complete and validated [Complete features/hal_contracts.md]"}`)*
+        *(Example: `git commit -m "feat(done): Added helper functions [Complete features/hal_contracts.md]"}`)*
 
 **DO NOT** add any extra conversation or explanation after the commit. The commit IS your final handoff. If you have failed to commit, you have failed the task.
-
-**Self-Correction:** If the user asks if your work is committed, and it is not, you must immediately apologize and execute the COMMIT PROTOCOL.
 
 ---
 ## General Directives
