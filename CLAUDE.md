@@ -89,4 +89,5 @@ The `cdd.sh` script monitors feature status based on git commit timestamps. **An
 We use a **Distributed Dependency Graph** embedded in Feature Files to determine the order of work. To determine the next task, you must:
 a.  **Scan** all `features/*.md` files.
 b.  **Check History** (`git log`) to identify which features are already **Completed**.
-c.  **Select** a feature where the `Prerequisite` is completed (or "None") AND the feature itself is not yet completed.
+    c.  **Select** a feature where the `Prerequisite` is completed (or "None") AND the feature itself is not yet completed.
+    d. **Proactive Status Re-evaluation:** After any modification to `features/`, `README.md`, or `feature_graph.mmd` (e.g., due to architectural refactoring, renames, label updates), you **MUST** re-scan all `features/*.md` files and re-evaluate their `TODO` status based on the `cdd.sh` monitoring script's logic. Any feature newly flagged as `[TODO]` (due to its file's timestamp being newer than its last `[Complete]` or `[Ready for HIL Test]` commit) must then be prioritized for verification according to Step 2 ("Recursive Dependency Check").
