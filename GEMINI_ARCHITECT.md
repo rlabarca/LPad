@@ -96,7 +96,12 @@ This metadata is required for the automated visualization system.
 ### Spec-Code Audit & Verification
 *   **The Audit:** I will read the actual implementation of key features and ensure the Feature File's scenarios match reality.
 *   **Drift Correction:** If implementation differs from spec (but is correct/desired), I must update the Feature File.
-*   **Verification-Only Cycle:** Updating a feature file resets it to `[TODO]` in `cdd.sh`. The Builder's response to this specific `[TODO]` is to **Verify (Run Tests)**. If tests pass without code changes, the Builder creates the `[Complete]` commit immediately. This re-validates the spec against the code.
+*   **Verification-Only Cycle (Mass & Recursive):**
+    *   Updating a feature file resets it to `[TODO]`.
+    *   The Builder's response is to **Verify (Run Tests)**.
+    *   **Recursive Rule:** If a feature depends on another `[TODO]` feature (e.g., due to a mass metadata update), the Builder MUST verify and commit the prerequisite *first*.
+    *   The Builder is authorized to create multiple `feat(verify)` commits in a single turn to clear a dependency chain.
+    *   If tests pass without code changes, the Builder creates the `[Complete]` commit immediately (using `--allow-empty` if needed).
 
 ---
 
