@@ -52,6 +52,31 @@ graph TD
 2.  **Frame Rate:** The system targets a stable 30fps.
 3.  **Delta Time:** All animations (e.g., pulsing indicator) must be calculated based on `deltaTime` provided by the ticker, never on raw frame counts.
 
+## 4. Design System & Theming
+
+### A. Theme Architecture
+1.  **Isolation:** Themes are stored in `src/themes/<theme_name>/`.
+2.  **Manifest Pattern:** Every theme MUST provide a `theme_manifest.h` which acts as the entry point.
+3.  **Semantic Mapping:** Code MUST NOT use hardcoded hex colors. It must use semantic names defined in the theme (e.g., `LPad::THEME_TEXT`).
+
+### B. Typography & Fonts
+1.  **GFX Fonts:** We use Adafruit GFX compatible header-based fonts.
+2.  **Standard Levels:**
+    *   `FONT_SMALLEST` (9pt Mono): Ticks and dense labels.
+    *   `FONT_NORMAL` (12pt Sans): Paragraphs and body text.
+    *   **UI/Axis** (18pt Mono): Axis labels and button text.
+    *   **Heading** (24pt Sans): Section headers.
+    *   **Title** (48pt Branding): Logo and splash screens.
+3.  **Font Conversion:**
+    *   Fonts are converted from `.ttf` using the `fontconvert` tool.
+    *   A automated script `scripts/generate_theme_fonts.sh` manages this process.
+    *   New fonts must be registered in the `theme_manifest.h` using the `extern` pattern to keep the manifest lightweight.
+
+### C. Color Palette
+1.  **RGB565:** Microcontroller display operations use 16-bit RGB565.
+2.  **RGB888:** Documentation and web-facing tools use 24-bit RGB888.
+3.  **Semantic Definitions:** Colors are mapped from a base palette to semantic roles (e.g., `COLOR_SAGE` -> `THEME_PRIMARY`).
+
 ## 3. Implementation Patterns
 
 ### HAL Implementation

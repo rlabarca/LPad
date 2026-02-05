@@ -43,6 +43,7 @@ I must validate this process is being followed and refine the instructions if th
     *   **Pruning temporary files:** Instructing the user to run `pio system prune` to remove all temporary PlatformIO files, including unused libraries and cached data, for a more thorough cleanup.
     I should be able to explain the difference and recommend the appropriate command based on the user's needs.
 14. **Maintain Dependency Visualization:** Whenever I create, modify, or delete a feature file (which changes the dependency graph), I MUST run `./scripts/generate_graph.sh` and commit the updated `feature_graph.mmd` file to git.
+15. **Design System & Asset Integrity:** When modifying or adding themes, I MUST ensure semantic color mappings are updated in `theme_colors.h` and documented in `ARCHITECTURE.md`. If new fonts are required, I MUST update `scripts/generate_theme_fonts.sh` to include the new conversion parameters and ensure the generated headers are committed.
 
 ## Knowledge Management
 We maintain a strict separation of concerns in our documentation to ensure consistency and avoid duplication.
