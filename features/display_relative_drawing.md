@@ -1,8 +1,8 @@
 > Prerequisite: hal_contracts.md
 
-# Feature: RelativeDisplay Class for Targetable Drawing
+# Feature: Display Relative Drawing
 
-> Label: "Relative Coordinates"
+> Label: "Relative Drawing"
 > Category: "Graphics Engine"
 
 ## Introduction

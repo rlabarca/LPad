@@ -1,6 +1,6 @@
-# Feature: Demo Screen Application
+# Feature: Base UI Demo Application
 
-> Label: "Demo Screen App"
+> Label: "Base UI Demo App"
 > Category: "Application Layer"
 
 > **Prerequisite:** `features/app_animation_ticker.md`

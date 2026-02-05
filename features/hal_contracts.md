@@ -1,8 +1,8 @@
 > Prerequisite: None
 
-# Feature: Hardware Abstraction Layer (HAL) - Display Contracts
+# Feature: HAL Display & Timer Contracts
 
-> Label: "HAL Contracts"
+> Label: "HAL Display & Timer Contracts"
 > Category: "Hardware Layer"
 
 ## Introduction

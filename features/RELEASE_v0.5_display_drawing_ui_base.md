@@ -1,6 +1,6 @@
-# Release v0.5 - Display Demo
+# Release v0.5 - Display, Drawing & UI Base
 
-> Label: "Release v0.5 - Display Demo"
+> Label: "Release v0.5 - Display, Drawing & UI Base"
 > Category: "Releases"
 
 TODO: Trigger recursive validation.

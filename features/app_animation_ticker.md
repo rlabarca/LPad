@@ -1,8 +1,8 @@
 > Prerequisite: features/hal_contracts.md
 
-# Feature: Application Animation Ticker
+# Feature: Animation Ticker Engine
 
-> Label: "Animation Ticker"
+> Label: "Animation Ticker Engine"
 > Category: "Application Layer"
 
 ## Introduction

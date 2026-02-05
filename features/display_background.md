@@ -1,6 +1,6 @@
-# Feature: Display Background Drawing
+# Feature: Background & Gradient Drawing
 
-> Label: "Background Drawing"
+> Label: "Background & Gradients"
 > Category: "Graphics Engine"
 
 > **Prerequisite:** `features/display_relative_drawing.md`

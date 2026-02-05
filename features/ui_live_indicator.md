@@ -1,6 +1,6 @@
-# Feature: UI Live Indicator
+# Feature: Animated Live Indicator
 
-> Label: "Live Indicator"
+> Label: "Animated Live Indicator"
 > Category: "UI Framework"
 
 > **Prerequisite:** `features/display_relative_drawing.md`
