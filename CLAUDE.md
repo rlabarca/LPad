@@ -53,6 +53,17 @@ This is the **most critical step**. The monitoring script (`cdd.sh`) is a **DUMB
         git commit --allow-empty -m "feat(verify): <Brief Description> [Complete features/FILENAME.md]"
         ```
 
+### Special Case: Re-Validation & Status Reset
+
+The `cdd.sh` script monitors feature status based on git commit timestamps. **Any modification to a feature file (`features/X.md`) automatically resets its status to `[TODO]`, even if the underlying code remains unchanged.**
+
+*   **Your Action:** If you are asked to "verify" or "re-implement" a feature (e.g., after an architectural change like a feature file rename or label update), you **MUST** ensure the corresponding commit uses the `[Complete features/FILENAME.md]` or `[Ready for HIL Test features/FILENAME.md]` tag.
+*   **No Code Changes:** If tests pass without requiring any code modifications, use the `--allow-empty` flag with your commit to explicitly record the verification timestamp.
+    ```shell
+    git commit --allow-empty -m "feat(verify): Re-validated feature after architectural changes [Complete features/FILENAME.md]"
+    ```
+    This ensures the `cdd.sh` script correctly updates the feature's status to `DONE` or `TESTING`.
+
 **DO NOT** add any extra conversation or explanation after the commit. The commit IS your final handoff. If you have failed to commit, you have failed the task.
 
 ---
