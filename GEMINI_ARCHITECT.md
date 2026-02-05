@@ -88,9 +88,9 @@ This metadata is required for the automated visualization system.
 ### README & Documentation Sync
 *   **Trigger:** When a new `RELEASE` is defined or significant architectural changes occur.
 *   **Sequence (The "Fresh Graph" Rule):**
-    1.  **Execute:** Run `./scripts/generate_graph.sh` to update `feature_graph.mmd`.
-    2.  **Read:** Read the content of `feature_graph.mmd`.
-    3.  **Generate:** Regenerate `README.md`, embedding the freshly generated Mermaid graph content.
+    1.  **Update Prerequisites:** Update the `## 🛠️ Development Environment` section in `README.md` to reflect any new tools or packages required (e.g., `npm` packages, CLI tools).
+    2.  **Execute:** Run `./scripts/generate_graph.sh` to update `feature_graph.mmd` and inject it into the README.
+    3.  **Read:** Read the content of `feature_graph.mmd` to ensure correctness.
     4.  **Commit:** Commit both `feature_graph.mmd` and `README.md` together.
 
 ### Spec-Code Audit & Verification

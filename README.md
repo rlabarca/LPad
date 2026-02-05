@@ -4,6 +4,35 @@ An autonomous embedded systems project demonstrating "Vaporwave" financial data 
 
 ![Release v0.5](https://img.shields.io/badge/Release-v0.5-orange) ![Status](https://img.shields.io/badge/Status-Active-green)
 
+## 🛠️ Development Environment (macOS)
+
+To build and extend this project, you need the following tools installed on your system.
+
+### Base Dependencies (Homebrew)
+```bash
+# PlatformIO Core (Build System)
+brew install platformio
+
+# Node.js (Required for Mermaid CLI)
+brew install node
+
+# Git & Python3 (Standard)
+brew install git python3
+```
+
+### Visual Tooling (NPM)
+We use `mermaid-cli` to generate architecture diagrams directly in the terminal.
+```bash
+# Mermaid CLI
+npm install -g @mermaid-js/mermaid-cli
+```
+
+### IDE Support
+*   **VS Code** with the **PlatformIO IDE** extension is highly recommended.
+*   **iTerm2** is recommended for terminal usage to support inline image rendering of graphs.
+
+---
+
 ## 🧠 The Agentic Workflow
 
 This project is not built by humans writing C++. It is constructed using a rigorous **Agentic Workflow** where:
@@ -27,22 +56,52 @@ The following DAG (Directed Acyclic Graph) represents the current feature set an
 <!-- MERMAID_START -->
 ```mermaid
 graph TD
-    %% Node Definitions
-    RELEASE_v0_5_static_graph("Release v0.5: Static Graph & Animation Engine<br/><small>RELEASE_v0.5_static_graph.md</small>"):::release
-    app_animation_ticker("app_animation_ticker.md<br/><small>app_animation_ticker.md</small>")
-    app_bond_tracker("app_bond_tracker.md<br/><small>app_bond_tracker.md</small>")
-    data_yahoo_chart_parser("data_yahoo_chart_parser.md<br/><small>data_yahoo_chart_parser.md</small>")
-    display_canvas_drawing("display_canvas_drawing.md<br/><small>display_canvas_drawing.md</small>")
-    display_esp32s3_amoled("display_esp32s3_amoled.md<br/><small>display_esp32s3_amoled.md</small>")
-    display_relative_drawing("display_relative_drawing.md<br/><small>display_relative_drawing.md</small>")
-    display_rotation_contract("display_rotation_contract.md<br/><small>display_rotation_contract.md</small>")
-    display_target_rotation("display_target_rotation.md<br/><small>display_target_rotation.md</small>")
-    display_tdisplay_s3_plus("display_tdisplay_s3_plus.md<br/><small>display_tdisplay_s3_plus.md</small>")
-    hal_contracts("hal_contracts.md<br/><small>hal_contracts.md</small>")
-    hal_dma_blitting("hal_dma_blitting.md<br/><small>hal_dma_blitting.md</small>")
-    hal_timer_esp32("hal_timer_esp32.md<br/><small>hal_timer_esp32.md</small>")
-    ui_themeable_time_series_graph("ui_themeable_time_series_graph.md<br/><small>ui_themeable_time_series_graph.md</small>")
-    ui_time_series_graph("ui_time_series_graph.md<br/><small>ui_time_series_graph.md</small>")
+    %% Styling
+    classDef default fill:#e1f5fe,stroke:#01579b,stroke-width:1px,color:black;
+    classDef release fill:#f96,stroke:#333,stroke-width:2px,color:black,font-weight:bold;
+    classDef hardware fill:#e8f5e9,stroke:#2e7d32,stroke-width:1px,color:black;
+    classDef ui fill:#f3e5f5,stroke:#7b1fa2,stroke-width:1px,color:black;
+    classDef app fill:#fff3e0,stroke:#e65100,stroke-width:1px,color:black;
+    classDef graphics fill:#e0f7fa,stroke:#006064,stroke-width:1px,color:black;
+
+    subgraph Application_Layer ["Application Layer"]
+        direction TB
+        app_animation_ticker("**Animation Ticker**<br/><small>app_animation_ticker.md</small>"):::app
+        app_bond_tracker("**Bond Tracker App**<br/><small>app_bond_tracker.md</small>"):::app
+    end
+
+    subgraph Data_Layer ["Data Layer"]
+        direction TB
+        data_yahoo_chart_parser("**Yahoo Chart Parser**<br/><small>data_yahoo_chart_parser.md</small>")
+    end
+
+    subgraph Graphics_Engine ["Graphics Engine"]
+        direction TB
+        display_canvas_drawing("**Canvas Drawing**<br/><small>display_canvas_drawing.md</small>"):::graphics
+        display_relative_drawing("**Relative Coordinates**<br/><small>display_relative_drawing.md</small>"):::graphics
+    end
+
+    subgraph Hardware_Layer ["Hardware Layer"]
+        direction TB
+        display_esp32s3_amoled("**ESP32-S3 AMOLED Driver**<br/><small>display_esp32s3_amoled.md</small>"):::hardware
+        display_rotation_contract("**Rotation Contract**<br/><small>display_rotation_contract.md</small>"):::hardware
+        display_target_rotation("**Target Rotation**<br/><small>display_target_rotation.md</small>"):::hardware
+        display_tdisplay_s3_plus("**T-Display S3+ Driver**<br/><small>display_tdisplay_s3_plus.md</small>"):::hardware
+        hal_contracts("**HAL Contracts**<br/><small>hal_contracts.md</small>"):::hardware
+        hal_dma_blitting("**DMA Blitting**<br/><small>hal_dma_blitting.md</small>"):::hardware
+        hal_timer_esp32("**ESP32 Timer**<br/><small>hal_timer_esp32.md</small>"):::hardware
+    end
+
+    subgraph Releases ["Releases"]
+        direction TB
+        RELEASE_v0_5_static_graph("**Release v0.5**<br/><small>RELEASE_v0.5_static_graph.md</small>"):::release
+    end
+
+    subgraph UI_Framework ["UI Framework"]
+        direction TB
+        ui_themeable_time_series_graph("**Themeable Graph**<br/><small>ui_themeable_time_series_graph.md</small>"):::ui
+        ui_time_series_graph("**Time Series Graph**<br/><small>ui_time_series_graph.md</small>"):::ui
+    end
 
     %% Relationships
     hal_contracts --> RELEASE_v0_5_static_graph
@@ -63,10 +122,6 @@ graph TD
     hal_contracts --> display_canvas_drawing
     hal_contracts --> display_tdisplay_s3_plus
     hal_contracts --> hal_timer_esp32
-
-    %% Styling
-    classDef release fill:#f96,stroke:#333,stroke-width:2px,color:black;
-    classDef default fill:#e1f5fe,stroke:#01579b,stroke-width:1px,color:black;
 ```
 <!-- MERMAID_END -->
 
