@@ -126,3 +126,19 @@ The standalone `LiveIndicator` component remains:
 2. **Component reusability vs performance** is a real trade-off - sometimes tight coupling is the right choice
 3. **Demonstrate correctness first, optimize second** - the v0.5 demo proves the concept works
 4. **TimeSeriesGraph's integrated indicator** should be the reference implementation for any future dirty-rect work
+
+---
+
+## [2026-02-05] PlatformIO Demo Directory Include Paths
+
+### Problem
+Demo files in `demos/` directory failed to compile/run with no serial output or screen activity. Using relative includes like `#include "../src/file.h"` and `#include "../hal/file.h"`.
+
+### Root Cause
+PlatformIO automatically adds `src/` and `hal/` (via `-Ihal` build flag) to the include search path. Relative paths from `demos/` resolved incorrectly during compilation.
+
+### Solution
+Use direct includes: `#include "file.h"` instead of `#include "../src/file.h"`. PlatformIO's include path configuration handles the rest.
+
+### Key Lesson
+**Trust PlatformIO's conventions.** The build system is designed for `src/` as the primary source directory. Additional directories should use direct includes, relying on `-I` flags in `platformio.ini`.
