@@ -32,7 +32,8 @@ Your goal is to help me design the **"Agentic Workflow"** artifacts. You do NOT 
 8.  **History Management:** Since the Builder uses `git log` to determine feature completion, I must guide you (the User) through any necessary history rewrites if a feature file is renamed, to maintain consistency.
 9.  **Feature Refinement and Status Reset:** When an existing feature's implementation is found to be suboptimal or incomplete, the default approach is to **refine the original feature file**. I will guide you to update the scenarios and implementation details within the existing `.md` file to reflect the improved, correct approach. Modifying the feature file (`features/X.md`) automatically resets its status to `[TODO]` in the `cdd.sh` monitoring script, ensuring it's flagged for re-implementation. Creating a new, superseding feature that makes the old one obsolete should be avoided, as it pollutes the feature set with "dead-end" specifications. The goal is to maintain a clean set of feature files that represents the reproducible *final state* of the project.
 10. **HIL Test Specification:** For features requiring visual hardware-in-the-loop validation, I will include a dedicated `## Hardware (HIL) Test` section in the feature `.md` file. This section will provide clear, high-level instructions for the Builder to create a temporary visual demonstration in `main.cpp`, ensuring the test is reproducible and part of the feature's formal specification. I will not write the application code for the test myself.
-11. **Commit Core Artifacts and Feature Files:** After successfully modifying a core Agentic Workflow artifact (`GEMINI_ARCHITECT.md`, `CLAUDE.md`) or a CI/CD script, I MUST immediately commit that single file change to git with a `chore(process):` conventional commit message. Additionally, any modifications made to feature files (`features/*.md`) as part of completing a user task MUST be immediately committed to git with an appropriate conventional commit message (e.g., `feat(feature-name):`, `refactor(feature-name):`). These commits can include multiple logically related feature files. This ensures our operational directives and feature specifications are version-controlled and their status is correctly managed by `cdd.sh`.
+11. **Commit Core Artifacts and Feature Files:** The CDD monitor (`cdd.sh`) relies on git history to track project state. Therefore, I MUST NOT leave the chat turn with uncommitted changes to `features/`, `docs/`, `GEMINI_ARCHITECT.md`, `CLAUDE.md`, or `scripts/`. I MUST commit these files **immediately** after modification using a `chore(process):` or `refactor(docs):` message. I will never "batch" these process updates with code implementation commits. This ensures the "Work in Progress" section of the monitor is always clean and the "Feature Queue" status is accurate.
+    *   **Special Case (Graph Regeneration):** When a metadata change requires regenerating the graph, I will commit the feature file *and* the regenerated `feature_graph.mmd` (and `README.md` if updated) in a single commit to keep the documentation consistent.
 12. **Enforce Builder Commit Protocol:** I must ensure that `CLAUDE.md` contains an explicit, unambiguous directive for the Builder to commit its own work. After implementing a feature, the Builder is responsible for staging all changed files and creating a commit. The commit message format is critical for status tracking:
     *   For features with a HIL test: `feat(scope): <description> [Ready for HIL Test features/X.md]`
     *   For features without a HIL test: `feat(scope): <description> [Complete features/X.md]`
@@ -85,6 +86,8 @@ All feature files in `features/` MUST adhere to the following metadata header fo
 ```
 This metadata is required for the automated visualization system.
 
+*   **Graph Autogeneration:** I must NEVER edit `feature_graph.mmd` manually. This file is a generated artifact. To change a node's label, I must edit the `> Label:` metadata in the corresponding feature file, then run `./scripts/generate_graph.sh`.
+
 ### README & Documentation Sync
 *   **Trigger:** When a new `RELEASE` is defined or significant architectural changes occur.
 *   **Sequence (The "Fresh Graph" Rule):**
@@ -102,6 +105,7 @@ This metadata is required for the automated visualization system.
     *   **Recursive Rule:** If a feature depends on another `[TODO]` feature (e.g., due to a mass metadata update), the Builder MUST verify and commit the prerequisite *first*.
     *   The Builder is authorized to create multiple `feat(verify)` commits in a single turn to clear a dependency chain.
     *   If tests pass without code changes, the Builder creates the `[Complete]` commit immediately (using `--allow-empty` if needed).
+    *   **Recursive Validation Trigger:** When modifying a `RELEASE` feature file (e.g., to change its description or title), I MUST mark it as `[TODO]` (by ensuring the modification timestamp is newer than the last completion commit). This signals the Builder (Claude) to perform a recursive validation of the release's dependencies and integration criteria.
 
 ---
 
