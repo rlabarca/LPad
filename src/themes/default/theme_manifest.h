@@ -35,6 +35,13 @@ namespace LPad {
     extern const GFXfont Font_Logo48pt7b;
     static const GFXfont* FONT_TITLE = &Font_Logo48pt7b;
 
+    // ==========================================
+    // Semantic Font Mappings (Graph)
+    // ==========================================
+    static const GFXfont* FONT_GRAPH_TICKS       = FONT_SMALLEST;
+    static const GFXfont* FONT_GRAPH_AXIS_LABELS = FONT_UI;
+    static const GFXfont* FONT_GRAPH_DATA_LABELS = FONT_SMALLEST;
+
 }
 
 #endif // LPAD_THEME_MANIFEST_H

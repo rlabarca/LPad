@@ -51,6 +51,14 @@ namespace LPad {
     static const uint16_t THEME_ACCENT       = COLOR_CHAMOISEE_16;
     static const uint16_t THEME_PRIMARY      = COLOR_SAGE_16;
     static const uint16_t THEME_SECONDARY    = COLOR_RESEDA_16;
+
+    // ==========================================
+    // Graph Specific Semantic Usage
+    // ==========================================
+    static const uint16_t THEME_GRAPH_AXES   = COLOR_RESEDA_16; // Muted for background
+    static const uint16_t THEME_GRAPH_TICKS  = COLOR_FOREST_16; // Subtle ticks
+    static const uint16_t THEME_AXIS_LABELS  = COLOR_CREAM_16;  // Clear readable labels
+    static const uint16_t THEME_DATA_LABELS  = COLOR_SAGE_16;   // Thematic accent for data
     
 }
 
