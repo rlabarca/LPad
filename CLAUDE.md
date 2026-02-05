@@ -43,6 +43,11 @@ This is the **most critical step**. The monitoring script (`cdd.sh`) is a **DUMB
         ```
         *(Example: `git commit -m "feat(done): Added helper functions [Complete features/hal_contracts.md]"}`)*
 
+    *   **CRITICAL EXCEPTION (Verification Only):** If the `git commit` command fails because there are "no changes to commit" (clean working tree), it means the code already matched the spec. In this specific case, **you MUST retry the commit using the `--allow-empty` flag**. The system relies on the commit *timestamp*, so the commit must exist even if no files changed.
+        ```shell
+        git commit --allow-empty -m "feat(verify): <Brief Description> [Complete features/FILENAME.md]"
+        ```
+
 **DO NOT** add any extra conversation or explanation after the commit. The commit IS your final handoff. If you have failed to commit, you have failed the task.
 
 ---
