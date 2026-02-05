@@ -1,6 +1,6 @@
-# 10-Year Treasury Bond Tracker (ESP32-S3)
+# <img src="assets/LPadLogo.svg" width="48" height="48" valign="middle"> LPad
 
-An autonomous embedded systems project demonstrating "Vaporwave" financial data visualization on ESP32-S3 AMOLED displays.
+An autonomous ecosystem of tools to help me run my life, starting with embedded systems for financial data visualization.
 
 ![Release v0.5](https://img.shields.io/badge/Release-v0.5-orange) ![Status](https://img.shields.io/badge/Status-Active-green)
 
