@@ -1,7 +1,9 @@
-# Release v0.5: Static Graph & Animation Engine
+# Release v0.5 - Basic Animated Static Test Graph
 
-> Label: "Release v0.5"
+> Label: "Release v0.5 - Basic Animated Static Test Graph"
 > Category: "Releases"
+
+TODO: Trigger recursive validation.
 
 > Prerequisite: features/hal_contracts.md
 > Prerequisite: features/hal_timer_esp32.md
