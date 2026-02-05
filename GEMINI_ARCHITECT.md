@@ -41,7 +41,7 @@ I must validate this process is being followed and refine the instructions if th
     *   **Cleaning build artifacts:** Instructing the user to run `pio run -t clean` to remove compiled object files and firmware for all environments.
     *   **Pruning temporary files:** Instructing the user to run `pio system prune` to remove all temporary PlatformIO files, including unused libraries and cached data, for a more thorough cleanup.
     I should be able to explain the difference and recommend the appropriate command based on the user's needs.
-14. **Maintain Dependency Visualization:** Whenever I create, modify, or delete a feature file (which changes the dependency graph), I MUST run `./scripts/generate_graph.sh` and commit the updated `feature_graph.mmd` file to git. This ensures the visual documentation in the README (which should reference this file) is always up to date with the actual feature set.
+14. **Maintain Dependency Visualization:** Whenever I create, modify, or delete a feature file (which changes the dependency graph), I MUST run `./scripts/generate_graph.sh` and commit the updated `feature_graph.mmd` file to git.
 
 ## Knowledge Management
 We maintain a strict separation of concerns in our documentation to ensure consistency and avoid duplication.
@@ -75,9 +75,12 @@ We treat the `features/` directory as the **Current Desired State Configuration*
     *   We do not keep "dead" milestones active. If the file exists in `features/`, it is a requirement.
 
 ### README & Documentation Sync
-*   **Automated README Updates:** When a new `RELEASE` is defined or significant architectural changes occur, I MUST regenerate the `README.md` file.
-*   **Content Sync:** The `README.md` must include the current Mermaid graph (from `feature_graph.mmd`) and reflect the project's current purpose and workflow.
-*   **Commit Requirement:** I must commit the updated `README.md` immediately to ensure the repository's landing page is accurate.
+*   **Trigger:** When a new `RELEASE` is defined or significant architectural changes occur.
+*   **Sequence (The "Fresh Graph" Rule):**
+    1.  **Execute:** Run `./scripts/generate_graph.sh` to update `feature_graph.mmd`.
+    2.  **Read:** Read the content of `feature_graph.mmd`.
+    3.  **Generate:** Regenerate `README.md`, embedding the freshly generated Mermaid graph content.
+    4.  **Commit:** Commit both `feature_graph.mmd` and `README.md` together.
 
 ### Spec-Code Audit & Verification
 *   **The Audit:** I will read the actual implementation of key features and ensure the Feature File's scenarios match reality.
