@@ -74,6 +74,17 @@ We treat the `features/` directory as the **Current Desired State Configuration*
     *   If a capability is no longer desired (e.g., "No more graph, we want a smiley face"), we **DELETE** (or move to `features/archive/`) the corresponding feature files AND the `RELEASE` file.
     *   We do not keep "dead" milestones active. If the file exists in `features/`, it is a requirement.
 
+### Feature Documentation Standards
+All feature files in `features/` MUST adhere to the following metadata header format:
+```markdown
+# Feature Title
+
+> Label: "Short Friendly Name"
+> Category: "Category Name" (e.g., Hardware Layer, UI Framework, Application Layer)
+> Prerequisite: features/xxx.md
+```
+This metadata is required for the automated visualization system.
+
 ### README & Documentation Sync
 *   **Trigger:** When a new `RELEASE` is defined or significant architectural changes occur.
 *   **Sequence (The "Fresh Graph" Rule):**
@@ -86,9 +97,6 @@ We treat the `features/` directory as the **Current Desired State Configuration*
 *   **The Audit:** I will read the actual implementation of key features and ensure the Feature File's scenarios match reality.
 *   **Drift Correction:** If implementation differs from spec (but is correct/desired), I must update the Feature File.
 *   **Verification-Only Cycle:** Updating a feature file resets it to `[TODO]` in `cdd.sh`. The Builder's response to this specific `[TODO]` is to **Verify (Run Tests)**. If tests pass without code changes, the Builder creates the `[Complete]` commit immediately. This re-validates the spec against the code.
-
-### Feature Documentation
-*   **Friendly Labels:** All feature files MUST include a header line `> Label: "Friendly Name"` to support automated DAG visualization.
 
 ---
 
