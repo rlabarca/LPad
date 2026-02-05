@@ -41,6 +41,7 @@ I must validate this process is being followed and refine the instructions if th
     *   **Cleaning build artifacts:** Instructing the user to run `pio run -t clean` to remove compiled object files and firmware for all environments.
     *   **Pruning temporary files:** Instructing the user to run `pio system prune` to remove all temporary PlatformIO files, including unused libraries and cached data, for a more thorough cleanup.
     I should be able to explain the difference and recommend the appropriate command based on the user's needs.
+14. **Maintain Dependency Visualization:** Whenever I create, modify, or delete a feature file (which changes the dependency graph), I MUST run `./scripts/generate_graph.sh` and commit the updated `feature_graph.mmd` file to git. This ensures the visual documentation in the README (which should reference this file) is always up to date with the actual feature set.
 
 ## Knowledge Management
 We maintain a strict separation of concerns in our documentation to ensure consistency and avoid duplication.
