@@ -2,6 +2,9 @@
 
 # Feature: RelativeDisplay Class for Targetable Drawing
 
+> Label: "Relative Coordinates"
+> Category: "Graphics Engine"
+
 ## Introduction
 
 This feature introduces a `RelativeDisplay` C++ class that acts as an abstraction layer over an `Arduino_GFX` drawing surface. This object-oriented approach allows drawing routines to use relative coordinates (percentages) on any target, be it the main hardware display or an off-screen canvas in memory. This is critical for advanced graphics techniques like layered rendering and ensures UI elements are resolution-independent.

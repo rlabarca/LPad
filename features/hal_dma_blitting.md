@@ -1,5 +1,8 @@
 # Feature: Hardware-Accelerated DMA Blitting
 
+> Label: "DMA Blitting"
+> Category: "Hardware Layer"
+
 > **Prerequisite:** `features/hal_contracts.md`
 
 ## 1. Introduction

@@ -1,5 +1,8 @@
 # Feature: UI Time Series Graph
 
+> Label: "Time Series Graph"
+> Category: "UI Framework"
+
 > **Prerequisite:** `features/display_relative_drawing.md`
 
 This feature describes a reusable UI component for rendering a time-series line graph. It uses the `RelativeDisplay` abstraction to allow for resolution-independent drawing and layout. The graph's appearance is defined by a theme configuration.

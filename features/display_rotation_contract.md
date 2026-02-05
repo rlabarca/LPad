@@ -2,6 +2,9 @@
 
 # Feature: Display Rotation Contract
 
+> Label: "Rotation Contract"
+> Category: "Hardware Layer"
+
 This feature adds screen rotation capabilities to the core display HAL contract. It ensures that all display drivers can be instructed to rotate their output and that higher-level modules can query the resulting dimensions.
 
 ## Scenario: Add Rotation Method to IDisplay Interface

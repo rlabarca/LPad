@@ -1,5 +1,8 @@
 # Feature: Yahoo Chart Data Parser
 
+> Label: "Yahoo Chart Parser"
+> Category: "Data Layer"
+
 > **Prerequisite:** None
 
 This feature defines a data processing module responsible for parsing the JSON data structure returned by the Yahoo Chart API. Its primary goal is to extract time-series data into a simple, usable format for other application components.

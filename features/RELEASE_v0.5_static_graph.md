@@ -1,6 +1,8 @@
 # Release v0.5: Static Graph & Animation Engine
 
-> Label: "Release v0.5: Static Graph & Animation Engine"
+> Label: "Release v0.5"
+> Category: "Releases"
+
 > Prerequisite: features/hal_contracts.md
 > Prerequisite: features/hal_timer_esp32.md
 > Prerequisite: features/hal_dma_blitting.md

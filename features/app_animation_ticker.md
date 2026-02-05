@@ -2,6 +2,9 @@
 
 # Feature: Application Animation Ticker
 
+> Label: "Animation Ticker"
+> Category: "Application Layer"
+
 ## Introduction
 
 This feature provides a high-level animation timing service to ensure smooth, consistent animation frame rates across all hardware platforms. It uses the `Timer HAL` contract to create a reliable 30 frames-per-second (fps) "tick" that application logic can synchronize with. This decouples animation logic from CPU speed and ensures animations have the same duration and feel on all devices.

@@ -2,6 +2,9 @@
 
 # Feature: Configure Device-Specific Display Rotation
 
+> Label: "Target Rotation"
+> Category: "Hardware Layer"
+
 This feature provides a method for configuring screen rotation for a specific hardware target at compile time using build flags.
 
 ## Scenario: Rotate T-Display S3 Plus to Landscape

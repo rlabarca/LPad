@@ -1,5 +1,8 @@
 # Feature: Bond Tracker Application
 
+> Label: "Bond Tracker App"
+> Category: "Application Layer"
+
 > **Prerequisite:**
 > - `features/app_animation_ticker.md`
 > - `features/data_yahoo_chart_parser.md`

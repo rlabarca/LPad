@@ -2,6 +2,9 @@
 
 # Feature: HAL Timer Implementation for ESP32
 
+> Label: "ESP32 Timer"
+> Category: "Hardware Layer"
+
 ## Introduction
 
 This feature provides a concrete implementation of the Timer HAL contract for ESP32-based hardware targets. It uses the ESP-IDF's high-resolution timer (`esp_timer`) to fulfill the contract's requirements.

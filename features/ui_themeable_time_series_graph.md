@@ -1,5 +1,8 @@
 # Feature: High-Performance Themeable Time Series Graph
 
+> Label: "Themeable Graph"
+> Category: "UI Framework"
+
 > **Prerequisites:** 
 > - `features/ui_time_series_graph.md`
 > - `features/display_relative_drawing.md` (Object-Oriented version)

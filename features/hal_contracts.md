@@ -2,6 +2,9 @@
 
 # Feature: Hardware Abstraction Layer (HAL) - Display Contracts
 
+> Label: "HAL Contracts"
+> Category: "Hardware Layer"
+
 ## Introduction
 
 This document defines the abstract interface for display operations within the Hardware Abstraction Layer (HAL). Any concrete implementation of a display driver (e.g., for a specific LCD panel or GPU) must adhere to these contract definitions. Claude will use these definitions to ensure consistent interaction with display hardware across different targets.
