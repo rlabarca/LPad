@@ -16,11 +16,11 @@
 
 #include <Arduino.h>
 #include <Arduino_GFX_Library.h>
-#include "../hal/display.h"
-#include "../src/relative_display.h"
-#include "../src/ui_time_series_graph.h"
-#include "../src/yahoo_chart_parser.h"
-#include "../src/animation_ticker.h"
+#include "display.h"
+#include "relative_display.h"
+#include "ui_time_series_graph.h"
+#include "yahoo_chart_parser.h"
+#include "animation_ticker.h"
 
 // Custom RGB565 colors for the demo
 #define RGB565_DARK_PURPLE 0x4810  // Deep purple
