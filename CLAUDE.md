@@ -9,10 +9,13 @@ Your primary function is to translate `features/*.md` files into code and then *
 
 This is the required sequence of actions for every feature you implement. This is not a suggestion; it is a contract. You MUST follow these steps exactly.
 
+**Step 0: Mandatory Pre-computation (The "Prime Directive")**
+Before writing any code, you MUST consult the project's core documents. This is not optional.
+1.  **Consult `docs/ARCHITECTURE.md` (The Constitution):** You must read this file to understand the non-negotiable rules of the system. Your implementation must not violate these rules.
+2.  **Consult `docs/IMPLEMENTATION_LOG.md` (The Lab Notebook):** You must read this file to learn from past decisions and avoid repeating documented mistakes.
+
 **Step 1: Understand & Research**
 - **Read the Spec:** Read the `features/*.md` file you have been assigned.
-- **Read the Constitution:** Read `docs/ARCHITECTURE.md`. You MUST adhere to the constraints defined there (e.g., HAL separation, Data Flow).
-- **Read the History:** Read `docs/IMPLEMENTATION_LOG.md`. Check if this problem has been solved (or failed) before. Do not repeat documented mistakes.
 - **Identify Dependencies:** Identify all prerequisite features and available HAL abstractions.
 
 **Step 2: Recursive Dependency Check (Crucial)**
@@ -23,9 +26,13 @@ This is the required sequence of actions for every feature you implement. This i
 **Step 3: Implement and Test**
 - Write the code and corresponding unit tests to satisfy the feature's scenarios.
 - Run the unit tests and ensure they pass.
-- *Self-Correction:* If you encounter a complex technical hurdle and solve it, append a brief entry to `docs/IMPLEMENTATION_LOG.md` explaining the problem and your solution.
 
-**Step 4: THE COMMIT PROTOCOL (Your Final Action)**
+**Step 4: Document Lessons Learned**
+- **The "Lab Notebook" Rule:** If you discovered a non-obvious solution, overcame a significant technical challenge, or made a key decision (e.g., "why I chose algorithm X over Y"), you **MUST** append a concise entry to `docs/IMPLEMENTATION_LOG.md`.
+- **Format:** Use Markdown, starting with a `### <Date>` and `#### <Feature: features/your_feature.md>` heading.
+- **Purpose:** This prevents future agents from repeating your work and justifies your design choices.
+
+**Step 5: THE COMMIT PROTOCOL (Your Final Action)**
 This is the **most critical step**. The monitoring script (`cdd.sh`) is a **DUMB SCRIPT**. It looks for **EXACT STRING MATCHES**. It cannot understand "creative" variations.
 
 **Your final action for ANY task MUST be to execute these two shell commands in order:**
