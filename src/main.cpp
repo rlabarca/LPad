@@ -1,18 +1,17 @@
 /**
  * @file main.cpp
- * @brief 10-Year Treasury Bond Tracker Application
+ * @brief Base UI Demo Application
  *
- * This application displays real-time 10-year treasury bond yield data
- * by orchestrating the YahooChartParser and TimeSeriesGraph components.
- *
- * Features:
- * - Parses Yahoo Chart API JSON data for ^TNX (10-year treasury)
- * - Renders time-series graph with vaporwave aesthetic
- * - Resolution-independent display via RelativeDisplay abstraction
+ * This application demonstrates the full capabilities of the LPad UI system:
+ * - HAL abstraction for hardware independence
+ * - Resolution-independent display via RelativeDisplay
+ * - Layered rendering with off-screen canvases
  * - Smooth 30fps animation via AnimationTicker
- * - Canvas-based off-screen rendering for flicker-free updates
+ * - Gradient backgrounds
+ * - Time series graphs
+ * - Animated live indicators
  *
- * See features/app_bond_tracker.md for specification.
+ * See features/app_demo_screen.md for specification.
  */
 
 #include <Arduino.h>
@@ -20,68 +19,58 @@
 #include "../hal/display.h"
 #include "relative_display.h"
 #include "ui_time_series_graph.h"
+#include "ui_live_indicator.h"
 #include "yahoo_chart_parser.h"
 #include "animation_ticker.h"
 
-// Additional RGB565 color definitions (Arduino_GFX already defines most colors)
-#define RGB565_DARK_PURPLE 0x4810  // Custom color for our theme
+// Custom RGB565 colors for the demo
+#define RGB565_DARK_PURPLE 0x4810  // Deep purple
+#define RGB565_DARK_BLUE   0x001F  // Pure deep blue
 
-// Embedded test data for ESP32 (since filesystem is not configured)
-// This is the same data from test_data/yahoo_chart_tnx_5m_1d.json
-const char* BOND_DATA_JSON = R"({"chart":{"result":[{"meta":{"currency":"USD","symbol":"^TNX","exchangeName":"CGI","fullExchangeName":"Cboe Indices","instrumentType":"INDEX","firstTradeDate":-252326400,"regularMarketTime":1770062392,"hasPrePostMarketData":false,"gmtoffset":-21600,"timezone":"CST","exchangeTimezoneName":"America/Chicago","regularMarketPrice":4.275,"fiftyTwoWeekHigh":4.997,"fiftyTwoWeekLow":3.345,"regularMarketDayHigh":4.261,"regularMarketDayLow":4.237,"regularMarketVolume":0,"longName":"CBOE Interest Rate 10 Year T No","shortName":"CBOE Interest Rate 10 Year T No","chartPreviousClose":4.227,"previousClose":4.227,"scale":3,"priceHint":4,"currentTradingPeriod":{"pre":{"timezone":"CST","end":1770038400,"start":1770038400,"gmtoffset":-21600},"regular":{"timezone":"CST","end":1770062400,"start":1770038400,"gmtoffset":-21600},"post":{"timezone":"CST","end":1770062400,"start":1770062400,"gmtoffset":-21600}},"tradingPeriods":[[{"timezone":"CST","end":1770062400,"start":1770038400,"gmtoffset":-21600}]],"dataGranularity":"5m","range":"1d","validRanges":["1d","5d","1mo","3mo","6mo","1y","2y","5y","10y","ytd","max"]},"timestamp":[1770057900,1770058200,1770058500,1770058800,1770059100,1770059400,1770059700,1770060000,1770060300,1770060600,1770060900,1770061200,1770061500,1770061800,1770062100],"indicators":{"quote":[{"open":[4.270999908447266,4.270999908447266,4.2729997634887695,4.275000095367432,4.275000095367432,4.2769999504089355,4.275000095367432,4.2769999504089355,4.279000282287598,4.279000282287598,4.2769999504089355,4.279000282287598,4.275000095367432,4.2729997634887695,4.2729997634887695],"close":[4.270999908447266,4.2729997634887695,4.275000095367432,4.275000095367432,4.2769999504089355,4.275000095367432,4.2769999504089355,4.279000282287598,4.279000282287598,4.2769999504089355,4.2769999504089355,4.275000095367432,4.2729997634887695,4.2729997634887695,4.275000095367432],"high":[4.2729997634887695,4.2729997634887695,4.275000095367432,4.2769999504089355,4.2769999504089355,4.2769999504089355,4.2769999504089355,4.279000282287598,4.279000282287598,4.279000282287598,4.279000282287598,4.279000282287598,4.275000095367432,4.2729997634887695,4.275000095367432],"volume":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"low":[4.270999908447266,4.270999908447266,4.2729997634887695,4.275000095367432,4.275000095367432,4.275000095367432,4.275000095367432,4.2769999504089355,4.2769999504089355,4.2769999504089355,4.2769999504089355,4.275000095367432,4.2729997634887695,4.2729997634887695,4.269000053405762]}]}}],"error":null}})";
+// Embedded test data from test_data/yahoo_chart_tnx_5m_1d.json
+const char* TEST_DATA_JSON = R"({"chart":{"result":[{"meta":{"currency":"USD","symbol":"^TNX","exchangeName":"CGI","fullExchangeName":"Cboe Indices","instrumentType":"INDEX","firstTradeDate":-252326400,"regularMarketTime":1770062392,"hasPrePostMarketData":false,"gmtoffset":-21600,"timezone":"CST","exchangeTimezoneName":"America/Chicago","regularMarketPrice":4.275,"fiftyTwoWeekHigh":4.997,"fiftyTwoWeekLow":3.345,"regularMarketDayHigh":4.261,"regularMarketDayLow":4.237,"regularMarketVolume":0,"longName":"CBOE Interest Rate 10 Year T No","shortName":"CBOE Interest Rate 10 Year T No","chartPreviousClose":4.227,"previousClose":4.227,"scale":3,"priceHint":4,"currentTradingPeriod":{"pre":{"timezone":"CST","end":1770038400,"start":1770038400,"gmtoffset":-21600},"regular":{"timezone":"CST","end":1770062400,"start":1770038400,"gmtoffset":-21600},"post":{"timezone":"CST","end":1770062400,"start":1770062400,"gmtoffset":-21600}},"tradingPeriods":[[{"timezone":"CST","end":1770062400,"start":1770038400,"gmtoffset":-21600}]],"dataGranularity":"5m","range":"1d","validRanges":["1d","5d","1mo","3mo","6mo","1y","2y","5y","10y","ytd","max"]},"timestamp":[1770057900,1770058200,1770058500,1770058800,1770059100,1770059400,1770059700,1770060000,1770060300,1770060600,1770060900,1770061200,1770061500,1770061800,1770062100],"indicators":{"quote":[{"open":[4.270999908447266,4.270999908447266,4.2729997634887695,4.275000095367432,4.275000095367432,4.2769999504089355,4.275000095367432,4.2769999504089355,4.279000282287598,4.279000282287598,4.2769999504089355,4.279000282287598,4.275000095367432,4.2729997634887695,4.2729997634887695],"close":[4.270999908447266,4.2729997634887695,4.275000095367432,4.275000095367432,4.2769999504089355,4.275000095367432,4.2769999504089355,4.279000282287598,4.279000282287598,4.2769999504089355,4.2769999504089355,4.275000095367432,4.2729997634887695,4.2729997634887695,4.275000095367432],"high":[4.2729997634887695,4.2729997634887695,4.275000095367432,4.2769999504089355,4.2769999504089355,4.2769999504089355,4.2769999504089355,4.279000282287598,4.279000282287598,4.279000282287598,4.279000282287598,4.279000282287598,4.275000095367432,4.2729997634887695,4.275000095367432],"volume":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"low":[4.270999908447266,4.270999908447266,4.2729997634887695,4.275000095367432,4.275000095367432,4.275000095367432,4.275000095367432,4.2769999504089355,4.2769999504089355,4.2769999504089355,4.2769999504089355,4.275000095367432,4.2729997634887695,4.2729997634887695,4.269000053405762]}]}}],"error":null}})";
 
-// Global variables for graph and animation
+// Global variables
 TimeSeriesGraph* g_graph = nullptr;
+LiveIndicator* g_indicator = nullptr;
 AnimationTicker* g_ticker = nullptr;
+RelativeDisplay* g_relDisplay = nullptr;
+Arduino_Canvas* g_main_canvas = nullptr;
 
-// Create vaporwave theme with ALL themeable features enabled
+// Create Vaporwave theme for the graph
 GraphTheme createVaporwaveTheme() {
-    GraphTheme theme = {};  // Zero-initialize all fields
+    GraphTheme theme = {};
 
-    // Basic colors
+    // Basic colors (no background gradient in graph itself)
     theme.backgroundColor = RGB565_DARK_PURPLE;
     theme.lineColor = RGB565_CYAN;
     theme.axisColor = RGB565_MAGENTA;
 
-    // Enable gradient background (3-color diagonal gradient at 45 degrees)
-    theme.useBackgroundGradient = true;
-    theme.backgroundGradient.angle_deg = 45.0f;  // 45-degree diagonal
-    theme.backgroundGradient.color_stops[0] = RGB565_DARK_PURPLE;  // Deep purple (0x4810)
-    theme.backgroundGradient.color_stops[1] = RGB565_MAGENTA;       // Bright magenta
-    theme.backgroundGradient.color_stops[2] = 0x001F;               // Pure deep blue (R=0, G=0, B=31)
-    theme.backgroundGradient.num_stops = 3;
-
-    // Enable gradient line (horizontal gradient)
+    // Graph line with horizontal gradient (Cyan to Pink)
     theme.useLineGradient = true;
-    theme.lineGradient.angle_deg = 0.0f;  // Horizontal
+    theme.lineGradient.angle_deg = 0.0f;
     theme.lineGradient.color_stops[0] = RGB565_CYAN;
     theme.lineGradient.color_stops[1] = RGB565_MAGENTA;
     theme.lineGradient.num_stops = 2;
 
-    // Set line and axis thickness for smooth rendering
-    theme.lineThickness = 2.0f;  // 2% thickness for smooth, visible lines
-    theme.axisThickness = 0.8f;  // 0.8% thickness for axes
+    // Line and axis styling
+    theme.lineThickness = 2.0f;
+    theme.axisThickness = 0.8f;
+    theme.tickColor = RGB565_WHITE;
+    theme.tickLength = 2.5f;
 
-    // Enable tick marks on Y-axis
-    theme.tickColor = RGB565_WHITE;  // Bright white for visibility
-    theme.tickLength = 2.5f;  // 2.5% tick length (short, subtle)
-
-    // Enable pulsing live indicator
-    theme.liveIndicatorGradient.center_x = 0.0f;
-    theme.liveIndicatorGradient.center_y = 0.0f;
-    theme.liveIndicatorGradient.radius = 4.0f;  // 4% radius (larger)
-    theme.liveIndicatorGradient.color_stops[0] = RGB565_MAGENTA;  // Magenta/pink center
-    theme.liveIndicatorGradient.color_stops[1] = RGB565_CYAN;     // Cyan edge
-    theme.liveIndicatorPulseSpeed = 0.5f;  // 0.5 pulses per second (slower for visual debugging)
+    // Disable integrated background and indicator (we'll use standalone components)
+    theme.useBackgroundGradient = false;
+    theme.liveIndicatorGradient.color_stops[0] = 0;  // Not used
+    theme.liveIndicatorGradient.color_stops[1] = 0;
+    theme.liveIndicatorPulseSpeed = 0.0f;
 
     return theme;
 }
 
 void displayError(const char* message) {
-    // Clear to red background to indicate error
     hal_display_clear(RGB565_RED);
     hal_display_flush();
-
     Serial.println("=== ERROR ===");
     Serial.println(message);
     Serial.println("=============");
@@ -91,19 +80,17 @@ void setup() {
     Serial.begin(115200);
     delay(1000);
 
-    Serial.println("=== 10-Year Treasury Bond Tracker ===");
+    Serial.println("=== LPad Base UI Demo Application ===");
     Serial.println();
 
-    // Initialize display HAL
-    Serial.println("[1/6] Initializing display HAL...");
+    // [1/7] Initialize display HAL
+    Serial.println("[1/7] Initializing display HAL...");
     if (!hal_display_init()) {
-        Serial.println("  [FAIL] Display initialization failed");
         displayError("Display initialization failed");
         while (1) delay(1000);
     }
     Serial.println("  [PASS] Display initialized");
 
-    // Apply rotation if configured via build flag
 #ifdef APP_DISPLAY_ROTATION
     Serial.printf("  [INFO] Applying rotation: %d degrees\n", APP_DISPLAY_ROTATION);
     hal_display_set_rotation(APP_DISPLAY_ROTATION);
@@ -115,140 +102,130 @@ void setup() {
     Serial.println();
     delay(500);
 
-    // Initialize relative display abstraction
-    Serial.println("[2/6] Initializing relative display abstraction...");
+    // [2/7] Initialize RelativeDisplay
+    Serial.println("[2/7] Initializing RelativeDisplay abstraction...");
     display_relative_init();
-    Serial.println("  [PASS] Relative display initialized");
+    Arduino_GFX* display = static_cast<Arduino_GFX*>(hal_display_get_gfx());
+    if (display == nullptr) {
+        displayError("Display object unavailable");
+        while (1) delay(1000);
+    }
+    static RelativeDisplay relDisplay(display, width, height);
+    g_relDisplay = &relDisplay;
+    Serial.println("  [PASS] RelativeDisplay initialized");
     Serial.println();
     delay(500);
 
-    // Create 30fps AnimationTicker
-    Serial.println("[2.5/6] Creating 30fps AnimationTicker...");
+    // [3/7] Create AnimationTicker
+    Serial.println("[3/7] Creating 30fps AnimationTicker...");
     static AnimationTicker ticker(30);
     g_ticker = &ticker;
     Serial.println("  [PASS] AnimationTicker created (30fps)");
     Serial.println();
     delay(500);
 
-    // Note: Canvas creation is now handled by TimeSeriesGraph internally
-    Serial.println("[3/6] Preparing for layered rendering...");
-    Serial.printf("  Display size: %d x %d pixels\n", width, height);
-    Serial.println("  [INFO] TimeSeriesGraph will create layered canvases in PSRAM");
+    // [4/7] Create main canvas
+    Serial.println("[4/7] Creating off-screen main canvas...");
+    Serial.printf("  Canvas size: %d x %d pixels\n", width, height);
+    static Arduino_Canvas canvas(width, height, display, 0, 0, true);  // Use PSRAM
+    g_main_canvas = &canvas;
+    if (!canvas.begin()) {
+        Serial.println("  [WARN] PSRAM allocation may have failed");
+    }
+    Serial.println("  [PASS] Main canvas created");
     Serial.println();
     delay(500);
 
-    // Parse bond data from embedded JSON (Yahoo Chart API format)
-    Serial.println("[4/6] Parsing 10-year treasury bond data...");
-    Serial.println("  Source: Embedded JSON data (^TNX 5m 1d)");
-
-    YahooChartParser parser("");  // Empty path since we're using parseFromString
-
-    if (!parser.parseFromString(BOND_DATA_JSON)) {
-        Serial.println("  [FAIL] Failed to parse bond data");
-        displayError("Failed to parse bond data");
+    // [5/7] Parse test data
+    Serial.println("[5/7] Parsing test data from embedded JSON...");
+    YahooChartParser parser("");
+    if (!parser.parseFromString(TEST_DATA_JSON)) {
+        displayError("Failed to parse test data");
         while (1) delay(1000);
     }
 
     const std::vector<long>& timestamps = parser.getTimestamps();
     const std::vector<double>& closePrices = parser.getClosePrices();
-
-    Serial.printf("  [PASS] Data parsed successfully\n");
-    Serial.printf("  [INFO] Data points: %d\n", closePrices.size());
-    if (timestamps.size() > 0) {
-        Serial.printf("  [INFO] First timestamp: %ld\n", timestamps[0]);
-        Serial.printf("  [INFO] First yield: %.3f%%\n", closePrices[0]);
-    }
-    if (closePrices.size() > 1) {
-        Serial.printf("  [INFO] Last yield: %.3f%%\n", closePrices[closePrices.size() - 1]);
-    }
-
+    Serial.printf("  [PASS] Parsed %d data points\n", closePrices.size());
     Serial.println();
     delay(500);
 
-    // Create TimeSeriesGraph with vaporwave theme and layered rendering
-    Serial.println("[5/6] Creating time-series graph with layered rendering...");
-    Serial.println("  Theme: Vaporwave (Dark Purple, Cyan, Magenta)");
+    // [6/7] Create UI components
+    Serial.println("[6/7] Creating UI components...");
 
+    // TimeSeriesGraph
+    Serial.println("  Creating TimeSeriesGraph with Vaporwave theme...");
     GraphTheme theme = createVaporwaveTheme();
-
-    // Get Arduino_GFX display pointer from HAL
-    Arduino_GFX* display = static_cast<Arduino_GFX*>(hal_display_get_gfx());
-    if (display == nullptr) {
-        Serial.println("  [FAIL] Could not get display object from HAL");
-        displayError("Display object unavailable");
-        while (1) delay(1000);
-    }
-
-    // Create graph with layered rendering (static to persist for animation loop)
-    static TimeSeriesGraph graph(theme, display, width, height);
+    static TimeSeriesGraph graph(theme, g_main_canvas, width, height);
     g_graph = &graph;
 
-    // Initialize layered rendering (allocates PSRAM canvases)
-    Serial.println("  Initializing layered rendering system...");
-    if (!graph.begin()) {
-        Serial.println("  [FAIL] Failed to initialize layered rendering");
-        Serial.println("  [INFO] PSRAM may not be available or insufficient");
-        displayError("Layered rendering init failed");
-        while (1) delay(1000);
-    }
-
-    Serial.println("  [PASS] Graph created with layered rendering");
-    Serial.println("  [INFO] Background and data canvases allocated in PSRAM");
-    Serial.println();
-    delay(500);
-
-    // Prepare data for graph
     GraphData graphData;
     graphData.x_values = timestamps;
     graphData.y_values = closePrices;
-
     graph.setData(graphData);
-
-    // Enable Y-axis tick marks every 0.002
     graph.setYTicks(0.002f);
 
-    // Draw the bond tracker graph using layered rendering
-    Serial.println("[6/6] Rendering graph with layered architecture...");
-    Serial.println("  Features enabled:");
-    Serial.println("    - Gradient background (vertical, 3-color)");
-    Serial.println("    - Solid color data line");
-    Serial.println("    - Y-axis tick marks (every 0.002)");
-    Serial.println("    - Animated pulsing live indicator (30fps)");
-    Serial.println("  Architecture: Background canvas + Data canvas + Main display");
+    Serial.println("  [PASS] TimeSeriesGraph created");
 
-    // Draw background once (static elements) to background canvas
-    Serial.println("  Drawing background to background canvas...");
-    unsigned long bgStart = millis();
+    // LiveIndicator
+    Serial.println("  Creating LiveIndicator component...");
+    IndicatorTheme indicatorTheme;
+    indicatorTheme.innerColor = RGB565_MAGENTA;  // Pink/magenta center
+    indicatorTheme.outerColor = RGB565_CYAN;     // Cyan edge
+    indicatorTheme.minRadius = 1.0f;
+    indicatorTheme.maxRadius = 6.0f;
+    indicatorTheme.pulseDuration = 2000.0f;  // 2 second pulse cycle
+
+    static LiveIndicator indicator(indicatorTheme, g_relDisplay);
+    g_indicator = &indicator;
+    Serial.println("  [PASS] LiveIndicator created");
+    Serial.println();
+    delay(500);
+
+    // [7/7] Initial render
+    Serial.println("[7/7] Performing initial render...");
+
+    // Select main canvas as drawing target
+    hal_display_select_canvas(g_main_canvas);
+
+    // Draw 45-degree gradient background (Purple -> Pink -> Dark Blue)
+    Serial.println("  Drawing gradient background...");
+    g_relDisplay->drawGradientBackground(
+        RGB565_DARK_PURPLE,  // Top-left: Deep purple
+        RGB565_MAGENTA,      // Middle: Bright magenta/pink
+        RGB565_DARK_BLUE,    // Bottom-right: Pure deep blue
+        45.0f                // 45-degree diagonal
+    );
+
+    // Draw graph (axes, ticks, data line)
+    Serial.println("  Drawing time series graph...");
+    if (!graph.begin()) {
+        displayError("Graph initialization failed");
+        while (1) delay(1000);
+    }
     graph.drawBackground();
-    unsigned long bgEnd = millis();
-    Serial.printf("  [TIME] Background layer took %lu ms\n", bgEnd - bgStart);
-
-    // Draw initial data to data canvas
-    Serial.println("  Drawing data to data canvas...");
-    unsigned long dataStart = millis();
     graph.drawData();
-    unsigned long dataEnd = millis();
-    Serial.printf("  [TIME] Data layer took %lu ms\n", dataEnd - dataStart);
 
-    // Perform initial render (blit canvases to main display)
-    Serial.println("  Compositing layers to main display...");
-    unsigned long renderStart = millis();
-    graph.render();
-    unsigned long renderEnd = millis();
-    Serial.printf("  [TIME] Composition took %lu ms\n", renderEnd - renderStart);
+    // Note: LiveIndicator will be drawn in the animation loop
 
-    Serial.println("  [PASS] Graph rendered with layered architecture");
+    // Blit main canvas to display
+    Serial.println("  Blitting main canvas to display...");
+    hal_display_select_canvas(nullptr);  // Select main display
+    hal_display_fast_blit(0, 0, width, height,
+        static_cast<uint16_t*>(g_main_canvas->getFramebuffer()));
+    hal_display_flush();
+
+    Serial.println("  [PASS] Initial render complete");
     Serial.println();
 
-    // Display summary
-    Serial.println("=== 10-Year Treasury Bond Tracker Ready ===");
+    Serial.println("=== Demo Application Ready ===");
     Serial.println("Visual Verification:");
-    Serial.println("  [ ] Gradient background (purple to magenta to dark blue)");
-    Serial.println("  [ ] Magenta axes with tick marks on Y-axis");
-    Serial.println("  [ ] Gradient line (cyan to magenta)");
-    Serial.println("  [ ] Pulsing live indicator at last data point (30fps animation)");
+    Serial.println("  [ ] 45-degree gradient background (purple->pink->blue)");
+    Serial.println("  [ ] Time series graph with gradient line (cyan->pink)");
+    Serial.println("  [ ] Magenta axes with white tick marks");
+    Serial.println("  [ ] Pulsing live indicator at last data point (30fps)");
     Serial.println();
-    Serial.println("Starting animation loop (30fps via AnimationTicker)...");
+    Serial.println("Starting 30fps animation loop...");
     Serial.println();
 }
 
@@ -256,12 +233,66 @@ void loop() {
     // Wait for next frame and get deltaTime
     float deltaTime = g_ticker->waitForNextFrame();
 
-    if (g_graph != nullptr) {
-        // Update: Erase old indicator, draw new animated indicator to main display
-        // The graph was already rendered once in setup(), we only need to animate the indicator
-        g_graph->update(deltaTime);
-
-        // Flush to ensure display updates
-        hal_display_flush();
+    if (g_graph == nullptr || g_indicator == nullptr || g_relDisplay == nullptr) {
+        return;
     }
+
+    // Update indicator animation
+    g_indicator->update(deltaTime);
+
+    // TODO: Get last data point position from graph
+    // For now, manually calculate the last point position
+    // This should match the graph's mapXToScreen and mapYToScreen logic
+
+    // Draw updated indicator directly to display
+    // (The background+graph composite is already on the display from setup)
+
+    // For simplicity in this demo, we'll redraw the entire frame
+    // In a production app, you'd use dirty rect optimization
+
+    // Select main canvas
+    hal_display_select_canvas(g_main_canvas);
+
+    // Redraw background
+    g_relDisplay->drawGradientBackground(
+        RGB565_DARK_PURPLE,
+        RGB565_MAGENTA,
+        RGB565_DARK_BLUE,
+        45.0f
+    );
+
+    // Redraw graph
+    g_graph->drawBackground();
+    g_graph->drawData();
+
+    // Draw indicator at last data point
+    // Calculate position (this mirrors TimeSeriesGraph's calculation)
+    const GraphData& data = g_graph->getData();
+    if (!data.y_values.empty()) {
+        size_t last_idx = data.y_values.size() - 1;
+
+        // Simple position calculation (matches graph's logic)
+        float x_percent = 10.0f + (80.0f * static_cast<float>(last_idx) /
+                                   static_cast<float>(data.y_values.size() - 1));
+
+        // Y position needs to map data value to screen space
+        double y_min = *std::min_element(data.y_values.begin(), data.y_values.end());
+        double y_max = *std::max_element(data.y_values.begin(), data.y_values.end());
+        if (y_max - y_min < 0.001) y_max = y_min + 1.0;
+
+        double y_value = data.y_values[last_idx];
+        float y_normalized = static_cast<float>(y_value - y_min) /
+                            static_cast<float>(y_max - y_min);
+        float y_percent = 10.0f + (80.0f * (1.0f - y_normalized));  // Inverted for screen coords
+
+        g_indicator->draw(x_percent, y_percent);
+    }
+
+    // Blit to display
+    hal_display_select_canvas(nullptr);
+    int32_t width = hal_display_get_width_pixels();
+    int32_t height = hal_display_get_height_pixels();
+    hal_display_fast_blit(0, 0, width, height,
+        static_cast<uint16_t*>(g_main_canvas->getFramebuffer()));
+    hal_display_flush();
 }
