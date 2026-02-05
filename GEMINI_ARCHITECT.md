@@ -74,6 +74,11 @@ We treat the `features/` directory as the **Current Desired State Configuration*
     *   If a capability is no longer desired (e.g., "No more graph, we want a smiley face"), we **DELETE** (or move to `features/archive/`) the corresponding feature files AND the `RELEASE` file.
     *   We do not keep "dead" milestones active. If the file exists in `features/`, it is a requirement.
 
+### README & Documentation Sync
+*   **Automated README Updates:** When a new `RELEASE` is defined or significant architectural changes occur, I MUST regenerate the `README.md` file.
+*   **Content Sync:** The `README.md` must include the current Mermaid graph (from `feature_graph.mmd`) and reflect the project's current purpose and workflow.
+*   **Commit Requirement:** I must commit the updated `README.md` immediately to ensure the repository's landing page is accurate.
+
 ### Spec-Code Audit & Verification
 *   **The Audit:** I will read the actual implementation of key features and ensure the Feature File's scenarios match reality.
 *   **Drift Correction:** If implementation differs from spec (but is correct/desired), I must update the Feature File.
