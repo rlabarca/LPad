@@ -145,6 +145,40 @@ Use direct includes: `#include "file.h"` instead of `#include "../src/file.h"`. 
 
 ---
 
+## [2026-02-06] Animated LogoScreen with Dirty-Rect Optimization
+
+### Problem
+The initial LogoScreen implementation drew the logo directly to the display using VectorRenderer each frame, causing visible refresh artifacts during the smooth EaseInOut animation (logo moving from center to top-right corner while shrinking).
+
+### Root Cause
+Drawing vector graphics directly to the display without dirty-rect optimization causes the same issues as the standalone LiveIndicator:
+- Each frame clears background and redraws logo
+- ESP32-S3 over SPI cannot complete full redraw fast enough
+- Display refresh happens during draw, causing tearing/ghosting
+
+### Solution: Dirty-Rect with Composite Buffer
+Applied the same technique used in TimeSeriesGraph's live indicator:
+
+1. **Background Composite Buffer (PSRAM):** Allocated full-screen buffer storing clean background
+2. **Dirty Rect Calculation:** Calculate union of old and new logo bounding boxes
+3. **Three-Step Atomic Update:**
+   - Copy clean background from composite to temp buffer (erases old logo)
+   - Rasterize new logo into temp buffer using barycentric coordinates
+   - Single atomic blit to display via `hal_display_fast_blit`
+
+### Implementation Details
+- Logo triangles rasterized in software (barycentric test) instead of using Arduino_GFX::fillTriangle
+- Allows rendering to temp buffer before display blit
+- Tracks `m_lastLogoX/Y/Width/Height` for dirty-rect calculation
+- Aspect ratio preserved: `widthPercent = heightPercent * (original_width / original_height)`
+
+### Key Lessons
+1. **Same solution for same problem**: Animated vector graphics require the same dirty-rect optimization as animated raster graphics
+2. **Software rasterization trade-off**: Slight CPU cost (barycentric test per pixel) for smooth animation via atomic blit
+3. **PSRAM allocation strategy**: Composite buffer allocation uses `ps_malloc` on BOARD_HAS_PSRAM for optimal performance
+
+---
+
 ## [2026-02-05] Mode-Switching Demo for Comprehensive Visual Testing
 
 ### Problem

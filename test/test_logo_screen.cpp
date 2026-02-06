@@ -22,6 +22,7 @@ void tearDown(void) {
 // Test: Initial state is WAIT
 void test_logo_screen_initial_state(void) {
     LogoScreen logo(2.0f, 1.5f);
+    logo.begin(g_test_display, 0x0000);
     TEST_ASSERT_EQUAL(LogoScreen::State::WAIT, logo.getState());
     TEST_ASSERT_FALSE(logo.isDone());
 }
@@ -29,6 +30,7 @@ void test_logo_screen_initial_state(void) {
 // Test: Transition from WAIT to ANIMATE
 void test_logo_screen_wait_to_animate(void) {
     LogoScreen logo(2.0f, 1.5f);
+    logo.begin(g_test_display, 0x0000);
 
     // Update with small deltaTime - should stay in WAIT
     logo.update(0.5f);
@@ -42,6 +44,7 @@ void test_logo_screen_wait_to_animate(void) {
 // Test: Transition from ANIMATE to DONE
 void test_logo_screen_animate_to_done(void) {
     LogoScreen logo(0.1f, 1.0f);  // Short wait for testing
+    logo.begin(g_test_display, 0x0000);
 
     // Skip wait phase
     logo.update(0.2f);
@@ -57,26 +60,17 @@ void test_logo_screen_animate_to_done(void) {
     TEST_ASSERT_TRUE(logo.isDone());
 }
 
-// Test: Drawing doesn't crash
-void test_logo_screen_draw(void) {
+// Test: begin() succeeds
+void test_logo_screen_begin(void) {
     LogoScreen logo(2.0f, 1.5f);
-
-    // Draw in each state
-    logo.draw(*g_test_display, 0x0000);  // WAIT state
-    TEST_PASS();
-
-    logo.update(2.5f);  // ANIMATE state
-    logo.draw(*g_test_display, 0x0000);
-    TEST_PASS();
-
-    logo.update(2.0f);  // DONE state
-    logo.draw(*g_test_display, 0x0000);
-    TEST_PASS();
+    bool result = logo.begin(g_test_display, 0x0000);
+    TEST_ASSERT_TRUE(result);
 }
 
 // Test: State doesn't change after DONE
 void test_logo_screen_done_is_final(void) {
     LogoScreen logo(0.1f, 0.1f);
+    logo.begin(g_test_display, 0x0000);
 
     // Fast-forward to DONE
     logo.update(1.0f);
@@ -92,7 +86,7 @@ void process(void) {
     RUN_TEST(test_logo_screen_initial_state);
     RUN_TEST(test_logo_screen_wait_to_animate);
     RUN_TEST(test_logo_screen_animate_to_done);
-    RUN_TEST(test_logo_screen_draw);
+    RUN_TEST(test_logo_screen_begin);
     RUN_TEST(test_logo_screen_done_is_final);
     UNITY_END();
 }

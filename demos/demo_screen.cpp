@@ -351,14 +351,14 @@ void setup() {
     // Create LogoScreen with 2s wait, 1.5s animation
     static LogoScreen logoScreen(2.0f, 1.5f);
     g_logoScreen = &logoScreen;
-    g_logoScreen->init();
 
-    // Draw initial frame
-    Serial.println("  Drawing initial logo frame...");
-    g_logoScreen->draw(*g_relativeDisplay, theme_ptr->colors.background);
-    hal_display_flush();
+    // Initialize with display and background color
+    if (!g_logoScreen->begin(g_relativeDisplay, theme_ptr->colors.background)) {
+        displayError("LogoScreen initialization failed");
+        while (1) delay(1000);
+    }
 
-    Serial.println("  [PASS] LogoScreen initialized");
+    Serial.println("  [PASS] LogoScreen initialized with dirty-rect optimization");
     Serial.println();
 
     Serial.println("=== Release 0.5 Demo Application Ready ===");
@@ -396,11 +396,8 @@ void loop() {
     // Phase state machine
     switch (g_currentPhase) {
         case PHASE_LOGO_ANIMATION: {
-            // Update logo animation
-            const LPad::Theme* theme_ptr = LPad::ThemeManager::getInstance().getTheme();
+            // Update logo animation (handles rendering internally with dirty-rect)
             LogoScreen::State logoState = g_logoScreen->update(deltaTime);
-            g_logoScreen->draw(*g_relativeDisplay, theme_ptr->colors.background);
-            hal_display_flush();
 
             // Check if animation is done and hold timer expired
             if (logoState == LogoScreen::State::DONE) {
