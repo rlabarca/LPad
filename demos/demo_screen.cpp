@@ -50,7 +50,7 @@ enum DemoPhase {
     PHASE_LOGO_ANIMATION,  // Animated LPad logo (wait + animate + hold)
     PHASE_GRAPH_CYCLE      // Cycle through all 6 graph modes
 };
-DemoPhase g_currentPhase = PHASE_CONNECTIVITY;
+DemoPhase g_currentPhase = PHASE_LOGO_ANIMATION;
 bool g_pingResult = false;
 float g_logoHoldTimer = 0.0f;
 const float LOGO_HOLD_DURATION = 2.0f;  // Hold final logo position for 2 seconds
@@ -522,11 +522,11 @@ void loop() {
 
                 // Check if we've shown all 6 modes
                 if (g_modesShown >= 6) {
-                    // Return to connectivity screen
-                    Serial.println("\n=== All 6 modes shown, returning to Connectivity Screen ===\n");
-                    g_currentPhase = PHASE_CONNECTIVITY;
+                    // Return to logo screen (v0.5 does not include connectivity)
+                    Serial.println("\n=== All 6 modes shown, returning to Logo Screen ===\n");
+                    g_currentPhase = PHASE_LOGO_ANIMATION;
                     g_modesShown = 0;
-                    g_pingResult = false;  // Reset for next cycle
+                    g_logoHoldTimer = 0.0f;  // Reset for next cycle
                 } else {
                     // Advance to next mode
                     g_currentMode = (g_currentMode + 1) % 6;

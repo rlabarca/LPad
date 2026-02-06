@@ -51,11 +51,37 @@ The `cdd.sh` monitor depends on EXACT string matches in commit messages.
 Consult `hw-examples/` for vendor sequences. Port logic directly to the HAL implementation as specified in the feature file.
 
 ## PlatformIO Build Configuration (Critical)
-**ALWAYS ensure `platformio.ini` links `main.cpp` to the latest demo for ALL hardware target environments.**
 
-When creating new demo apps (e.g., `V055DemoApp`, `V06DemoApp`), update ALL hardware environment `build_src_filter` sections:
+### Demo Environment Naming Convention
+All milestone demos use the pattern: `demo_<version>_<board>`
 
-**Required pattern:**
+**Examples:**
+- `demo_v05_esp32s3` - v0.5 demo on ESP32-S3 AMOLED board
+- `demo_v05_tdisplay` - v0.5 demo on T-Display S3 Plus
+- `demo_v055_esp32s3` - v0.55 demo on ESP32-S3 AMOLED board
+- `demo_v055_tdisplay` - v0.55 demo on T-Display S3 Plus
+
+**To build a specific milestone demo:**
+```bash
+pio run -e demo_v05_esp32s3    # Build v0.5 for ESP32-S3 AMOLED
+pio run -e demo_v055_tdisplay  # Build v0.55 for T-Display S3 Plus
+```
+
+**Demo Version Differences:**
+- **v0.5**: Logo → Graph Modes → Loop (no network/wifi)
+- **v0.55**: WiFi Connectivity → Logo → Graph Modes → Loop (includes network smoke test)
+
+### Main Hardware Environments
+The base hardware environments (`esp32s3`, `tdisplay_s3_plus`) **ALWAYS** reference the LATEST demo in `main.cpp`.
+
+**ALWAYS ensure `main.cpp` links to the latest demo for ALL hardware target environments.**
+
+When creating new demo apps (e.g., `V055DemoApp`, `V06DemoApp`):
+1. Update `main.cpp` to use the new latest demo
+2. Update ALL base hardware environment `build_src_filter` sections (`esp32s3`, `tdisplay_s3_plus`)
+3. Create new `demo_<version>_<board>` environments for the new milestone
+
+**Required pattern for base hardware environments:**
 ```ini
 build_src_filter =
     +<*>
@@ -69,8 +95,8 @@ build_src_filter =
 ```
 
 **DO NOT:**
-- Use `-<main.cpp>` (this excludes the main entry point)
-- Use `+<../demos/demo_screen.cpp>` (old monolithic demo pattern)
+- Use `-<main.cpp>` in base hardware environments (this excludes the main entry point)
+- Use `+<../demos/demo_screen.cpp>` in base hardware environments (old monolithic demo pattern)
 - Leave old demo files included when migrating to new demo architecture
 
 **Check these environments:** `esp32s3`, `tdisplay_s3_plus`, and any other hardware targets.
