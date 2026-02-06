@@ -281,7 +281,7 @@ void TimeSeriesGraph::drawAxisTitles(RelativeDisplay* target) {
         float graph_center_x = m.left + (100.0f - m.left - m.right) / 2.0f;
         int32_t center_px = target->relativeToAbsoluteX(graph_center_x);
         int32_t title_x = center_px - static_cast<int32_t>(w) / 2;
-        int32_t title_y = height_ - 2;  // 2px from bottom edge
+        int32_t title_y = height_ - h - 2;  // text height + 2px margin from bottom
 
         if (title_x < 0) title_x = 0;
         if (title_x + static_cast<int32_t>(w) >= width_) title_x = width_ - w - 1;
