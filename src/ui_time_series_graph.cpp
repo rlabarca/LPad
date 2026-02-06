@@ -258,6 +258,65 @@ void TimeSeriesGraph::drawBackground() {
 
     // Draw X-axis ticks and labels
     drawXTicks(rel_bg_);
+
+    // Draw axis titles if set
+    drawAxisTitles(rel_bg_);
+}
+
+void TimeSeriesGraph::drawAxisTitles(RelativeDisplay* target) {
+    Arduino_GFX* canvas = target->getGfx();
+    if (!canvas) return;
+
+    GraphMargins m = getMargins();
+
+    canvas->setTextColor(theme_.tickColor);
+    canvas->setTextSize(1);  // Built-in font for now
+
+    // X-axis title: centered horizontally below X-axis tick labels
+    if (x_axis_title_) {
+        int16_t x1, y1;
+        uint16_t w, h;
+        canvas->getTextBounds(x_axis_title_, 0, 0, &x1, &y1, &w, &h);
+
+        float graph_center_x = m.left + (100.0f - m.left - m.right) / 2.0f;
+        int32_t center_px = target->relativeToAbsoluteX(graph_center_x);
+        int32_t title_x = center_px - static_cast<int32_t>(w) / 2;
+        int32_t title_y = height_ - 2;  // 2px from bottom edge
+
+        if (title_x < 0) title_x = 0;
+        if (title_x + static_cast<int32_t>(w) >= width_) title_x = width_ - w - 1;
+        if (title_y >= height_) title_y = height_ - 1;
+
+        canvas->setCursor(title_x, title_y);
+        canvas->print(x_axis_title_);
+    }
+
+    // Y-axis title: character by character, vertically centered
+    if (y_axis_title_) {
+        int len = static_cast<int>(strlen(y_axis_title_));
+        if (len == 0 || len > 32) return;
+
+        // Measure reference character for spacing (built-in font is 6x8)
+        int32_t char_h = 8;
+        int32_t char_w = 6;
+        int32_t char_spacing = char_h + 2;
+        int32_t total_height = len * char_spacing;
+
+        // Center vertically in graph area
+        float graph_center_y = (m.top + (100.0f - m.bottom)) / 2.0f;
+        int32_t center_py = target->relativeToAbsoluteY(graph_center_y);
+        int32_t start_y = center_py - total_height / 2;
+        int32_t title_x = 2;  // 2px from left edge
+
+        for (int i = 0; i < len; i++) {
+            int32_t char_y = start_y + i * char_spacing;
+
+            if (char_y >= 0 && char_y < height_ && title_x >= 0 && title_x < width_) {
+                canvas->setCursor(title_x, char_y);
+                canvas->write(static_cast<uint8_t>(y_axis_title_[i]));
+            }
+        }
+    }
 }
 
 void TimeSeriesGraph::drawData() {

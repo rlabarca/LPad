@@ -213,6 +213,11 @@ private:
     void drawXTicks(RelativeDisplay* target);
 
     /**
+     * @brief Draws axis titles (X horizontal centered, Y vertical char-by-char)
+     */
+    void drawAxisTitles(RelativeDisplay* target);
+
+    /**
      * @brief Draws the data line to the given RelativeDisplay
      */
     void drawDataLine(RelativeDisplay* target);
