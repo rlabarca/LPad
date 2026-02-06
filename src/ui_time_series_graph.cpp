@@ -331,10 +331,34 @@ void TimeSeriesGraph::drawYTicks(RelativeDisplay* target) {
     float screen_y_min = GRAPH_MARGIN_TOP;
     float screen_y_max = 100.0f - GRAPH_MARGIN_BOTTOM;
 
-    // Draw tick marks
+    // Get the underlying canvas to draw text labels
+    Arduino_GFX* canvas = target->getGfx();
+    if (!canvas) return;
+
+    // Draw tick marks and labels
     for (double tick_value = y_min; tick_value <= y_max; tick_value += y_tick_increment_) {
         float y_screen = mapYToScreen(tick_value, y_min, y_max);
+
+        // Draw tick mark
         target->drawHorizontalLine(y_screen, x_axis, tick_end, theme_.tickColor);
+
+        // Draw label to the right of the tick mark
+        // Convert tick value to string with appropriate precision
+        char label[16];
+        snprintf(label, sizeof(label), "%.3f", tick_value);
+
+        // Convert relative coordinates to absolute pixels for text positioning
+        int32_t label_x = target->relativeToAbsoluteX(tick_end + 1.0f);  // 1% spacing after tick
+        int32_t label_y = target->relativeToAbsoluteY(y_screen);
+
+        // Set font and color (these would come from theme - using defaults for now)
+        canvas->setTextColor(theme_.tickColor);  // Use tick color for labels
+        canvas->setTextSize(1);  // Small text
+
+        // Draw the label
+        // Adjust Y position to center text vertically on the tick
+        canvas->setCursor(label_x, label_y + 3);  // +3 to roughly center with tick
+        canvas->print(label);
     }
 }
 
