@@ -270,7 +270,12 @@ void TimeSeriesGraph::drawAxisTitles(RelativeDisplay* target) {
     GraphMargins m = getMargins();
 
     canvas->setTextColor(theme_.tickColor);
-    canvas->setTextSize(1);  // Built-in font for now
+    if (theme_.axisTitleFont) {
+        canvas->setFont(theme_.axisTitleFont);
+    } else {
+        canvas->setFont(nullptr);
+        canvas->setTextSize(1);
+    }
 
     // X-axis title: centered horizontally below X-axis tick labels
     if (x_axis_title_) {
@@ -281,11 +286,12 @@ void TimeSeriesGraph::drawAxisTitles(RelativeDisplay* target) {
         float graph_center_x = m.left + (100.0f - m.left - m.right) / 2.0f;
         int32_t center_px = target->relativeToAbsoluteX(graph_center_x);
         int32_t title_x = center_px - static_cast<int32_t>(w) / 2;
-        int32_t title_y = height_ - h - 2;  // text height + 2px margin from bottom
+        int32_t title_y = height_ - 4;  // near bottom edge
 
         if (title_x < 0) title_x = 0;
         if (title_x + static_cast<int32_t>(w) >= width_) title_x = width_ - w - 1;
         if (title_y >= height_) title_y = height_ - 1;
+        if (title_y < static_cast<int32_t>(h)) title_y = h;
 
         canvas->setCursor(title_x, title_y);
         canvas->print(x_axis_title_);
@@ -296,10 +302,12 @@ void TimeSeriesGraph::drawAxisTitles(RelativeDisplay* target) {
         int len = static_cast<int>(strlen(y_axis_title_));
         if (len == 0 || len > 32) return;
 
-        // Measure reference character for spacing (built-in font is 6x8)
-        int32_t char_h = 8;
-        int32_t char_w = 6;
-        int32_t char_spacing = char_h + 2;
+        // Measure reference character for spacing
+        int16_t rx1, ry1;
+        uint16_t ref_w, ref_h;
+        canvas->getTextBounds("M", 0, 0, &rx1, &ry1, &ref_w, &ref_h);
+
+        int32_t char_spacing = static_cast<int32_t>(ref_h) + 2;
         int32_t total_height = len * char_spacing;
 
         // Center vertically in graph area
@@ -309,11 +317,19 @@ void TimeSeriesGraph::drawAxisTitles(RelativeDisplay* target) {
         int32_t title_x = 2;  // 2px from left edge
 
         for (int i = 0; i < len; i++) {
-            int32_t char_y = start_y + i * char_spacing;
+            char ch[2] = { y_axis_title_[i], '\0' };
 
-            if (char_y >= 0 && char_y < height_ && title_x >= 0 && title_x < width_) {
-                canvas->setCursor(title_x, char_y);
-                canvas->write(static_cast<uint8_t>(y_axis_title_[i]));
+            uint16_t cw, ch2;
+            int16_t cx1, cy1;
+            canvas->getTextBounds(ch, 0, 0, &cx1, &cy1, &cw, &ch2);
+
+            // Center each char horizontally in the title column
+            int32_t char_x = title_x + (static_cast<int32_t>(ref_w) - static_cast<int32_t>(cw)) / 2;
+            int32_t char_y = start_y + i * char_spacing + static_cast<int32_t>(ref_h);
+
+            if (char_x >= 0 && char_y >= 0 && char_x < width_ && char_y < height_) {
+                canvas->setCursor(char_x, char_y);
+                canvas->print(ch);
             }
         }
     }
@@ -427,7 +443,12 @@ void TimeSeriesGraph::drawYTicks(RelativeDisplay* target) {
     if (!canvas) return;
 
     canvas->setTextColor(theme_.tickColor);
-    canvas->setTextSize(1);
+    if (theme_.tickFont) {
+        canvas->setFont(theme_.tickFont);
+    } else {
+        canvas->setFont(nullptr);
+        canvas->setTextSize(1);
+    }
 
     // Draw tick marks and labels (skip first tick at y_min to avoid X-axis overlap)
     for (double tick_value = y_min + y_tick_increment_; tick_value <= y_max; tick_value += y_tick_increment_) {
@@ -475,7 +496,12 @@ void TimeSeriesGraph::drawXTicks(RelativeDisplay* target) {
     if (!canvas) return;
 
     canvas->setTextColor(theme_.tickColor);
-    canvas->setTextSize(1);
+    if (theme_.tickFont) {
+        canvas->setFont(theme_.tickFont);
+    } else {
+        canvas->setFont(nullptr);
+        canvas->setTextSize(1);
+    }
 
     size_t num_points = data_.x_values.size();
     if (num_points < 2) return;
