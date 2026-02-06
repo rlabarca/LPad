@@ -77,7 +77,6 @@ graph TD
     subgraph Application_Layer ["Application Layer"]
         direction TB
         app_animation_ticker("**Animation Ticker Engine**<br/><small>app_animation_ticker.md</small>"):::app
-        app_demo_screen("**Base UI Demo App**<br/><small>app_demo_screen.md</small>"):::app
     end
 
     subgraph Board_Drivers ["Board Drivers"]
@@ -127,7 +126,7 @@ graph TD
     display_background --> RELEASE_v0_5_display_drawing_ui_base
     app_animation_ticker --> RELEASE_v0_5_display_drawing_ui_base
     ui_live_indicator --> RELEASE_v0_5_display_drawing_ui_base
-    app_demo_screen --> RELEASE_v0_5_display_drawing_ui_base
+    demos/demo_release_0_5[demos/demo_release_0_5?] -.-> RELEASE_v0_5_display_drawing_ui_base
     hal_contracts --> app_animation_ticker
     hal_contracts --> display_canvas_drawing
     hal_contracts --> display_tdisplay_s3_plus

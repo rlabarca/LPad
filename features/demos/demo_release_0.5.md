@@ -1,11 +1,9 @@
-# Feature: Base UI Demo Application
+# Feature: Release 0.5 Demo Application
 
-> Label: "Base UI Demo App"
-> Category: "Application Layer"
+> Label: "Demo for Release v0.5"
+> Category: "Release Demos"
 
 > **Prerequisite:** `features/app_animation_ticker.md`
-> **Prerequisite:** `features/data_yahoo_chart_parser.md`
-> **Prerequisite:** `features/ui_time_series_graph.md`
 > **Prerequisite:** `features/ui_live_indicator.md`
 > **Prerequisite:** `features/display_background.md`
 > **Prerequisite:** `features/display_canvas_drawing.md`
@@ -43,15 +41,15 @@ To visually confirm the correct operation of this feature, a persistent demo mus
 
 **Instructions for the Builder:**
 
-1.  **Create Demo File:** Create a new file at `demos/demo_screen.cpp`.
-2.  **Implement Demo Logic:** Implement the full demo logic (as described in the "Application Startup" and "Application Loop" scenarios) inside `demos/demo_screen.cpp`. This file must contain its own `setup()` and `loop()` functions.
-3.  **Create Build Environment:** Add a new build environment to `platformio.ini` named `[env:demo_screen]` that is configured to build *only* the `demos/demo_screen.cpp` file.
+1.  **Create Demo File:** Create a new file at `demos/demo_release_0.5.cpp`.
+2.  **Implement Demo Logic:** Implement the full demo logic (as described in the "Application Startup" and "Application Loop" scenarios) inside `demos/demo_release_0.5.cpp`. This file must contain its own `setup()` and `loop()` functions.
+3.  **Create Build Environment:** Add a new build environment to `platformio.ini` named `[env:demo_release_0_5]` that is configured to build *only* the `demos/demo_release_0.5.cpp` file.
     *   It should inherit from a common board configuration (if one exists).
-    *   It MUST use `src_filter` to exclude `src/main.cpp` and include `demos/demo_screen.cpp`.
+    *   It MUST use `src_filter` to exclude `src/main.cpp` and include `demos/demo_release_0.5.cpp`.
     *   Example `src_filter` configuration:
         ```ini
         src_filter =
           -<.git/>, -<svn/>, -<example/>, -<examples/>, -<test/>, -<tests/>
           -<src/>
-          +<demos/demo_screen.cpp>
+          +<demos/demo_release_0.5.cpp>
         ```
