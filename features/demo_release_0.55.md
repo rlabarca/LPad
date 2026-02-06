@@ -14,7 +14,7 @@ This feature defines the demo application used to validate Release v0.55. It ext
 The `V055DemoApp` class coordinates the transition between connectivity validation and the visual demo.
 
 ### Composition:
--   **`V05DemoApp`**: Encapsulates all rendering logic from Release 0.5.
+-   **`V05DemoApp`**: Encapsulates all rendering logic from Release 0.5 (Logo Animation + 6 Graph Modes).
 -   **`ConnectivityStatusScreen`**: Manages the Wi-Fi/Ping visual feedback.
 
 ### Public Interface:
@@ -39,12 +39,12 @@ The `V055DemoApp` class coordinates the transition between connectivity validati
 
 **When** the ping to "8.8.8.8" is successful.
 **Then** the screen should display "PING OK".
-**And** after 2 seconds, the screen should transition to the `V05DemoApp` (starting with the Logo Animation).
+**And** after 2 seconds, the screen should transition to the `V05DemoApp` (starting with the Logo Animation, then cycling through all 6 graph modes).
 
 ## Scenario: Regression Verification
 
 **Given** the demo has transitioned to the `V05DemoApp`.
-**When** the v0.5 demo cycle completes (`isFinished()` returns true).
+**When** the v0.5 demo cycle completes (`isFinished()` returns true after all 6 graph modes).
 **Then** the `V055DemoApp` SHOULD restart the connectivity check to verify ongoing stability (returning to Phase 1).
 
 ## Hardware (HIL) Test
