@@ -75,9 +75,10 @@ bool LogoScreen::begin(RelativeDisplay* display, uint16_t backgroundColor) {
     //   Target: (ScreenWidth - 10, 10)
     //   For 320x170: (310, 10)
     //
-    // RelativeDisplay coordinates (origin bottom-left, Y=0 bottom, Y=100 top):
+    // IMPORTANT: RelativeDisplay Y coordinate is DIRECT (Y=0 is TOP, Y=100 is BOTTOM)
+    // NOT inverted as architecture doc suggests!
     //   X: (310 / 320) * 100 = 96.875%
-    //   Y: 10px from screen top = (170 - 10) from screen bottom = 94.12%
+    //   Y: 10px from screen top = (10 / 170) * 100 = 5.88%
     //
     // With anchor (1.0, 1.0), the position directly specifies where the
     // top-right corner of the logo should appear.
@@ -86,7 +87,7 @@ bool LogoScreen::begin(RelativeDisplay* display, uint16_t backgroundColor) {
     float offsetY_percent = (CORNER_OFFSET_PX / static_cast<float>(m_height)) * 100.0f;
 
     m_endParams.posX = 100.0f - offsetX_percent;  // Right edge minus 10px offset
-    m_endParams.posY = 100.0f - offsetY_percent;  // Top edge minus 10px offset
+    m_endParams.posY = offsetY_percent;  // 10px from TOP (Y=0 is top in RelativeDisplay!)
 
     // Allocate composite buffer (background) in PSRAM if available
     size_t buffer_size = static_cast<size_t>(m_width) * static_cast<size_t>(m_height);
