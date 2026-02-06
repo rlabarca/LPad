@@ -197,17 +197,18 @@ void drawTitle() {
 
 void setup() {
     Serial.begin(115200);
-    delay(2000);  // Longer delay for ESP32-S3 USB CDC
+    delay(500);  // Brief delay for ESP32-S3 USB CDC
+    yield();
 
     Serial.println("\n\n\n=== LPad Base UI Demo Application ===");
     Serial.println("DEBUG: Entered setup()");
     Serial.flush();
-    delay(100);
+    yield();
 
     // [1/6] Initialize display HAL
     Serial.println("[1/6] Initializing display HAL...");
     Serial.flush();
-    delay(100);
+    yield();
 
     Serial.println("DEBUG: About to call hal_display_init()");
     Serial.flush();
@@ -231,7 +232,7 @@ void setup() {
     int32_t height = hal_display_get_height_pixels();
     Serial.printf("  [INFO] Display resolution: %d x %d pixels\n", width, height);
     Serial.println();
-    delay(500);
+    yield();
 
     // [2/6] Initialize RelativeDisplay API
     Serial.println("[2/6] Initializing RelativeDisplay abstraction...");
@@ -250,7 +251,7 @@ void setup() {
     }
     Serial.println("  [PASS] RelativeDisplay initialized");
     Serial.println();
-    delay(500);
+    yield();
 
     // [3/6] Create AnimationTicker
     Serial.println("[3/6] Creating 30fps AnimationTicker...");
@@ -264,7 +265,7 @@ void setup() {
     Serial.flush();
     Serial.println("  [PASS] AnimationTicker created (30fps)");
     Serial.println();
-    delay(500);
+    yield();
 
     // [4/6] Parse test data
     Serial.println("[4/6] Parsing test data from embedded JSON...");
@@ -285,7 +286,7 @@ void setup() {
     g_graphData.y_values = parser.getClosePrices();
     Serial.printf("  [PASS] Parsed %d data points\n", g_graphData.y_values.size());
     Serial.println();
-    delay(500);
+    yield();
 
     // [5/6] Create UI components
     Serial.println("[5/6] Creating UI components...");
@@ -320,7 +321,7 @@ void setup() {
     graph.setYAxisTitle("YIELD (%)");
     Serial.println("  [PASS] TimeSeriesGraph created with integrated indicator");
     Serial.println();
-    delay(500);
+    yield();
 
     // [6/6] Initial render
     Serial.println("[6/6] Performing initial render...");

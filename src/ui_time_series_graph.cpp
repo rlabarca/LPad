@@ -150,25 +150,6 @@ void TimeSeriesGraph::setYAxisTitle(const char* title) {
     y_axis_title_ = title;
 }
 
-TimeSeriesGraph::GraphMargins TimeSeriesGraph::getMargins() const {
-    GraphMargins m;
-    if (tick_label_position_ == TickLabelPosition::OUTSIDE) {
-        m.left = 12.0f;
-        m.bottom = 12.0f;
-        m.top = 5.0f;
-        m.right = 5.0f;
-        if (y_axis_title_) m.left += 4.0f;
-        if (x_axis_title_) m.bottom += 4.0f;
-    } else {
-        // INSIDE mode: labels overlay the plot area
-        m.left = 3.0f;
-        m.bottom = 3.0f;
-        m.top = 3.0f;
-        m.right = 3.0f;
-    }
-    return m;
-}
-
 void TimeSeriesGraph::drawBackground() {
     if (!rel_bg_) return;
 
@@ -191,6 +172,7 @@ void TimeSeriesGraph::drawBackground() {
 
         // Draw gradient pixel by pixel (could be optimized with line-based rendering)
         for (int32_t py = y_start; py < y_end; py++) {
+            if (py % 20 == 0) yield();  // Feed watchdog every 20 rows
             for (int32_t px = x_start; px < x_end; px++) {
                 // Calculate position along gradient direction
                 // Project pixel position onto gradient vector
@@ -258,9 +240,6 @@ void TimeSeriesGraph::drawBackground() {
 
     // Draw X-axis ticks and labels
     drawXTicks(rel_bg_);
-
-    // Draw axis titles if set
-    drawAxisTitles(rel_bg_);
 }
 
 void TimeSeriesGraph::drawData() {
@@ -342,11 +321,10 @@ void TimeSeriesGraph::update(float deltaTime) {
 }
 
 void TimeSeriesGraph::drawAxes(RelativeDisplay* target) {
-    GraphMargins m = getMargins();
-    float x_min = m.left;
-    float x_max = 100.0f - m.right;
-    float y_min = m.top;
-    float y_max = 100.0f - m.bottom;
+    float x_min = GRAPH_MARGIN_LEFT;
+    float x_max = 100.0f - GRAPH_MARGIN_RIGHT;
+    float y_min = GRAPH_MARGIN_TOP;
+    float y_max = 100.0f - GRAPH_MARGIN_BOTTOM;
 
     // Draw Y-axis (left edge)
     target->drawVerticalLine(x_min, y_min, y_max, theme_.axisColor);
@@ -358,218 +336,100 @@ void TimeSeriesGraph::drawAxes(RelativeDisplay* target) {
 void TimeSeriesGraph::drawYTicks(RelativeDisplay* target) {
     if (data_.y_values.empty()) return;
 
-    double y_data_min = *std::min_element(data_.y_values.begin(), data_.y_values.end());
-    double y_data_max = *std::max_element(data_.y_values.begin(), data_.y_values.end());
-    if (y_data_max - y_data_min < 0.001) return;
+    // Calculate data range
+    double y_min = *std::min_element(data_.y_values.begin(), data_.y_values.end());
+    double y_max = *std::max_element(data_.y_values.begin(), data_.y_values.end());
 
-    GraphMargins m = getMargins();
-    float x_axis = m.left;
+    if (y_max - y_min < 0.001) return;
 
+    float x_axis = GRAPH_MARGIN_LEFT;
+    float tick_end = x_axis + theme_.tickLength;
+    float screen_y_min = GRAPH_MARGIN_TOP;
+    float screen_y_max = 100.0f - GRAPH_MARGIN_BOTTOM;
+
+    // Get the underlying canvas to draw text labels
     Arduino_GFX* canvas = target->getGfx();
     if (!canvas) return;
 
-    // Set font for tick labels
-    if (theme_.tickFont) {
-        canvas->setFont(theme_.tickFont);
-    } else {
-        canvas->setFont(nullptr);
-        canvas->setTextSize(1);
-    }
-    canvas->setTextColor(theme_.tickColor);
+    // Draw tick marks and labels
+    for (double tick_value = y_min; tick_value <= y_max; tick_value += y_tick_increment_) {
+        float y_screen = mapYToScreen(tick_value, y_min, y_max);
 
-    // Skip first tick at y_data_min to avoid overlap with X-axis
-    double first_tick = y_data_min + y_tick_increment_;
+        // Draw tick mark
+        target->drawHorizontalLine(y_screen, x_axis, tick_end, theme_.tickColor);
 
-    for (double tick_value = first_tick; tick_value <= y_data_max; tick_value += y_tick_increment_) {
-        float y_screen = mapYToScreen(tick_value, y_data_min, y_data_max);
-
+        // Draw label to the right of the tick mark
+        // Convert tick value to string with appropriate precision
         char label[16];
         snprintf(label, sizeof(label), "%.3f", tick_value);
 
-        if (tick_label_position_ == TickLabelPosition::OUTSIDE) {
-            // Tick mark extends LEFT from Y-axis
-            float tick_start = x_axis - theme_.tickLength;
-            float tick_end = x_axis;
-            target->drawHorizontalLine(y_screen, tick_start, tick_end, theme_.tickColor);
+        // Convert relative coordinates to absolute pixels for text positioning
+        int32_t label_x = target->relativeToAbsoluteX(tick_end + 1.0f);  // 1% spacing after tick
+        int32_t label_y = target->relativeToAbsoluteY(y_screen);
 
-            // Label to LEFT of tick mark
-            int16_t x1, y1;
-            uint16_t w, h;
-            canvas->getTextBounds(label, 0, 0, &x1, &y1, &w, &h);
+        // Set font and color (these would come from theme - using defaults for now)
+        canvas->setTextColor(theme_.tickColor);  // Use tick color for labels
+        canvas->setTextSize(1);  // Small text
 
-            int32_t label_x = target->relativeToAbsoluteX(tick_start) - w - 2;
-            int32_t label_y = target->relativeToAbsoluteY(y_screen);
-
-            if (label_x < 0) label_x = 0;
-            canvas->setCursor(label_x, label_y + h / 2);
-            canvas->print(label);
-        } else {
-            // INSIDE mode: tick and label inside the graph area
-            float tick_end = x_axis + theme_.tickLength;
-            target->drawHorizontalLine(y_screen, x_axis, tick_end, theme_.tickColor);
-
-            int32_t label_x = target->relativeToAbsoluteX(tick_end + 0.5f);
-            int32_t label_y = target->relativeToAbsoluteY(y_screen);
-
-            int16_t x1, y1;
-            uint16_t w, h;
-            canvas->getTextBounds(label, 0, 0, &x1, &y1, &w, &h);
-
-            canvas->setCursor(label_x, label_y + h / 2);
-            canvas->print(label);
-        }
+        // Draw the label
+        // Adjust Y position to center text vertically on the tick
+        canvas->setCursor(label_x, label_y + 3);  // +3 to roughly center with tick
+        canvas->print(label);
     }
 }
 
 void TimeSeriesGraph::drawXTicks(RelativeDisplay* target) {
     if (data_.x_values.empty()) return;
 
-    GraphMargins m = getMargins();
-    float y_axis = 100.0f - m.bottom;
+    float y_axis = 100.0f - GRAPH_MARGIN_BOTTOM;
+    float tick_start = y_axis;
+    float tick_end = y_axis + theme_.tickLength;
+    float screen_x_min = GRAPH_MARGIN_LEFT;
+    float screen_x_max = 100.0f - GRAPH_MARGIN_RIGHT;
 
+    // Get the underlying canvas to draw text labels
     Arduino_GFX* canvas = target->getGfx();
     if (!canvas) return;
 
-    // Set font for tick labels
-    if (theme_.tickFont) {
-        canvas->setFont(theme_.tickFont);
-    } else {
-        canvas->setFont(nullptr);
-        canvas->setTextSize(1);
-    }
-    canvas->setTextColor(theme_.tickColor);
-
+    // Draw tick marks at regular intervals (show ~5-7 ticks across the X-axis)
     size_t num_points = data_.x_values.size();
     if (num_points < 2) return;
 
+    // Calculate tick interval (aim for ~5 ticks)
     size_t tick_interval = (num_points > 5) ? (num_points / 5) : 1;
 
-    // Skip first tick (near Y-axis) - start at tick_interval
-    for (size_t i = tick_interval; i < num_points; i += tick_interval) {
+    for (size_t i = 0; i < num_points; i += tick_interval) {
         float x_screen = mapXToScreen(i, num_points);
 
+        // Draw tick mark (vertical line below X-axis)
+        target->drawVerticalLine(x_screen, tick_start, tick_end, theme_.tickColor);
+
+        // Draw label below the tick mark
+        // For time-series, show the data point index (could be enhanced to show actual timestamps)
         char label[16];
-        if (i < data_.x_values.size()) {
+        if (!data_.x_values.empty() && i < data_.x_values.size()) {
+            // Show timestamp in a readable format (last 2 digits of timestamp)
             long timestamp = data_.x_values[i];
-            snprintf(label, sizeof(label), "%ld", timestamp % 1000);
+            snprintf(label, sizeof(label), "%ld", timestamp % 1000);  // Show last 3 digits
         } else {
             snprintf(label, sizeof(label), "%zu", i);
         }
 
+        // Convert relative coordinates to absolute pixels for text positioning
+        int32_t label_x = target->relativeToAbsoluteX(x_screen);
+        int32_t label_y = target->relativeToAbsoluteY(tick_end + 1.0f);  // 1% spacing below tick
+
+        // Set font and color
+        canvas->setTextColor(theme_.tickColor);
+        canvas->setTextSize(1);
+
+        // Draw the label (center it on the tick)
+        // Calculate text width to center it
         int16_t x1, y1;
         uint16_t w, h;
         canvas->getTextBounds(label, 0, 0, &x1, &y1, &w, &h);
-
-        if (tick_label_position_ == TickLabelPosition::OUTSIDE) {
-            // Tick mark extends DOWN from X-axis
-            float tick_start = y_axis;
-            float tick_end = y_axis + theme_.tickLength;
-            target->drawVerticalLine(x_screen, tick_start, tick_end, theme_.tickColor);
-
-            // Label below tick
-            int32_t label_x = target->relativeToAbsoluteX(x_screen) - w / 2;
-            int32_t label_y = target->relativeToAbsoluteY(tick_end + 0.5f);
-
-            if (label_x < 0) label_x = 0;
-            if (label_x + w >= width_) label_x = width_ - w - 1;
-            canvas->setCursor(label_x, label_y + h);
-            canvas->print(label);
-        } else {
-            // INSIDE mode: tick and label inside the graph area
-            float tick_start = y_axis - theme_.tickLength;
-            float tick_end = y_axis;
-            target->drawVerticalLine(x_screen, tick_start, tick_end, theme_.tickColor);
-
-            // Label above the tick (inside graph)
-            int32_t label_x = target->relativeToAbsoluteX(x_screen) - w / 2;
-            int32_t label_y = target->relativeToAbsoluteY(tick_start) - 2;
-
-            if (label_x < 0) label_x = 0;
-            canvas->setCursor(label_x, label_y);
-            canvas->print(label);
-        }
-    }
-}
-
-void TimeSeriesGraph::drawAxisTitles(RelativeDisplay* target) {
-    Arduino_GFX* canvas = target->getGfx();
-    if (!canvas) return;
-
-    GraphMargins m = getMargins();
-
-    // X-axis title: centered horizontally below X-axis tick labels
-    if (x_axis_title_) {
-        if (theme_.axisTitleFont) {
-            canvas->setFont(theme_.axisTitleFont);
-        } else {
-            canvas->setFont(nullptr);
-            canvas->setTextSize(1);
-        }
-        canvas->setTextColor(theme_.tickColor);
-
-        int16_t x1, y1;
-        uint16_t w, h;
-        canvas->getTextBounds(x_axis_title_, 0, 0, &x1, &y1, &w, &h);
-
-        // Center horizontally in the graph area
-        float graph_center_x = m.left + (100.0f - m.left - m.right) / 2.0f;
-        int32_t center_px = target->relativeToAbsoluteX(graph_center_x);
-        int32_t title_x = center_px - static_cast<int32_t>(w) / 2;
-
-        // Position near bottom edge, below tick labels
-        int32_t title_y = height_ - 4;
-
-        if (title_x < 0) title_x = 0;
-        if (title_y < 0) title_y = h;
-        if (title_y >= height_) title_y = height_ - 1;
-
-        canvas->setCursor(title_x, title_y);
-        canvas->print(x_axis_title_);
-    }
-
-    // Y-axis title: character by character, vertically centered
-    if (y_axis_title_) {
-        if (theme_.axisTitleFont) {
-            canvas->setFont(theme_.axisTitleFont);
-        } else {
-            canvas->setFont(nullptr);
-            canvas->setTextSize(1);
-        }
-        canvas->setTextColor(theme_.tickColor);
-
-        int len = static_cast<int>(strlen(y_axis_title_));
-        if (len == 0) return;
-
-        // Measure a reference character for spacing
-        int16_t x1, y1;
-        uint16_t ref_w, ref_h;
-        canvas->getTextBounds("M", 0, 0, &x1, &y1, &ref_w, &ref_h);
-
-        int32_t char_spacing = static_cast<int32_t>(ref_h) + 2;
-        int32_t total_height = len * char_spacing;
-
-        // Center vertically in the graph area
-        float graph_center_y = (m.top + (100.0f - m.bottom)) / 2.0f;
-        int32_t center_py = target->relativeToAbsoluteY(graph_center_y);
-        int32_t start_y = center_py - total_height / 2;
-        int32_t title_x = 2;  // 2px from left edge
-
-        for (int i = 0; i < len && i < 32; i++) {
-            char ch[2] = { y_axis_title_[i], '\0' };
-
-            uint16_t cw, ch2;
-            int16_t cx1, cy1;
-            canvas->getTextBounds(ch, 0, 0, &cx1, &cy1, &cw, &ch2);
-
-            // Center each char horizontally within the title column
-            int32_t char_x = title_x + (static_cast<int32_t>(ref_w) - static_cast<int32_t>(cw)) / 2;
-            int32_t char_y = start_y + i * char_spacing + static_cast<int32_t>(ref_h);
-
-            if (char_x >= 0 && char_y >= 0 && char_x < width_ && char_y < height_) {
-                canvas->setCursor(char_x, char_y);
-                canvas->print(ch);
-            }
-        }
+        canvas->setCursor(label_x - w/2, label_y);
+        canvas->print(label);
     }
 }
 
@@ -812,9 +672,8 @@ float TimeSeriesGraph::mapYToScreen(double y_value, double y_min, double y_max) 
     float y_range = static_cast<float>(y_max - y_min);
     float normalized = static_cast<float>(y_value - y_min) / y_range;
 
-    GraphMargins m = getMargins();
-    float screen_y_min = m.top;
-    float screen_y_max = 100.0f - m.bottom;
+    float screen_y_min = GRAPH_MARGIN_TOP;
+    float screen_y_max = 100.0f - GRAPH_MARGIN_BOTTOM;
     float screen_range = screen_y_max - screen_y_min;
 
     // Invert Y-axis (higher values at top)
@@ -824,9 +683,8 @@ float TimeSeriesGraph::mapYToScreen(double y_value, double y_min, double y_max) 
 float TimeSeriesGraph::mapXToScreen(size_t x_index, size_t x_count) {
     float normalized = static_cast<float>(x_index) / static_cast<float>(x_count - 1);
 
-    GraphMargins m = getMargins();
-    float screen_x_min = m.left;
-    float screen_x_max = 100.0f - m.right;
+    float screen_x_min = GRAPH_MARGIN_LEFT;
+    float screen_x_max = 100.0f - GRAPH_MARGIN_RIGHT;
     float screen_range = screen_x_max - screen_x_min;
 
     return screen_x_min + (normalized * screen_range);

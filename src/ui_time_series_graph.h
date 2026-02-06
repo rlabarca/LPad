@@ -191,15 +191,11 @@ private:
     double cached_y_max_;
     bool range_cached_;
 
-    // Dynamic margin computation based on layout mode
-    struct GraphMargins {
-        float left, right, top, bottom;
-    };
-
-    /**
-     * @brief Computes graph margins based on tick label position and axis titles
-     */
-    GraphMargins getMargins() const;
+    // Graph drawing area (in percentage coordinates)
+    static constexpr float GRAPH_MARGIN_LEFT = 10.0f;
+    static constexpr float GRAPH_MARGIN_RIGHT = 5.0f;
+    static constexpr float GRAPH_MARGIN_TOP = 5.0f;
+    static constexpr float GRAPH_MARGIN_BOTTOM = 10.0f;
 
     /**
      * @brief Draws the X and Y axes to the given RelativeDisplay
@@ -215,11 +211,6 @@ private:
      * @brief Draws X-axis tick marks and labels to the given RelativeDisplay
      */
     void drawXTicks(RelativeDisplay* target);
-
-    /**
-     * @brief Draws axis titles (X-axis horizontal centered, Y-axis vertical)
-     */
-    void drawAxisTitles(RelativeDisplay* target);
 
     /**
      * @brief Draws the data line to the given RelativeDisplay
