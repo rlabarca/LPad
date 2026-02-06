@@ -72,6 +72,7 @@ void V055DemoApp::update(float deltaTime) {
                 if (m_pingResult) {
                     Serial.println("[V055DemoApp] Ping test successful!");
                     transitionToPhase(PHASE_HANDOVER);
+                    return;  // Don't update connectivity screen after transition
                 } else {
                     Serial.println("[V055DemoApp] Ping test failed");
                 }
@@ -89,6 +90,7 @@ void V055DemoApp::update(float deltaTime) {
             m_handoverTimer += deltaTime;
             if (m_handoverTimer >= HANDOVER_DURATION) {
                 transitionToPhase(PHASE_VISUAL_DEMO);
+                return;  // Don't update connectivity screen after transition
             }
 
             // Continue updating connectivity screen to show "PING OK"
