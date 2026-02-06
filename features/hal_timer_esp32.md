@@ -1,4 +1,4 @@
-> Prerequisite: features/hal_contracts.md
+> Prerequisite: features/hal_spec_timer.md
 
 # Feature: HAL Timer Implementation for ESP32
 
@@ -21,7 +21,7 @@ This feature provides a concrete implementation of the Timer HAL contract for ES
 
 The Builder is responsible for creating the concrete implementation of the Timer HAL contract for the ESP32 platform.
 
-1.  **Timer Contract Header:** Ensure the function declarations for `hal_timer_init()` and `hal_timer_get_micros()` are present in a shared HAL header file (e.g., `hal/display.h` or a new `hal/timer.h`), as defined in `features/hal_contracts.md`.
+1.  **Timer Contract Header:** Ensure the function declarations for `hal_timer_init()` and `hal_timer_get_micros()` are present in `hal/timer.h`, as defined in `features/hal_spec_timer.md`.
 2.  **ESP32 Implementation (`hal/timer_esp32.cpp`):**
     *   Create a new file at `hal/timer_esp32.cpp`.
     *   Implement the `hal_timer_init()` function. Since the ESP-IDF `esp_timer` initializes automatically, this function can simply return `true`.

@@ -3,7 +3,7 @@
 > Label: "DMA Blitting"
 > Category: "Hardware Layer"
 
-> **Prerequisite:** `features/hal_contracts.md`
+> **Prerequisite:** `features/hal_spec_display.md`
 
 ## 1. Introduction
 

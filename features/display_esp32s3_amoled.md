@@ -1,4 +1,4 @@
-> Prerequisite: hal_contracts.md
+> Prerequisite: features/hal_spec_display.md
 
 # Feature: Display Baseline for ESP32-S3-Touch-AMOLED
 
@@ -16,7 +16,7 @@ This feature describes the work required to implement the Display HAL contract f
 
 ## 2. Implementation Plan
 
-The agent (Claude) will create a new HAL implementation file, `hal/display_esp32_s3_amoled.cpp`, that implements the functions defined in `features/hal_contracts.md`.
+The agent (Claude) will create a new HAL implementation file, `hal/display_esp32_s3_amoled.cpp`, that implements the functions defined in `features/hal_spec_display.md`.
 
 ## 3. Scenarios
 

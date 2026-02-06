@@ -3,7 +3,8 @@
 > Label: "Release v0.5 - Display, Drawing & UI Base"
 > Category: "Releases"
 
-> Prerequisite: features/hal_contracts.md
+> Prerequisite: features/hal_spec_display.md
+> Prerequisite: features/hal_spec_timer.md
 > Prerequisite: features/hal_timer_esp32.md
 > Prerequisite: features/hal_dma_blitting.md
 > Prerequisite: features/display_rotation_contract.md

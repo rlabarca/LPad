@@ -1,4 +1,4 @@
-> Prerequisite: hal_contracts.md
+> Prerequisite: features/hal_spec_display.md
 
 # Feature: Display Relative Drawing
 

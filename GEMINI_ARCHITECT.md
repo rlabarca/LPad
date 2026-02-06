@@ -25,9 +25,10 @@ Your goal is to help me design the **"Agentic Workflow"** artifacts. You do NOT 
     *   Inspecting relevant HAL implementation files (e.g., `hal/display_*.cpp`) and their dependencies to extract concrete values.
     *   Explicitly referencing this gathered information when constructing feature file scenarios.
 6.  **Multi-Layer Architecture:**
-    *   **HAL Contracts:** Define abstract hardware contracts (e.g., `hal_contracts.md`) that serve as the foundation for hardware-specific code.
-    *   **HAL Implementations:** Guide the creation of parallel feature files for each hardware target (e.g., `display_esp32s3_amoled.md`), ensuring they implement the HAL contract and are isolated in unique `.cpp` files.
-    *   **Abstraction Layers:** Design higher-level features (e.g., `display_relative_drawing.md`) that depend on the HAL contract and provide resolution-independent functionality for application logic.
+    *   **HAL Core:** Define the fundamental C-compatible rules for all HAL modules (`hal_core_contract.md`).
+    *   **HAL Specifications:** Define domain-specific abstract hardware contracts (e.g., `hal_spec_display.md`, `hal_spec_network.md`).
+    *   **HAL Implementations:** Guide the creation of parallel feature files for each hardware target (e.g., `display_esp32s3_amoled.md`), ensuring they implement the specific HAL domain specification and are isolated in unique `.cpp` files.
+    *   **Abstraction Layers:** Design higher-level features (e.g., `display_relative_drawing.md`) that depend on the HAL specifications and provide resolution-independent functionality for application logic.
 7.  **Architectural Precedent Analysis:** Before drafting or modifying any feature file, I MUST first search and review existing features in the `features/` directory. This is to identify established architectural patterns, abstraction layers (like `display_relative_drawing`), and data contracts to ensure new features integrate correctly and uphold the existing design principles, even if those principles are not explicitly mentioned in the current request.
 8.  **History Management:** Since the Builder uses `git log` to determine feature completion, I must guide you (the User) through any necessary history rewrites if a feature file is renamed, to maintain consistency.
 9.  **Feature Refinement and Status Reset:** When an existing feature's implementation is found to be suboptimal or incomplete, the default approach is to **refine the original feature file**. I will guide you to update the scenarios and implementation details within the existing `.md` file to reflect the improved, correct approach. Modifying the feature file (`features/X.md`) automatically resets its status to `[TODO]` in the `cdd.sh` monitoring script, ensuring it's flagged for re-implementation. Creating a new, superseding feature that makes the old one obsolete should be avoided, as it pollutes the feature set with "dead-end" specifications. The goal is to maintain a clean set of feature files that represents the reproducible *final state* of the project.
@@ -115,9 +116,9 @@ This protocol outlines how to direct a fresh Builder (Claude) instance to constr
 
 **The process is to prompt the Builder sequentially for each feature in an order that respects the `> Prerequisite:` graph.**
 
-1.  **Step 1: Implement the Root Contract (`hal_contracts.md`)**
-    *   **Prompt:** "Implement the feature defined in `features/hal_contracts.md`. This requires creating the `hal/display.h` header file and a `hal/display_stub.cpp` placeholder implementation."
-    *   **Verification:** Ensure tests pass and the project compiles. The Builder MUST commit the result (`feat: Implement HAL display contract and stub`).
+1.  **Step 1: Implement the Root Contract (`hal_core_contract.md`) and a Domain Spec (e.g., `hal_spec_display.md`)**
+    *   **Prompt:** "Implement the features defined in `features/hal_core_contract.md` and `features/hal_spec_display.md`. This requires creating the `hal/display.h` header file and a `hal/display_stub.cpp` placeholder implementation."
+    *   **Verification:** Ensure tests pass and the project compiles. The Builder MUST commit the result (`feat: Implement HAL core and display spec`).
 
 2.  **Step 2: Implement a Concrete HAL Target (e.g., `display_tdisplay_s3_plus.md`)**
     *   **Prompt:** "Implement the feature defined in `features/display_tdisplay_s3_plus.md`. Create the implementation in `hal/display_tdisplay_s3_plus.cpp` and update `platformio.ini` with a build environment that uses it."
@@ -133,8 +134,8 @@ This dependency-driven prompting ensures the project is built layer by layer, in
 ---
 
 **CURRENT CONTEXT:**
-- **Release v0.5 validated:** The "V0.5 DEMO" multi-stage loop has passed HIL testing, validating complex layout logic, vertical axis titles, and runtime theme switching.
-- **Stable Baseline:** Core rendering engine, HAL abstraction, and UI base are fully operational across hardware targets.
-- **Theme System Mature:** `ThemeManager` supports dynamic runtime switching with unified color and font management.
-- **Process Robustness:** `show_graph.sh` and `test_local.sh` are optimized for stability and accurate status reporting in the CDD monitor.
-- **Project is ready for Release v0.6 planning or new application-level features.**
+- **HAL Refactored:** Moved from monolithic `hal_contracts.md` to a domain-segmented structure (`hal_core_contract.md`, `hal_spec_display.md`, `hal_spec_network.md`).
+- **Release v0.5 [TODO]:** Prerequisites updated to new HAL structure; needs verification.
+- **Release v0.55 [TODO]:** Connectivity Smoke Test defined, including `config.json` build-time injection.
+- **Theme System Mature:** `ThemeManager` supports dynamic runtime switching.
+- **Next Step:** The Builder must verify the refactored v0.5 and implement v0.55 connectivity.

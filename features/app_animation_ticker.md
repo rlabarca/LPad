@@ -1,4 +1,4 @@
-> Prerequisite: features/hal_contracts.md
+> Prerequisite: features/hal_spec_timer.md
 
 # Feature: Animation Ticker Engine
 

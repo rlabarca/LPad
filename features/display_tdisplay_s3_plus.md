@@ -1,4 +1,4 @@
-> Prerequisite: features/hal_contracts.md
+> Prerequisite: features/hal_spec_display.md
 
 # Feature: Refactor Display HAL for T-Display-S3 AMOLED Plus using Arduino_GFX
 
