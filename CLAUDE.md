@@ -43,8 +43,9 @@ The `cdd.sh` monitor depends on EXACT string matches in commit messages.
 
 0.  **Efficiency:** If a task is ambiguous or token-heavy, STOP and ask for clarification.
 1.  **Feature-First:** Truth lives in `features/*.md`. Follow Gherkin behaviors strictly.
-2.  **HAL Barrier:** NO hardware code in `src/`. All GPIO/Display must use `hal/`.
-3.  **No Chitchat:** After the commit, your turn is done. Do not explain the commit.
+2.  **HAL Barrier:** NO hardware code in `src/`. All GPIO/Display/Network must use domain-specific `hal/*.h` headers.
+3.  **Visualization:** To view the current architecture, run `./scripts/serve_graph.py` and open `http://localhost:8000`.
+4.  **No Chitchat:** After the commit, your turn is done. Do not explain the commit.
 
 ## Hardware Protocol
 Consult `hw-examples/` for vendor sequences. Port logic directly to the HAL implementation as specified in the feature file.

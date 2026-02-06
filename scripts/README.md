@@ -1,4 +1,21 @@
-# Build Scripts
+# Build & Utility Scripts
+
+## Visualization & Development
+
+### `serve_graph.py` & `graph_viewer.html`
+Starts a local live-reloading HTTP server to view the feature dependency graph.
+- **Run:** `python3 scripts/serve_graph.py`
+- **View:** `http://localhost:8000`
+- **Features:** Zoom, pan, and automatic refresh when `feature_graph.mmd` changes.
+
+### `generate_graph.sh`
+Orchestrates the regeneration of the Mermaid graph from `features/*.md`.
+- **Run:** `./scripts/generate_graph.sh`
+- **Result:** Updates `feature_graph.mmd` and injects it into `README.md`.
+
+### `test_local.sh`
+Runs the native unit tests using PlatformIO.
+- **Run:** `./scripts/test_local.sh`
 
 ## Vector Asset Pipeline
 
