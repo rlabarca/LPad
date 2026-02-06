@@ -6,6 +6,7 @@
 #include "v055_demo_app.h"
 #include "../hal/display.h"
 #include <Arduino.h>
+#include <Arduino_GFX_Library.h>
 
 V055DemoApp::V055DemoApp()
     : m_currentPhase(PHASE_CONNECTIVITY)
@@ -150,10 +151,15 @@ void V055DemoApp::transitionToPhase(Phase newPhase) {
         case PHASE_VISUAL_DEMO:
             Serial.println("[V055DemoApp] Transitioning to PHASE_VISUAL_DEMO");
 
-            // Explicitly clear screen to remove connectivity artifacts
-            // V05DemoApp::begin() will also clear, but this ensures immediate visual feedback
-            hal_display_clear(0x0000);  // Clear to black
-            hal_display_flush();
+            // Explicitly clear the actual display (not canvas) to remove connectivity text
+            // Use GFX directly to ensure we clear the real screen
+            if (m_display != nullptr) {
+                Arduino_GFX* gfx = m_display->getGfx();
+                if (gfx != nullptr) {
+                    gfx->fillScreen(0x0000);  // Clear to black
+                    hal_display_flush();
+                }
+            }
 
             // Reset V05DemoApp by recreating it
             delete m_v05Demo;
