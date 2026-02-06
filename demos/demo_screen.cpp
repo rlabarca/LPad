@@ -21,11 +21,10 @@
 #include "display.h"
 #include "relative_display.h"
 #include "ui_time_series_graph.h"
+#include "ui_logo_screen.h"
 #include "yahoo_chart_parser.h"
 #include "animation_ticker.h"
 #include "theme_manager.h"
-#include "vector_renderer.h"
-#include "generated/vector_assets.h"
 
 // Custom RGB565 colors for the demo
 #define RGB565_DARK_PURPLE 0x4810  // Deep purple
@@ -39,15 +38,16 @@ TimeSeriesGraph* g_graph = nullptr;
 AnimationTicker* g_ticker = nullptr;
 GraphData g_graphData;  // Store data for graph
 RelativeDisplay* g_relativeDisplay = nullptr;
+LogoScreen* g_logoScreen = nullptr;
 
 // Demo state machine
 enum DemoPhase {
-    PHASE_LOGO_SPLASH,    // Show LPad logo
-    PHASE_GRAPH_DEMO      // Show graph with mode switching
+    PHASE_LOGO_ANIMATION,  // Animated LPad logo (wait + animate + hold)
+    PHASE_GRAPH_DEMO       // Show graph with mode switching
 };
-DemoPhase g_currentPhase = PHASE_LOGO_SPLASH;
-float g_phaseTimer = 0.0f;
-const float LOGO_SPLASH_DURATION = 3.0f;  // Show logo for 3 seconds
+DemoPhase g_currentPhase = PHASE_LOGO_ANIMATION;
+float g_logoHoldTimer = 0.0f;
+const float LOGO_HOLD_DURATION = 2.0f;  // Hold final position for 2 seconds
 
 // Mode switching state (for graph phase)
 int g_currentMode = 0;       // 0-5: cycles through 6 combinations
@@ -342,44 +342,36 @@ void setup() {
     Serial.println();
     yield();
 
-    // [6/6] Initial render - Logo Splash Screen
-    Serial.println("[6/6] Rendering logo splash screen...");
+    // [6/6] Create LogoScreen and render initial frame
+    Serial.println("[6/6] Creating LogoScreen animation...");
 
-    // Get theme colors for logo background
+    // Get theme colors
     const LPad::Theme* theme_ptr = LPad::ThemeManager::getInstance().getTheme();
 
-    // Draw gradient background for logo splash
-    g_relativeDisplay->drawGradientBackground(
-        theme_ptr->colors.background,
-        theme_ptr->colors.secondary,
-        45.0f
-    );
+    // Create LogoScreen with 2s wait, 1.5s animation
+    static LogoScreen logoScreen(2.0f, 1.5f);
+    g_logoScreen = &logoScreen;
+    g_logoScreen->init();
 
-    // Draw LPad logo centered on screen (30% width)
-    Serial.println("  Drawing LPad vector logo...");
-    VectorRenderer::draw(
-        *g_relativeDisplay,
-        VectorAssets::Lpadlogo,
-        50.0f,  // Center X
-        50.0f,  // Center Y
-        30.0f,  // 30% screen width
-        0.5f,   // Center anchor X
-        0.5f    // Center anchor Y
-    );
-
+    // Draw initial frame
+    Serial.println("  Drawing initial logo frame...");
+    g_logoScreen->draw(*g_relativeDisplay, theme_ptr->colors.background);
     hal_display_flush();
 
-    Serial.println("  [PASS] Logo splash screen rendered");
+    Serial.println("  [PASS] LogoScreen initialized");
     Serial.println();
 
     Serial.println("=== Release 0.5 Demo Application Ready ===");
     Serial.println();
-    Serial.println("Demo Phases:");
-    Serial.println("  Phase 1: LPad Logo Splash (3 seconds)");
+    Serial.println("Demo Sequence:");
+    Serial.println("  Phase 1: Animated LPad Logo");
+    Serial.println("    - Wait: 2 seconds (centered, large)");
+    Serial.println("    - Animate: 1.5 seconds (move to top-right, shrink)");
+    Serial.println("    - Hold: 2 seconds (final position)");
     Serial.println("  Phase 2: Graph Demo with Mode Switching");
     Serial.println();
     Serial.println("Visual Elements (using ThemeManager colors):");
-    Serial.println("  [x] Vector Logo: Resolution-independent LPad logo");
+    Serial.println("  [x] Animated Vector Logo: Smooth EaseInOut transition");
     Serial.println("  [x] Title: 'V0.5 DEMO' (ThemeFonts.heading, ThemeColors.text_main)");
     Serial.println("  [x] Background: 45-degree gradient (background->secondary)");
     Serial.println("  [x] Graph Line: Gradient (primary->accent)");
@@ -402,26 +394,33 @@ void loop() {
     float deltaTime = g_ticker->waitForNextFrame();
 
     // Phase state machine
-    g_phaseTimer += deltaTime;
-
     switch (g_currentPhase) {
-        case PHASE_LOGO_SPLASH:
-            // Wait for splash duration, then transition to graph demo
-            if (g_phaseTimer >= LOGO_SPLASH_DURATION) {
-                Serial.println("\n=== Transitioning to Graph Demo Phase ===\n");
-                g_currentPhase = PHASE_GRAPH_DEMO;
-                g_phaseTimer = 0.0f;
+        case PHASE_LOGO_ANIMATION: {
+            // Update logo animation
+            const LPad::Theme* theme_ptr = LPad::ThemeManager::getInstance().getTheme();
+            LogoScreen::State logoState = g_logoScreen->update(deltaTime);
+            g_logoScreen->draw(*g_relativeDisplay, theme_ptr->colors.background);
+            hal_display_flush();
 
-                // Render initial graph state
-                if (g_graph != nullptr) {
-                    g_graph->drawBackground();
-                    g_graph->drawData();
-                    g_graph->render();
-                    drawTitle();
-                    hal_display_flush();
+            // Check if animation is done and hold timer expired
+            if (logoState == LogoScreen::State::DONE) {
+                g_logoHoldTimer += deltaTime;
+                if (g_logoHoldTimer >= LOGO_HOLD_DURATION) {
+                    Serial.println("\n=== Transitioning to Graph Demo Phase ===\n");
+                    g_currentPhase = PHASE_GRAPH_DEMO;
+
+                    // Render initial graph state
+                    if (g_graph != nullptr) {
+                        g_graph->drawBackground();
+                        g_graph->drawData();
+                        g_graph->render();
+                        drawTitle();
+                        hal_display_flush();
+                    }
                 }
             }
             break;
+        }
 
         case PHASE_GRAPH_DEMO:
             if (g_graph == nullptr) {
