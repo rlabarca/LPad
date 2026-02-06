@@ -60,7 +60,7 @@ def generate_mermaid(features):
     # Add subgraph styling (Large Headers)
     unique_categories = set(data["category"] for data in features.values())
     for cat in sorted(unique_categories):
-        print(f"    style {cat.replace(' ', '_')} font-size:20px,font-weight:bold")
+        print(f"    style {cat.replace(' ', '_')} font-size:18px,font-weight:bold")
 
     # Group by Category
     grouped_categories = defaultdict(list)
@@ -69,7 +69,7 @@ def generate_mermaid(features):
     
     # Render Subgraphs
     for category, node_ids in sorted(grouped_categories.items()):
-        print(f"\n    subgraph {category.replace(' ', '_')} [\"  {category}  \"]")
+        print(f"\n    subgraph {category.replace(' ', '_')} [\"      {category}            \"]")
         print(f"        direction TB")
         for node_id in sorted(node_ids):
             data = features[node_id]
