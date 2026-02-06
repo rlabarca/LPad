@@ -17,8 +17,10 @@ V05DemoApp::V05DemoApp()
     , m_graph(nullptr)
     , m_logoScreen(nullptr)
     , m_titleText("DEMO v0.5")
+    , m_currentMode(0)
+    , m_modesShown(0)
     , m_logoHoldTimer(0.0f)
-    , m_stageTimer(0.0f)
+    , m_modeTimer(0.0f)
 {
 }
 
@@ -90,27 +92,22 @@ void V05DemoApp::update(float deltaTime) {
             if (logoState == LogoScreen::State::DONE) {
                 m_logoHoldTimer += deltaTime;
                 if (m_logoHoldTimer >= LOGO_HOLD_DURATION) {
-                    transitionToStage(STAGE_SCIENTIFIC);
+                    transitionToStage(STAGE_GRAPH_CYCLE);
                 }
             }
             break;
         }
 
-        case STAGE_SCIENTIFIC:
-        case STAGE_COMPACT: {
+        case STAGE_GRAPH_CYCLE: {
             // Update graph animation (live indicator)
             if (m_graph != nullptr) {
                 m_graph->update(deltaTime);
             }
 
-            // Check if it's time to switch stages
-            m_stageTimer += deltaTime;
-            if (m_stageTimer >= STAGE_DURATION) {
-                if (m_currentStage == STAGE_SCIENTIFIC) {
-                    transitionToStage(STAGE_COMPACT);
-                } else {
-                    transitionToStage(STAGE_FINISHED);
-                }
+            // Check if it's time to switch to next mode
+            m_modeTimer += deltaTime;
+            if (m_modeTimer >= MODE_DURATION) {
+                switchToNextMode();
             }
             break;
         }
@@ -127,10 +124,9 @@ void V05DemoApp::render() {
             // LogoScreen handles its own rendering via update()
             break;
 
-        case STAGE_SCIENTIFIC:
-        case STAGE_COMPACT:
-            // Graph stages: only flush display (update() already drew live indicator)
-            // Full render + title are done once during stage transitions
+        case STAGE_GRAPH_CYCLE:
+            // Graph stage: only flush display (update() already drew live indicator)
+            // Full render + title are done once during mode transitions
             hal_display_flush();
             break;
 
@@ -179,40 +175,33 @@ void V05DemoApp::drawTitle() {
 
 void V05DemoApp::transitionToStage(Stage newStage) {
     m_currentStage = newStage;
-    m_stageTimer = 0.0f;
+    m_modeTimer = 0.0f;
     m_logoHoldTimer = 0.0f;
 
     switch (newStage) {
-        case STAGE_SCIENTIFIC:
-            Serial.println("[V05DemoApp] Transitioning to STAGE_SCIENTIFIC");
+        case STAGE_GRAPH_CYCLE:
+            Serial.println("[V05DemoApp] Transitioning to STAGE_GRAPH_CYCLE");
+            m_currentMode = 0;
+            m_modesShown = 0;
+
+            // Configure and render first graph mode (Mode 0: Scientific + Gradient)
             if (m_graph != nullptr) {
+                GraphTheme theme = createGradientTheme();
+                m_graph->setTheme(theme);
                 m_graph->setTickLabelPosition(TickLabelPosition::OUTSIDE);
                 m_graph->setXAxisTitle("TIME (5m)");
                 m_graph->setYAxisTitle("YIELD (%)");
                 m_graph->drawBackground();
                 m_graph->drawData();
-                m_graph->render();  // Full render once during transition
-                drawTitle();         // Draw title once during transition
+                m_graph->render();
+                drawTitle();
                 hal_display_flush();
-            }
-            break;
-
-        case STAGE_COMPACT:
-            Serial.println("[V05DemoApp] Transitioning to STAGE_COMPACT");
-            if (m_graph != nullptr) {
-                m_graph->setTickLabelPosition(TickLabelPosition::INSIDE);
-                m_graph->setXAxisTitle(nullptr);
-                m_graph->setYAxisTitle(nullptr);
-                m_graph->drawBackground();
-                m_graph->drawData();
-                m_graph->render();  // Full render once during transition
-                drawTitle();         // Draw title once during transition
-                hal_display_flush();
+                Serial.println("[V05DemoApp] >>> Mode 0: SCIENTIFIC + GRADIENT <<<");
             }
             break;
 
         case STAGE_FINISHED:
-            Serial.println("[V05DemoApp] Demo cycle FINISHED");
+            Serial.println("[V05DemoApp] Demo cycle FINISHED (all 6 modes shown)");
             break;
 
         default:
@@ -261,4 +250,127 @@ GraphTheme V05DemoApp::createGradientTheme() {
     theme.axisTitleFont = lpadTheme->fonts.ui;
 
     return theme;
+}
+
+GraphTheme V05DemoApp::createSolidTheme() {
+    GraphTheme theme = {};
+
+    // Solid dark grey background
+    theme.backgroundColor = 0x2104;  // Dark grey RGB565
+    theme.useBackgroundGradient = false;
+
+    // Solid white line
+    theme.lineColor = RGB565_WHITE;
+    theme.useLineGradient = false;
+
+    // Magenta axes (keep for visibility)
+    theme.axisColor = RGB565_MAGENTA;
+
+    // Line and axis styling
+    theme.lineThickness = 2.0f;
+    theme.axisThickness = 0.8f;
+    theme.tickColor = RGB565_CYAN;
+    theme.tickLength = 2.5f;
+
+    // Solid green indicator
+    theme.liveIndicatorGradient.color_stops[0] = RGB565_GREEN;
+    theme.liveIndicatorGradient.color_stops[1] = RGB565_GREEN;  // Same color = solid
+    theme.liveIndicatorPulseSpeed = 0.5f;
+
+    // Font assignments from ThemeManager
+    const LPad::Theme* lpadTheme = LPad::ThemeManager::getInstance().getTheme();
+    theme.tickFont = lpadTheme->fonts.smallest;
+    theme.axisTitleFont = lpadTheme->fonts.ui;
+
+    return theme;
+}
+
+GraphTheme V05DemoApp::createMixedTheme() {
+    GraphTheme theme = {};
+
+    // Solid background
+    theme.backgroundColor = 0x001F;  // Dark blue RGB565
+    theme.useBackgroundGradient = false;
+
+    // Gradient line
+    theme.useLineGradient = true;
+    theme.lineGradient.angle_deg = 0.0f;
+    theme.lineGradient.color_stops[0] = RGB565_YELLOW;
+    theme.lineGradient.color_stops[1] = RGB565_RED;
+    theme.lineGradient.num_stops = 2;
+
+    // Cyan axes
+    theme.axisColor = RGB565_CYAN;
+
+    // Line and axis styling
+    theme.lineThickness = 2.0f;
+    theme.axisThickness = 0.8f;
+    theme.tickColor = RGB565_WHITE;
+    theme.tickLength = 2.5f;
+
+    // Gradient indicator
+    theme.liveIndicatorGradient.color_stops[0] = RGB565_YELLOW;
+    theme.liveIndicatorGradient.color_stops[1] = RGB565_RED;
+    theme.liveIndicatorPulseSpeed = 0.5f;
+
+    // Font assignments from ThemeManager
+    const LPad::Theme* lpadTheme = LPad::ThemeManager::getInstance().getTheme();
+    theme.tickFont = lpadTheme->fonts.smallest;
+    theme.axisTitleFont = lpadTheme->fonts.ui;
+
+    return theme;
+}
+
+void V05DemoApp::switchToNextMode() {
+    m_modeTimer = 0.0f;
+    m_modesShown++;
+
+    // Check if we've shown all 6 modes
+    if (m_modesShown >= 6) {
+        transitionToStage(STAGE_FINISHED);
+        return;
+    }
+
+    // Advance to next mode
+    m_currentMode = (m_currentMode + 1) % 6;
+
+    // Visual mode: 0=Gradient, 1=Solid, 2=Mixed
+    int visualMode = m_currentMode % 3;
+    // Layout mode: 0=Scientific (modes 0-2), 1=Compact (modes 3-5)
+    int layoutMode = m_currentMode / 3;
+
+    if (m_graph == nullptr) return;
+
+    // Apply visual theme
+    GraphTheme newTheme;
+    const char* visualName;
+    switch (visualMode) {
+        case 0:  newTheme = createGradientTheme(); visualName = "GRADIENT"; break;
+        case 1:  newTheme = createSolidTheme();    visualName = "SOLID";    break;
+        default: newTheme = createMixedTheme();    visualName = "MIXED";    break;
+    }
+    m_graph->setTheme(newTheme);
+
+    // Apply layout mode
+    const char* layoutName;
+    if (layoutMode == 0) {
+        layoutName = "SCIENTIFIC";
+        m_graph->setTickLabelPosition(TickLabelPosition::OUTSIDE);
+        m_graph->setXAxisTitle("TIME (5m)");
+        m_graph->setYAxisTitle("YIELD (%)");
+    } else {
+        layoutName = "COMPACT";
+        m_graph->setTickLabelPosition(TickLabelPosition::INSIDE);
+        m_graph->setXAxisTitle(nullptr);
+        m_graph->setYAxisTitle(nullptr);
+    }
+
+    Serial.printf("[V05DemoApp] >>> Mode %d: %s + %s <<<\n", m_currentMode, layoutName, visualName);
+
+    // Redraw static layers with new theme and layout
+    m_graph->drawBackground();
+    m_graph->drawData();
+    m_graph->render();
+    drawTitle();
+    hal_display_flush();
 }

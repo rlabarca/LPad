@@ -62,8 +62,7 @@ public:
 private:
     enum Stage {
         STAGE_LOGO,         // Logo animation (wait + animate + hold)
-        STAGE_SCIENTIFIC,   // Scientific mode graph (5s)
-        STAGE_COMPACT,      // Compact mode graph (5s)
+        STAGE_GRAPH_CYCLE,  // Cycle through 6 graph modes
         STAGE_FINISHED      // Cycle complete
     };
 
@@ -76,17 +75,24 @@ private:
     // Title configuration
     const char* m_titleText;
 
+    // Mode cycling (6 combinations: 2 layouts x 3 visual styles)
+    int m_currentMode;       // 0-5: cycles through 6 combinations
+    int m_modesShown;        // Track how many modes shown in current cycle
+
     // Timing
     float m_logoHoldTimer;
-    float m_stageTimer;
+    float m_modeTimer;
 
     static constexpr float LOGO_HOLD_DURATION = 2.0f;  // Hold final logo position for 2s
-    static constexpr float STAGE_DURATION = 5.0f;      // Each graph mode for 5s
+    static constexpr float MODE_DURATION = 5.0f;       // Each graph mode for 5s
 
     // Helper methods
     void drawTitle();
     void transitionToStage(Stage newStage);
+    void switchToNextMode();
     GraphTheme createGradientTheme();
+    GraphTheme createSolidTheme();
+    GraphTheme createMixedTheme();
 };
 
 #endif // V05_DEMO_APP_H

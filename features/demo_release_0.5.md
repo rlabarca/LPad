@@ -17,16 +17,18 @@ This feature defines the main demo application used to validate Release v0.5. To
 The `V05DemoApp` class manages the lifecycle and orchestration of the v0.5 visual components.
 
 ### Public Interface:
-1.  **`begin(RelativeDisplay* display)`**: 
+1.  **`begin(RelativeDisplay* display)`**:
     -   Initializes all UI components (`LogoScreen`, `TimeSeriesGraph`, etc.).
     -   Loads the default theme and test data.
     -   Resets the state machine to the initial stage.
-2.  **`update(float deltaTime)`**: 
-    -   Advances the internal state machine (Stages 0, 1, 2).
+2.  **`update(float deltaTime)`**:
+    -   Advances the internal state machine through:
+        - Stage 0: Logo Animation
+        - Stage 1: Graph Mode Cycling (6 modes × 5 seconds each)
     -   Updates active animations (Logo, Live Indicator).
 3.  **`render()`**:
     -   Handles the layered rendering of the background, current graph mode, and global title.
-4.  **`isFinished()`**: Returns `true` if the full demo cycle has completed once.
+4.  **`isFinished()`**: Returns `true` after all 6 graph modes complete.
 
 ## Scenario: Application Startup
 
@@ -58,45 +60,76 @@ The `V05DemoApp` class manages the lifecycle and orchestration of the v0.5 visua
     -   Holds the final position for 2 seconds.
     -   Transitions to Stage 1.
 
-### Stage 1: "Scientific Mode" (Graph)
-(Duration: 5 seconds)
-1.  **Graph Configuration:**
-    -   **Tick Labels:** `OUTSIDE`.
-    -   **Axis Titles:** Enabled.
-        -   X-Axis: "TIME (5m)"
-        -   Y-Axis: "YIELD (%)" (Vertical, Rotated -90).
-2.  **Layout Constraints:**
-    -   The graph MUST automatically scale its internal plotting area to accommodate the outside labels and titles within the display bounds.
-    -   **No Overlap:** Axis titles and tick labels must not overlap.
-    -   **Y-Tick Start:** The first visible Y-tick label must be above the X-axis line.
+### Stage 1: Graph Mode Cycling
+The demo cycles through **6 graph modes** (5 seconds each), testing all combinations of:
+- **2 Layout Modes:** Scientific (OUTSIDE labels with axis titles) vs. Compact (INSIDE labels, no titles)
+- **3 Visual Themes:** Gradient, Solid, Mixed
 
-### Stage 2: "Compact Mode" (Minimalist)
-(Duration: 5 seconds)
-1.  **Graph Configuration:**
-    -   **Tick Labels:** `INSIDE`.
-    -   **Axis Titles:** None (Hidden).
-2.  **Layout Constraints:**
-    -   The plotting area should expand to fill more of the available space since margins are not needed for outside text.
-    -   Tick labels are drawn overlaid on the grid/background.
+#### Mode Matrix (2 layouts × 3 themes = 6 modes):
 
-### Common Visual Elements (All Stages)
-1.  **Gradient Background:** 
-    -   Draws a 45-degree angled gradient.
-    -   **Colors:** Transitions from `ThemeColors.background` (Top-Left) to `ThemeColors.secondary` (Bottom-Right).
-2.  **Title:**
+| Mode | Layout     | Theme    | Duration |
+|------|------------|----------|----------|
+| 0    | Scientific | Gradient | 5s       |
+| 1    | Scientific | Solid    | 5s       |
+| 2    | Scientific | Mixed    | 5s       |
+| 3    | Compact    | Gradient | 5s       |
+| 4    | Compact    | Solid    | 5s       |
+| 5    | Compact    | Mixed    | 5s       |
+
+After Mode 5 completes, `isFinished()` returns `true`.
+
+#### Layout Modes:
+
+**Scientific Layout (Modes 0-2):**
+- **Tick Labels:** `OUTSIDE`
+- **Axis Titles:** Enabled
+  - X-Axis: "TIME (5m)"
+  - Y-Axis: "YIELD (%)" (Vertical, Rotated -90)
+- **Constraints:** Graph must auto-scale plotting area to accommodate outside labels/titles. No overlap. First Y-tick label above X-axis line.
+
+**Compact Layout (Modes 3-5):**
+- **Tick Labels:** `INSIDE`
+- **Axis Titles:** None (Hidden)
+- **Constraints:** Plotting area expands to fill available space. Tick labels overlay grid/background.
+
+#### Visual Themes:
+
+**Theme 0: Gradient (ThemeManager colors)**
+- Background: 45° gradient from `ThemeColors.background` → `ThemeColors.secondary`
+- Line: Horizontal gradient from `ThemeColors.primary` → `ThemeColors.accent`
+- Axis: `ThemeColors.secondary`
+- Ticks: `ThemeColors.graph_ticks`
+- Live Indicator: Radial gradient `ThemeColors.accent` (center) → `ThemeColors.primary` (edge)
+
+**Theme 1: Solid Colors**
+- Background: Solid dark grey (0x2104)
+- Line: Solid white (RGB565_WHITE)
+- Axis: Solid magenta (RGB565_MAGENTA)
+- Ticks: Solid cyan (RGB565_CYAN)
+- Live Indicator: Solid green (RGB565_GREEN)
+
+**Theme 2: Mixed**
+- Background: Solid dark blue (RGB565_DARK_BLUE)
+- Line: Horizontal gradient yellow → red
+- Axis: Solid cyan (RGB565_CYAN)
+- Ticks: Solid white (RGB565_WHITE)
+- Live Indicator: Radial gradient yellow → red
+
+### Common Visual Elements (All Graph Modes)
+1.  **Title:**
     -   Text: "DEMO v0.5"
     -   **Font:** `ThemeFonts.normal` (12pt).
     -   **Color:** `ThemeColors.text_main`.
     -   Position: Top-left of the screen (approx 5% padding from edges), left-justified, z-index above all other elements.
-3.  **Time Series Graph:**
-    -   **Plot Line:** Draws a gradient line.
-        -   **Colors:** `ThemeColors.primary` (Oldest data/Left) -> `ThemeColors.accent` (Newest data/Right).
+2.  **Time Series Graph:**
+    -   Data: Loaded from embedded `test_data/yahoo_chart_tnx_5m_1d.json`
     -   **Font:** `ThemeFonts.smallest` (9pt) used for all axis text.
-    -   **Color:** `ThemeColors.axis_labels` used for all axis text.
-4.  **Live Indicator:**
+    -   **Color:** `ThemeColors.axis_labels` used for tick labels.
+    -   Background, line, and indicator styling vary per Visual Theme (see above).
+3.  **Live Indicator:**
     -   Position: Exactly at the last data point on the line.
     -   **Animation:** Smooth pulsing (growing/shrinking) at 30fps.
-    -   **Colors:** Radial gradient from `ThemeColors.accent` (Center) to `ThemeColors.primary` (Outer edge).
+    -   Color styling varies per Visual Theme (see above).
 
 ## Hardware (HIL) Test
 
