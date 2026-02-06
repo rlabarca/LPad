@@ -44,3 +44,5 @@ To visually confirm the correct operation of this feature, the `src/main.cpp` fi
 1.  **Modify `src/main.cpp`:** Implement the full demo logic (as described in the "Application Startup" and "Application Loop" scenarios) directly within `src/main.cpp`. This file must contain its own `setup()` and `loop()` functions.
 2.  **Verify:** Compile and upload the firmware to the target hardware using the standard build environment (e.g., `pio run -e esp32s3`).
 
+
+
