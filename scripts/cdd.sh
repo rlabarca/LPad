@@ -50,7 +50,7 @@ while true; do
         todo_features=()
 
         # Determine feature status
-        for f in features/*.md; do
+        for f in features/**/*.md; do
             [ -e "$f" ] || continue
             fname=$(basename "$f")
             complete_commit=$(git log -1 --grep="\[Complete features/$fname\]" --format=%H 2>/dev/null)
