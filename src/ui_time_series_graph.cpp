@@ -5,6 +5,7 @@
 
 #define _USE_MATH_DEFINES
 #include "ui_time_series_graph.h"
+#include "theme_manager.h"
 #include "../hal/display.h"
 #include <Arduino_GFX_Library.h>
 #include <algorithm>
@@ -245,22 +246,25 @@ void TimeSeriesGraph::drawBackground() {
     // Draw X-axis ticks and labels
     drawXTicks(rel_bg_);
 
-    // Draw axis titles if set
+    // Draw axis titles if set using ThemeManager fonts
     Arduino_GFX* canvas = rel_bg_->getGfx();
     if (canvas) {
+        // Get theme for fonts
+        const LPad::Theme* lpadTheme = LPad::ThemeManager::getInstance().getTheme();
+
         // Draw X-axis title (horizontal, centered below X-axis)
         if (x_axis_title_ != nullptr) {
             canvas->setTextColor(theme_.tickColor);
-            canvas->setTextSize(1);
+            canvas->setFont(lpadTheme->fonts.ui);  // Use UI font (18pt)
 
             // Get text bounds to center it
             int16_t x1, y1;
             uint16_t w, h;
             canvas->getTextBounds(x_axis_title_, 0, 0, &x1, &y1, &w, &h);
 
-            // Position at bottom center of screen
+            // Position at bottom center, with proper clearance from edge
             int32_t title_x = (width_ - w) / 2;
-            int32_t title_y = height_ - 5;  // 5px from bottom
+            int32_t title_y = height_ - 10;  // 10px from bottom for better clearance
 
             canvas->setCursor(title_x, title_y);
             canvas->print(x_axis_title_);
@@ -269,22 +273,25 @@ void TimeSeriesGraph::drawBackground() {
         // Draw Y-axis title (vertical, rotated -90 degrees, centered along Y-axis)
         if (y_axis_title_ != nullptr) {
             canvas->setTextColor(theme_.tickColor);
-            canvas->setTextSize(1);
+            canvas->setFont(lpadTheme->fonts.ui);  // Use UI font (18pt)
 
-            // Get text bounds in normal orientation
+            // Get text bounds for font metrics
             int16_t x1, y1;
             uint16_t w, h;
-            canvas->getTextBounds(y_axis_title_, 0, 0, &x1, &y1, &w, &h);
+            canvas->getTextBounds("M", 0, 0, &x1, &y1, &w, &h);
 
-            // Draw text vertically character-by-character (simpler than rotation)
-            // Position at left side, centered vertically
-            int32_t char_x = 2;  // 2px from left edge
-            int32_t start_y = (height_ - (strlen(y_axis_title_) * 8)) / 2;  // Center vertically (8px per char)
+            // Draw text vertically character-by-character
+            // Position closer to the Y-axis (at margin boundary)
+            int32_t y_axis_px = rel_bg_->relativeToAbsoluteX(GRAPH_MARGIN_LEFT);
+            int32_t char_x = y_axis_px - w - 5;  // 5px to left of Y-axis
+            int32_t char_height = h + 2;  // Height per character with spacing
+            int32_t total_height = strlen(y_axis_title_) * char_height;
+            int32_t start_y = (height_ - total_height) / 2;  // Center vertically
 
             // Draw each character vertically
             for (size_t i = 0; i < strlen(y_axis_title_); i++) {
                 char str[2] = {y_axis_title_[i], '\0'};
-                canvas->setCursor(char_x, start_y + (i * 10));  // 10px spacing between chars
+                canvas->setCursor(char_x, start_y + (i * char_height));
                 canvas->print(str);
             }
         }
@@ -414,21 +421,27 @@ void TimeSeriesGraph::drawYTicks(RelativeDisplay* target) {
         char label[16];
         snprintf(label, sizeof(label), "%.3f", tick_value);
 
+        // Get text bounds to calculate positioning
+        int16_t x1, y1;
+        uint16_t w, h;
+        canvas->setTextSize(1);
+        canvas->getTextBounds(label, 0, 0, &x1, &y1, &w, &h);
+
         // Calculate label position based on tick label position setting
-        float label_x_pct;
+        int32_t label_x;
         if (tick_label_position_ == TickLabelPosition::OUTSIDE) {
-            label_x_pct = tick_end + 1.0f;  // 1% spacing after tick (to the right)
+            // OUTSIDE: Place to the LEFT of Y-axis (in the margin area)
+            int32_t y_axis_px = target->relativeToAbsoluteX(x_axis);
+            label_x = y_axis_px - w - 3;  // 3px spacing to left of Y-axis
         } else {
-            label_x_pct = x_axis + 1.0f;  // 1% spacing inside the plot area
+            // INSIDE: Place to the RIGHT of tick marks (in the plot area)
+            label_x = target->relativeToAbsoluteX(tick_end + 1.0f);
         }
 
-        // Convert relative coordinates to absolute pixels for text positioning
-        int32_t label_x = target->relativeToAbsoluteX(label_x_pct);
         int32_t label_y = target->relativeToAbsoluteY(y_screen);
 
         // Set font and color
         canvas->setTextColor(theme_.tickColor);
-        canvas->setTextSize(1);
 
         // Draw the label
         // Adjust Y position to center text vertically on the tick
@@ -457,7 +470,9 @@ void TimeSeriesGraph::drawXTicks(RelativeDisplay* target) {
     // Calculate tick interval (aim for ~5 ticks)
     size_t tick_interval = (num_points > 5) ? (num_points / 5) : 1;
 
-    for (size_t i = 0; i < num_points; i += tick_interval) {
+    // Start from first tick after the beginning (skip first tick to avoid Y-axis overlap)
+    size_t start_index = tick_interval;
+    for (size_t i = start_index; i < num_points; i += tick_interval) {
         float x_screen = mapXToScreen(i, num_points);
 
         // Draw tick mark (vertical line below X-axis)
