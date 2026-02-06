@@ -20,3 +20,4 @@ lib/
 
 # Test artifacts
 test/output/
+config.json
