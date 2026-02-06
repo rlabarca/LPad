@@ -134,8 +134,8 @@ This dependency-driven prompting ensures the project is built layer by layer, in
 ---
 
 **CURRENT CONTEXT:**
-- **HAL Refactored:** Moved from monolithic `hal_contracts.md` to a domain-segmented structure (`hal_core_contract.md`, `hal_spec_display.md`, `hal_spec_network.md`).
-- **Release v0.5 [TODO]:** Prerequisites updated to new HAL structure; needs verification.
-- **Release v0.55 [TODO]:** Connectivity Smoke Test defined, including `config.json` build-time injection.
-- **Theme System Mature:** `ThemeManager` supports dynamic runtime switching.
-- **Next Step:** The Builder must verify the refactored v0.5 and implement v0.55 connectivity.
+- **HAL Architecture:** Fully refactored into a domain-segmented structure (`hal_core_contract.md`, `hal_spec_display.md`, `hal_spec_timer.md`, `hal_spec_network.md`).
+- **Build & Test Policy:** Centralized mocking established in `test/mocks/`. Native tests require `-Ihal` and `-Itest/mocks`.
+- **Visualization:** Interactive live-reloading graph viewer implemented (`scripts/serve_graph.py`). Accessible via `scripts/start_viewer.sh`.
+- **Milestone v0.55 [IN PROGRESS]:** The Builder (Claude) is currently implementing the Connectivity Smoke Test, including the `config.json` injection system and the ESP32 Network HAL.
+- **Stable Baseline:** Core rendering, theme system, and vector asset pipeline are verified; v0.5 features are pending recursive re-validation against the new HAL structure.
