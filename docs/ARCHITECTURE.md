@@ -5,37 +5,54 @@ The system follows a strict **Layered Architecture** designed to decouple Applic
 
 ```mermaid
 graph TD
-    App[Application (src/)] --> HAL_Contract[HAL Contract (hal/display.h)]
-    HAL_Contract --> HAL_Stub[Stub Implementation (hal/display_stub.cpp)]
-    HAL_Contract --> HAL_ESP32[ESP32 Implementation (hal/display_esp32_*.cpp)]
+    App[Application (src/)] --> HAL_Core[HAL Core Contract]
     
-    subgraph "Application Layer"
-    App
+    subgraph "HAL Layer (Domain Segmented)"
+    HAL_Core --> Spec_Disp[Display Spec]
+    HAL_Core --> Spec_Net[Network Spec]
+    HAL_Core --> Spec_Time[Timer Spec]
+    
+    Spec_Disp --> Driver_Disp[Display Driver (ESP32-S3)]
+    Spec_Net --> Driver_Net[Network Driver (WiFi)]
+    Spec_Time --> Driver_Time[Timer Driver (ESP32)]
+    end
+    
+    App --> Spec_Disp
+    App --> Spec_Net
+    App --> Spec_Time
+
+    subgraph "Application Logic"
     RelativeDisplay[Relative Display Abstraction]
     TimeSeriesGraph[UI Component]
     AnimationTicker[Animation Loop]
-    end
-
-    subgraph "HAL Layer"
-    HAL_Contract
-    HAL_Stub
-    HAL_ESP32
+    ConfigSystem[Config Bridge]
     end
 ```
 
 ## 2. Core Architectural Rules (The Constitution)
 
 ### A. The HAL Barrier
-1.  **Strict Separation:** Application code (`src/*.cpp`) MUST NOT include hardware-specific headers (e.g., `esp_lcd_panel_io.h`) or vendor libraries directly. It must ONLY include `hal/display.h`.
+1.  **Strict Separation:** Application code (`src/*.cpp`) MUST NOT include hardware-specific headers (e.g., `esp_lcd_panel_io.h`) or vendor libraries directly. It must ONLY include domain-specific HAL headers (e.g., `hal/display.h`, `hal/network.h`).
 2.  **No `Arduino.h` in Logic:** Application logic should minimize reliance on `Arduino.h`. Where used (e.g., `setup()`, `loop()`, or basic types), it must not couple logic to specific board capabilities.
 3.  **The Stub Pattern:** Every HAL contract MUST have a corresponding `_stub.cpp` implementation. This ensures the application can always compile and run (logic-only) on any platform, even without specific hardware support.
 
-### B. Data Flow
+### B. Configuration Management (The Secret Store)
+1.  **Zero-Secret Repository:** Credentials (Wi-Fi SSID, Passwords, API Keys) MUST NEVER be committed to the repository.
+2.  **The `config.json` Bridge:** A `config.json` file in the project root serves as the local source of truth.
+3.  **Build-Time Injection:** PlatformIO scripts read `config.json` and inject values as C-preprocessor macros (e.g., `LPAD_WIFI_SSID`).
+4.  **Graceful Degradation:** If `config.json` is missing or keys are omitted, the system MUST fallback to "Demo Mode" without crashing.
+
+### C. Connectivity Architecture
+1.  **Async-First Networking:** `hal_network_init()` initiates the connection process but returns immediately.
+2.  **State Polling:** The application monitors connection state via `hal_network_get_status()` in the main loop. Blocking loops (e.g., `while(status != CONNECTED)`) are strictly prohibited in the main thread to prevent UI freezing.
+3.  **Domain Abstraction:** HTTP operations use a dedicated `hal_http_client` contract to decouple logic from the specific networking library (Arduino WiFiClient vs ESP-IDF).
+
+### D. Data Flow
 1.  **Unidirectional:** Data flows from Source -> Parser -> Model -> View.
     *   `YahooChartParser` (Source) -> `BondTracker` (Model) -> `TimeSeriesGraph` (View) -> `Display` (HAL).
 2.  **Immutability:** Parsed data should be treated as immutable once passed to the visualization layer.
 
-### C. Display Architecture
+### E. Display Architecture
 1.  **Relative Coordinates:** The Application Layer operates exclusively in a **0.0 to 1.0** float coordinate space.
     *   `x=0.0` is Left, `x=1.0` is Right.
     *   `y=0.0` is Bottom, `y=1.0` is Top.
@@ -47,12 +64,12 @@ graph TD
     *   **Composition:** The HAL is responsible for blitting these canvases to the physical display using `hal_display_fast_blit`.
 3.  **Partial Updates:** Full screen clears (`hal_display_clear`) are prohibited in the `loop()`. Updates must use dirty-rect logic or optimized blitting of small regions (e.g., the pulsing indicator).
 
-### D. State Management
+### F. State Management
 1.  **The Ticker:** The `AnimationTicker` is the single source of truth for time.
 2.  **Frame Rate:** The system targets a stable 30fps.
 3.  **Delta Time:** All animations (e.g., pulsing indicator) must be calculated based on `deltaTime` provided by the ticker, never on raw frame counts.
 
-### E. Persistent HIL Tests & Demos
+### G. Persistent HIL Tests & Demos
 1.  **Isolate Demo Code:** To preserve valuable Hardware-in-the-Loop (HIL) test code and release-specific demonstrations, it MUST NOT be written in `src/main.cpp`. A dedicated `demos/` directory will house these runnable examples.
 2.  **Naming Convention:** Each demo should correspond to a feature and be named appropriately, e.g., `demos/demo_screen.cpp`. Release demos follow a `demos/demo_release_<version>.cpp` convention.
 3.  **Activation via Build Environment:** Demos are compiled and run using dedicated build environments in `platformio.ini`. These environments MUST use the `build_src_filter` option to exclude `main.cpp` (`-<main.cpp>`) and include the target demo file (`+<../demos/demo_name.cpp>`).
