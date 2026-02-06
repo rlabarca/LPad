@@ -133,9 +133,8 @@ This dependency-driven prompting ensures the project is built layer by layer, in
 ---
 
 **CURRENT CONTEXT:**
-- **Release v0.5 validated:** All features in the dependency chain for `RELEASE_v0.5_display_drawing_ui_base.md` have been verified or implemented.
-- **Stable Baseline:** The project has a complete, verifiable stack from HAL to UI components.
-- **Theme System established:** Semantic colors and fonts defined for UI and Graph components.
-- **Design System Assets:** Typography headers (9pt, 12pt, 18pt, 24pt, 48pt) generated and integrated.
-- **Live DAG:** `scripts/show_graph.sh` now provides continuous visual monitoring of the feature graph.
-- **Project is ready for new feature development or specialized optimizations.**
+- **Release v0.5 validated:** The "V0.5 DEMO" multi-stage loop has passed HIL testing, validating complex layout logic, vertical axis titles, and runtime theme switching.
+- **Stable Baseline:** Core rendering engine, HAL abstraction, and UI base are fully operational across hardware targets.
+- **Theme System Mature:** `ThemeManager` supports dynamic runtime switching with unified color and font management.
+- **Process Robustness:** `show_graph.sh` and `test_local.sh` are optimized for stability and accurate status reporting in the CDD monitor.
+- **Project is ready for Release v0.6 planning or new application-level features.**
