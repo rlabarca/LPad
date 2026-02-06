@@ -177,10 +177,14 @@ void V055DemoApp::transitionToPhase(Phase newPhase) {
             Serial.println("[V055DemoApp] Creating V05DemoApp...");
             delete m_v05Demo;
             m_v05Demo = new V05DemoApp();
+
+            // Configure V05DemoApp to display "DEMO v0.55"
+            m_v05Demo->setTitle("DEMO v0.55");
+
             if (!m_v05Demo->begin(m_display)) {
                 Serial.println("[V055DemoApp] ERROR: V05DemoApp re-initialization failed");
             } else {
-                Serial.println("[V055DemoApp] V05DemoApp initialized successfully");
+                Serial.println("[V055DemoApp] V05DemoApp initialized successfully with title 'DEMO v0.55'");
             }
             break;
     }

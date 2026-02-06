@@ -53,6 +53,12 @@ public:
      */
     bool isFinished() const;
 
+    /**
+     * @brief Sets a custom version string for the demo title.
+     * @param title The title text to display (e.g., "DEMO v0.5" or "DEMO v0.55")
+     */
+    void setTitle(const char* title);
+
 private:
     enum Stage {
         STAGE_LOGO,         // Logo animation (wait + animate + hold)
@@ -66,6 +72,9 @@ private:
     TimeSeriesGraph* m_graph;
     LogoScreen* m_logoScreen;
     GraphData m_graphData;
+
+    // Title configuration
+    const char* m_titleText;
 
     // Timing
     float m_logoHoldTimer;
