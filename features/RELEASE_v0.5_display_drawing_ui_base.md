@@ -15,9 +15,7 @@ TODO: Trigger recursive validation.
 > Prerequisite: features/display_canvas_drawing.md
 > Prerequisite: features/display_relative_drawing.md
 > Prerequisite: features/display_background.md
-> Prerequisite: features/data_yahoo_chart_parser.md
 > Prerequisite: features/app_animation_ticker.md
-> Prerequisite: features/ui_time_series_graph.md
 > Prerequisite: features/ui_live_indicator.md
 > Prerequisite: features/app_demo_screen.md
 
