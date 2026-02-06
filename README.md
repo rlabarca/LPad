@@ -157,7 +157,8 @@ graph TD
     hal_core_contract --> hal_spec_network
     hal_core_contract --> hal_spec_timer
     hal_spec_timer --> hal_timer_esp32
-    hal_spec_network, features/ui_base[hal_spec_network, features/ui_base?] -.-> ui_connectivity_status_screen
+    hal_spec_network --> ui_connectivity_status_screen
+    ui_base --> ui_connectivity_status_screen
     ui_vector_assets --> ui_logo_screen
     app_animation_ticker --> ui_logo_screen
     display_canvas_drawing --> ui_theme_support

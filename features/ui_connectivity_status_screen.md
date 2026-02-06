@@ -2,7 +2,8 @@
 
 > Label: "Connectivity Status Screen"
 > Category: "UI Framework"
-> Prerequisite: features/hal_spec_network.md, features/ui_base.md
+> Prerequisite: features/hal_spec_network.md
+> Prerequisite: features/ui_base.md
 
 ## Introduction
 
