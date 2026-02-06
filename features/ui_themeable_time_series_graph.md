@@ -41,7 +41,13 @@ The class will be updated to include:
 
 ### API and Behavior
 
+- **`setTickLabelPosition(Position pos)`**: Configures whether tick labels are drawn `INSIDE` or `OUTSIDE` the graph axes.
+- **`setXAxisTitle(const char* title)`**: Sets the text for the X-axis title. The title is centered horizontally below the X-axis.
+- **`setYAxisTitle(const char* title)`**: Sets the text for the Y-axis title. The title is centered vertically along the Y-axis and **MUST be rendered vertically (rotated -90 degrees)**.
 - **`drawBackground()`**: This method renders static elements (axes, gridlines, background gradients) to the `bg_canvas`. **It MUST retrieve colors and fonts from `ThemeManager::getInstance().getTheme()`**. It should be called only once or when the theme changes.
+    - **Auto-Layout:** The method must calculate the internal "content area" (where the line is plotted) by subtracting necessary margins for axis titles and tick labels from the widget's total bounding box.
+    - **Label Overlap:** It must ensure that axis titles and tick labels do not overlap.
+    - **Y-Tick Alignment:** To prevent overlap with the X-axis, the first Y-axis tick label MUST be rendered at the first tick interval *above* the origin, not at the origin itself.
 - **`drawData()`**: This method clears the `data_canvas` to be fully transparent, then draws the current data set (e.g., the line graph) onto it. It is called only when data is updated via `setData()`.
 - **`render()`**: This method performs the final composition to the main display. It first blits the `bg_canvas`, then blits the `data_canvas` on top of it. This method is fast and should be called every frame.
 - **`update(float deltaTime)`**: This method handles real-time animations. It draws primitives (like the pulsing live indicator) **directly to the main display** *after* `render()` has been called. This ensures the animation is drawn on top of all other layers without requiring any expensive canvas redraws.
