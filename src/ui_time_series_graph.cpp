@@ -5,7 +5,6 @@
 
 #define _USE_MATH_DEFINES
 #include "ui_time_series_graph.h"
-#include "theme_manager.h"
 #include "../hal/display.h"
 #include <Arduino_GFX_Library.h>
 #include <algorithm>
@@ -178,6 +177,10 @@ void TimeSeriesGraph::drawBackground() {
 
         // Draw gradient pixel by pixel (could be optimized with line-based rendering)
         for (int32_t py = y_start; py < y_end; py++) {
+            // Feed watchdog every 16 rows to prevent timeout on large displays
+            if ((py & 0x0F) == 0) {
+                yield();
+            }
             for (int32_t px = x_start; px < x_end; px++) {
                 // Calculate position along gradient direction
                 // Project pixel position onto gradient vector
@@ -246,17 +249,21 @@ void TimeSeriesGraph::drawBackground() {
     // Draw X-axis ticks and labels
     drawXTicks(rel_bg_);
 
-    // Draw axis titles if set using ThemeManager fonts
+    // Draw axis titles if set
     Arduino_GFX* canvas = rel_bg_->getGfx();
     if (canvas) {
-        // Get theme for fonts
-        const LPad::Theme* lpadTheme = LPad::ThemeManager::getInstance().getTheme();
-        if (!lpadTheme) return;  // Safety check
+        // Use axisTitleFont from GraphTheme (or fallback to setTextSize(2))
+        bool has_font = (theme_.axisTitleFont != nullptr);
 
         // Draw X-axis title (horizontal, centered below X-axis)
-        if (x_axis_title_ != nullptr && lpadTheme->fonts.ui != nullptr) {
+        if (x_axis_title_ != nullptr) {
             canvas->setTextColor(theme_.tickColor);
-            canvas->setFont(lpadTheme->fonts.ui);  // Use UI font (18pt)
+            if (has_font) {
+                canvas->setFont(theme_.axisTitleFont);
+            } else {
+                canvas->setFont(nullptr);
+                canvas->setTextSize(2);
+            }
 
             // Get text bounds to center it
             int16_t x1, y1;
@@ -269,12 +276,21 @@ void TimeSeriesGraph::drawBackground() {
 
             canvas->setCursor(title_x, title_y);
             canvas->print(x_axis_title_);
+
+            // Reset font for subsequent drawing
+            canvas->setFont(nullptr);
+            canvas->setTextSize(1);
         }
 
         // Draw Y-axis title (vertical, rotated -90 degrees, centered along Y-axis)
-        if (y_axis_title_ != nullptr && lpadTheme->fonts.ui != nullptr) {
+        if (y_axis_title_ != nullptr) {
             canvas->setTextColor(theme_.tickColor);
-            canvas->setFont(lpadTheme->fonts.ui);  // Use UI font (18pt)
+            if (has_font) {
+                canvas->setFont(theme_.axisTitleFont);
+            } else {
+                canvas->setFont(nullptr);
+                canvas->setTextSize(2);
+            }
 
             // Get text bounds for font metrics
             int16_t x1, y1;
@@ -285,7 +301,6 @@ void TimeSeriesGraph::drawBackground() {
             // Position closer to the Y-axis (at margin boundary)
             int32_t y_axis_px = rel_bg_->relativeToAbsoluteX(GRAPH_MARGIN_LEFT);
             int32_t char_x = y_axis_px - w - 5;  // 5px to left of Y-axis
-            // Ensure we don't go off screen
             if (char_x < 0) char_x = 0;
 
             int32_t char_height = h + 2;  // Height per character with spacing
@@ -293,16 +308,18 @@ void TimeSeriesGraph::drawBackground() {
             int32_t total_height = title_len * char_height;
             int32_t start_y = (height_ - total_height) / 2;  // Center vertically
 
-            // Draw each character vertically
             for (size_t i = 0; i < title_len; i++) {
                 char str[2] = {y_axis_title_[i], '\0'};
                 int32_t y_pos = start_y + (i * char_height);
-                // Bounds check Y position too
                 if (y_pos >= 0 && y_pos < height_) {
                     canvas->setCursor(char_x, y_pos);
                     canvas->print(str);
                 }
             }
+
+            // Reset font
+            canvas->setFont(nullptr);
+            canvas->setTextSize(1);
         }
     }
 }

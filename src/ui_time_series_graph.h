@@ -49,6 +49,9 @@ struct GraphTheme {
 
     bool useBackgroundGradient;         ///< Whether to use background gradient
     bool useLineGradient;               ///< Whether to use line gradient
+
+    // Font for axis titles (passed from caller to avoid theme_manager dependency)
+    const GFXfont* axisTitleFont;       ///< Font for axis titles (nullptr = use default)
 };
 
 /**

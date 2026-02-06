@@ -82,6 +82,9 @@ GraphTheme createGradientTheme() {
     theme.liveIndicatorGradient.color_stops[1] = lpadTheme->colors.primary;
     theme.liveIndicatorPulseSpeed = 0.5f;  // 0.5 pulses per second (2 second cycle)
 
+    // Axis title font from ThemeManager (18pt UI font)
+    theme.axisTitleFont = lpadTheme->fonts.ui;
+
     return theme;
 }
 
@@ -110,6 +113,10 @@ GraphTheme createSolidTheme() {
     theme.liveIndicatorGradient.color_stops[0] = RGB565_GREEN;
     theme.liveIndicatorGradient.color_stops[1] = RGB565_GREEN;  // Same color = solid
     theme.liveIndicatorPulseSpeed = 0.5f;
+
+    // Axis title font - get from ThemeManager
+    const LPad::Theme* lpadTheme = LPad::ThemeManager::getInstance().getTheme();
+    theme.axisTitleFont = lpadTheme ? lpadTheme->fonts.ui : nullptr;
 
     return theme;
 }
@@ -142,6 +149,10 @@ GraphTheme createMixedTheme() {
     theme.liveIndicatorGradient.color_stops[0] = RGB565_YELLOW;
     theme.liveIndicatorGradient.color_stops[1] = RGB565_RED;
     theme.liveIndicatorPulseSpeed = 0.5f;
+
+    // Axis title font - get from ThemeManager
+    const LPad::Theme* lpadTheme = LPad::ThemeManager::getInstance().getTheme();
+    theme.axisTitleFont = lpadTheme ? lpadTheme->fonts.ui : nullptr;
 
     return theme;
 }
@@ -218,7 +229,7 @@ void setup() {
     int32_t height = hal_display_get_height_pixels();
     Serial.printf("  [INFO] Display resolution: %d x %d pixels\n", width, height);
     Serial.println();
-    delay(500);
+    delay(100);
 
     // [2/6] Initialize RelativeDisplay API
     Serial.println("[2/6] Initializing RelativeDisplay abstraction...");
@@ -237,7 +248,7 @@ void setup() {
     }
     Serial.println("  [PASS] RelativeDisplay initialized");
     Serial.println();
-    delay(500);
+    delay(100);
 
     // [3/6] Create AnimationTicker
     Serial.println("[3/6] Creating 30fps AnimationTicker...");
@@ -251,7 +262,7 @@ void setup() {
     Serial.flush();
     Serial.println("  [PASS] AnimationTicker created (30fps)");
     Serial.println();
-    delay(500);
+    delay(100);
 
     // [4/6] Parse test data
     Serial.println("[4/6] Parsing test data from embedded JSON...");
@@ -272,7 +283,7 @@ void setup() {
     g_graphData.y_values = parser.getClosePrices();
     Serial.printf("  [PASS] Parsed %d data points\n", g_graphData.y_values.size());
     Serial.println();
-    delay(500);
+    delay(100);
 
     // [5/6] Create UI components
     Serial.println("[5/6] Creating UI components...");
@@ -311,7 +322,7 @@ void setup() {
     Serial.println("  [PASS] TimeSeriesGraph created with integrated indicator");
     Serial.println("  [INFO] Initial mode: SCIENTIFIC + GRADIENT");
     Serial.println();
-    delay(500);
+    delay(100);
 
     // [6/6] Initial render
     Serial.println("[6/6] Performing initial render...");
