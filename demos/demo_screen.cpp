@@ -40,19 +40,20 @@ GraphData g_graphData;  // Store data for graph
 RelativeDisplay* g_relativeDisplay = nullptr;
 LogoScreen* g_logoScreen = nullptr;
 
-// Demo state machine - alternates between logo and graph
+// Demo state machine - shows logo, then cycles through all graph modes
 enum DemoPhase {
     PHASE_LOGO_ANIMATION,  // Animated LPad logo (wait + animate + hold)
-    PHASE_GRAPH_DISPLAY    // Show graph in current mode
+    PHASE_GRAPH_CYCLE      // Cycle through all 6 graph modes
 };
 DemoPhase g_currentPhase = PHASE_LOGO_ANIMATION;
 float g_logoHoldTimer = 0.0f;
 const float LOGO_HOLD_DURATION = 2.0f;  // Hold final logo position for 2 seconds
-const float GRAPH_DISPLAY_DURATION = 5.0f;  // Show each graph mode for 5 seconds
-float g_graphTimer = 0.0f;
+const float MODE_SWITCH_INTERVAL = 5.0f;  // Show each graph mode for 5 seconds
+float g_modeTimer = 0.0f;
 
 // Mode cycling (6 combinations: 2 layouts x 3 visual styles)
 int g_currentMode = 0;       // 0-5: cycles through 6 combinations
+int g_modesShown = 0;        // Track how many modes shown in current cycle
 
 // Create theme with ALL GRADIENTS using ThemeManager colors (Mode 0)
 GraphTheme createGradientTheme() {
@@ -364,27 +365,32 @@ void setup() {
     Serial.println("=== Release 0.5 Demo Application Ready ===");
     Serial.println();
     Serial.println("Demo Cycle (repeats indefinitely):");
-    Serial.println("  Logo Animation → Graph Mode → Logo Animation → Next Mode → ...");
+    Serial.println("  Logo Animation → All 6 Graph Modes → Logo Again → Repeat");
     Serial.println();
-    Serial.println("Each Cycle:");
-    Serial.println("  1. Logo: Wait 2s + Animate 1.5s + Hold 2s");
-    Serial.println("  2. Graph: Display mode for 5s");
-    Serial.println("  3. Repeat with next mode (6 modes total)");
+    Serial.println("Sequence:");
+    Serial.println("  1. Logo: Wait 2s + Animate 1.5s + Hold 2s (5.5s total)");
+    Serial.println("  2. Graph Modes: Cycle through all 6 modes @ 5s each (30s total)");
+    Serial.println("  3. Return to step 1");
     Serial.println();
-    Serial.println("Graph Modes (2 layouts x 3 visual styles):");
-    Serial.println("  Mode 0-2: SCIENTIFIC layout (OUTSIDE labels + axis titles)");
-    Serial.println("    0: Gradient theme");
-    Serial.println("    1: Solid colors");
-    Serial.println("    2: Mixed (solid bg + gradient line)");
-    Serial.println("  Mode 3-5: COMPACT layout (INSIDE labels, no titles)");
-    Serial.println("    3: Gradient theme");
-    Serial.println("    4: Solid colors");
-    Serial.println("    5: Mixed");
+    Serial.println("Graph Modes (2 layouts × 3 visual styles = 6 combinations):");
+    Serial.println();
+    Serial.println("  SCIENTIFIC Layout (OUTSIDE labels + axis titles):");
+    Serial.println("    Mode 0: Gradient theme");
+    Serial.println("    Mode 1: Solid colors");
+    Serial.println("    Mode 2: Mixed (solid bg + gradient line)");
+    Serial.println();
+    Serial.println("  COMPACT Layout (INSIDE labels, no titles):");
+    Serial.println("    Mode 3: Gradient theme");
+    Serial.println("    Mode 4: Solid colors");
+    Serial.println("    Mode 5: Mixed");
     Serial.println();
     Serial.println("Visual Elements:");
-    Serial.println("  [x] Animated Vector Logo with dirty-rect optimization");
-    Serial.println("  [x] Flicker-free graph rendering");
+    Serial.println("  [x] Animated Vector Logo (start: 75% height, end: 5% height)");
+    Serial.println("  [x] Dirty-rect optimization (flicker-free)");
     Serial.println("  [x] Smooth 30fps animation");
+    Serial.println("  [x] Aspect ratio preservation");
+    Serial.println();
+    Serial.println("Total cycle time: ~35.5 seconds");
     Serial.println();
     Serial.println("Starting animation loop...");
     Serial.println();
@@ -394,7 +400,7 @@ void loop() {
     // Wait for next frame and get deltaTime
     float deltaTime = g_ticker->waitForNextFrame();
 
-    // Phase state machine - alternates between logo animation and graph display
+    // Phase state machine - logo animation, then cycle through all 6 graph modes
     switch (g_currentPhase) {
         case PHASE_LOGO_ANIMATION: {
             // Update logo animation (handles rendering internally with dirty-rect)
@@ -404,13 +410,60 @@ void loop() {
             if (logoState == LogoScreen::State::DONE) {
                 g_logoHoldTimer += deltaTime;
                 if (g_logoHoldTimer >= LOGO_HOLD_DURATION) {
-                    // Transition to graph display for current mode
-                    g_currentPhase = PHASE_GRAPH_DISPLAY;
-                    g_graphTimer = 0.0f;
+                    // Transition to graph cycle phase
+                    Serial.println("\n=== Starting Graph Mode Cycle (6 modes) ===\n");
+                    g_currentPhase = PHASE_GRAPH_CYCLE;
+                    g_modeTimer = 0.0f;
                     g_logoHoldTimer = 0.0f;
+                    g_currentMode = 0;  // Start from mode 0
+                    g_modesShown = 0;
 
-                    // Configure graph for current mode
+                    // Configure and render first graph mode
+                    GraphTheme newTheme = createGradientTheme();
+                    g_graph->setTheme(newTheme);
+                    g_graph->setTickLabelPosition(TickLabelPosition::OUTSIDE);
+                    g_graph->setXAxisTitle("TIME (5m)");
+                    g_graph->setYAxisTitle("YIELD (%)");
+
+                    Serial.println(">>> Mode 0: SCIENTIFIC + GRADIENT <<<");
+
+                    g_graph->drawBackground();
+                    g_graph->drawData();
+                    g_graph->render();
+                    drawTitle();
+                    hal_display_flush();
+                }
+            }
+            break;
+        }
+
+        case PHASE_GRAPH_CYCLE: {
+            if (g_graph == nullptr) return;
+
+            // Update graph animation (live indicator)
+            g_graph->update(deltaTime);
+            hal_display_flush();
+
+            // Check if it's time to switch to next mode
+            g_modeTimer += deltaTime;
+            if (g_modeTimer >= MODE_SWITCH_INTERVAL) {
+                g_modeTimer = 0.0f;
+                g_modesShown++;
+
+                // Check if we've shown all 6 modes
+                if (g_modesShown >= 6) {
+                    // Return to logo animation
+                    Serial.println("\n=== All 6 modes shown, returning to Logo Animation ===\n");
+                    g_logoScreen->reset();
+                    g_currentPhase = PHASE_LOGO_ANIMATION;
+                    g_modesShown = 0;
+                } else {
+                    // Advance to next mode
+                    g_currentMode = (g_currentMode + 1) % 6;
+
+                    // Visual mode: 0=Gradient, 1=Solid, 2=Mixed
                     int visualMode = g_currentMode % 3;
+                    // Layout mode: 0=Scientific (modes 0-2), 1=Compact (modes 3-5)
                     int layoutMode = g_currentMode / 3;
 
                     // Apply visual theme
@@ -439,34 +492,13 @@ void loop() {
 
                     Serial.printf("\n>>> Mode %d: %s + %s <<<\n\n", g_currentMode, layoutName, visualName);
 
-                    // Render graph
+                    // Redraw static layers with new theme and layout
                     g_graph->drawBackground();
                     g_graph->drawData();
                     g_graph->render();
                     drawTitle();
                     hal_display_flush();
                 }
-            }
-            break;
-        }
-
-        case PHASE_GRAPH_DISPLAY: {
-            if (g_graph == nullptr) return;
-
-            // Update graph animation
-            g_graph->update(deltaTime);
-            hal_display_flush();
-
-            // Check if it's time to switch to next mode
-            g_graphTimer += deltaTime;
-            if (g_graphTimer >= GRAPH_DISPLAY_DURATION) {
-                // Advance to next mode
-                g_currentMode = (g_currentMode + 1) % 6;
-
-                // Reset and show logo animation again
-                Serial.printf("\n>>> Showing Logo Animation for Mode %d <<<\n\n", g_currentMode);
-                g_logoScreen->reset();
-                g_currentPhase = PHASE_LOGO_ANIMATION;
             }
             break;
         }
