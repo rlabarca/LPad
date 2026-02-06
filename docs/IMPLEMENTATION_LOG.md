@@ -214,7 +214,29 @@ This approach required adding a `setTheme()` method to the `TimeSeriesGraph` cla
 
 ---
 
-## [2026-02-05] Tick Label Positioning (INSIDE/OUTSIDE) and Axis Titles
+## [2026-02-06] Domain-Segmented HAL & Interactive Graph Viewer
+
+### Problem
+As the project expands into Networking and HTTP (v0.6), the monolithic `hal_contracts.md` and the terminal-based dependency graph visualization were becoming difficult to maintain and read.
+
+### Solution: Domain-Segmented HAL
+1.  **HAL Core Contract**: Established a root contract (`hal_core_contract.md`) defining fundamental rules (C-compatibility, Error Handling, Stub Mandate).
+2.  **Modular Specifications**: Split the monolithic contract into domain-specific specs:
+    *   `hal_spec_display.md`
+    *   `hal_spec_timer.md`
+    *   `hal_spec_network.md` (New for v0.6)
+3.  **Encapsulation**: Each domain now has its own header (e.g., `hal/network.h`, `hal/display.h`) to prevent application logic from needing to include unrelated hardware definitions.
+
+### Solution: Interactive Graph Viewer
+1.  **Problem**: The iTerm2 terminal image was not zoomable, making large graphs unreadable.
+2.  **Interactive Viewer**: Created `scripts/serve_graph.py` (minimal Python server) and `scripts/graph_viewer.html` (Mermaid.js + svg-pan-zoom).
+3.  **Live-Reload**: The viewer polls for changes to `feature_graph.mmd` and re-renders in-place, preserving zoom level.
+4.  **Styling**: Updated the generator to use large (24px bold) titles for category subgraphs to improve high-level architectural visibility.
+
+### Key Lessons
+1.  **Architecture is a living document**: Don't be afraid to refactor the HAL *before* it gets too messy. Segmenting by domain early prevents "Header Spaghetti."
+2.  **Browser > Terminal for Visualization**: Browsers offer superior interactive capabilities (zoom, search, pan) for complex diagrams.
+3.  **Gherkin Prerequisite Formatting**: Discovered that the dependency parser is sensitive to formatting. Multiple prerequisites MUST be on separate lines (`> Prerequisite: X \n > Prerequisite: Y`) to be parsed correctly by the regex.
 
 ### Problem
 The demo_release_0.5.md spec requires two layout modes: "Scientific" (OUTSIDE tick labels + axis titles) and "Compact" (INSIDE tick labels, no titles). Previous attempts to modify the graph draw methods caused watchdog reset (TG1WDT_SYS_RST) crashes.
