@@ -40,19 +40,19 @@ GraphData g_graphData;  // Store data for graph
 RelativeDisplay* g_relativeDisplay = nullptr;
 LogoScreen* g_logoScreen = nullptr;
 
-// Demo state machine
+// Demo state machine - alternates between logo and graph
 enum DemoPhase {
     PHASE_LOGO_ANIMATION,  // Animated LPad logo (wait + animate + hold)
-    PHASE_GRAPH_DEMO       // Show graph with mode switching
+    PHASE_GRAPH_DISPLAY    // Show graph in current mode
 };
 DemoPhase g_currentPhase = PHASE_LOGO_ANIMATION;
 float g_logoHoldTimer = 0.0f;
-const float LOGO_HOLD_DURATION = 2.0f;  // Hold final position for 2 seconds
+const float LOGO_HOLD_DURATION = 2.0f;  // Hold final logo position for 2 seconds
+const float GRAPH_DISPLAY_DURATION = 5.0f;  // Show each graph mode for 5 seconds
+float g_graphTimer = 0.0f;
 
-// Mode switching state (for graph phase)
+// Mode cycling (6 combinations: 2 layouts x 3 visual styles)
 int g_currentMode = 0;       // 0-5: cycles through 6 combinations
-float g_modeTimer = 0.0f;
-const float MODE_SWITCH_INTERVAL = 5.0f;  // Switch modes every 5 seconds
 
 // Create theme with ALL GRADIENTS using ThemeManager colors (Mode 0)
 GraphTheme createGradientTheme() {
@@ -363,29 +363,30 @@ void setup() {
 
     Serial.println("=== Release 0.5 Demo Application Ready ===");
     Serial.println();
-    Serial.println("Demo Sequence:");
-    Serial.println("  Phase 1: Animated LPad Logo");
-    Serial.println("    - Wait: 2 seconds (centered, large)");
-    Serial.println("    - Animate: 1.5 seconds (move to top-right, shrink)");
-    Serial.println("    - Hold: 2 seconds (final position)");
-    Serial.println("  Phase 2: Graph Demo with Mode Switching");
+    Serial.println("Demo Cycle (repeats indefinitely):");
+    Serial.println("  Logo Animation → Graph Mode → Logo Animation → Next Mode → ...");
     Serial.println();
-    Serial.println("Visual Elements (using ThemeManager colors):");
-    Serial.println("  [x] Animated Vector Logo: Smooth EaseInOut transition");
-    Serial.println("  [x] Title: 'V0.5 DEMO' (ThemeFonts.heading, ThemeColors.text_main)");
-    Serial.println("  [x] Background: 45-degree gradient (background->secondary)");
-    Serial.println("  [x] Graph Line: Gradient (primary->accent)");
-    Serial.println("  [x] Live Indicator: Pulsing at 30fps (accent->primary)");
-    Serial.println("  [x] Y-Axis Labels: ThemeFonts.smallest");
+    Serial.println("Each Cycle:");
+    Serial.println("  1. Logo: Wait 2s + Animate 1.5s + Hold 2s");
+    Serial.println("  2. Graph: Display mode for 5s");
+    Serial.println("  3. Repeat with next mode (6 modes total)");
     Serial.println();
-    Serial.println("Mode Switching Demo - Tests gradient and solid rendering:");
+    Serial.println("Graph Modes (2 layouts x 3 visual styles):");
+    Serial.println("  Mode 0-2: SCIENTIFIC layout (OUTSIDE labels + axis titles)");
+    Serial.println("    0: Gradient theme");
+    Serial.println("    1: Solid colors");
+    Serial.println("    2: Mixed (solid bg + gradient line)");
+    Serial.println("  Mode 3-5: COMPACT layout (INSIDE labels, no titles)");
+    Serial.println("    3: Gradient theme");
+    Serial.println("    4: Solid colors");
+    Serial.println("    5: Mixed");
     Serial.println();
-    Serial.println("Mode 0 (ThemeManager colors with gradients)");
-    Serial.println("Mode 1 (Solid colors)");
-    Serial.println("Mode 2 (Mixed mode)");
+    Serial.println("Visual Elements:");
+    Serial.println("  [x] Animated Vector Logo with dirty-rect optimization");
+    Serial.println("  [x] Flicker-free graph rendering");
+    Serial.println("  [x] Smooth 30fps animation");
     Serial.println();
-    Serial.printf("Switching modes every %.0f seconds...\n", MODE_SWITCH_INTERVAL);
-    Serial.println("Starting 30fps animation loop...");
+    Serial.println("Starting animation loop...");
     Serial.println();
 }
 
@@ -393,7 +394,7 @@ void loop() {
     // Wait for next frame and get deltaTime
     float deltaTime = g_ticker->waitForNextFrame();
 
-    // Phase state machine
+    // Phase state machine - alternates between logo animation and graph display
     switch (g_currentPhase) {
         case PHASE_LOGO_ANIMATION: {
             // Update logo animation (handles rendering internally with dirty-rect)
@@ -403,79 +404,71 @@ void loop() {
             if (logoState == LogoScreen::State::DONE) {
                 g_logoHoldTimer += deltaTime;
                 if (g_logoHoldTimer >= LOGO_HOLD_DURATION) {
-                    Serial.println("\n=== Transitioning to Graph Demo Phase ===\n");
-                    g_currentPhase = PHASE_GRAPH_DEMO;
+                    // Transition to graph display for current mode
+                    g_currentPhase = PHASE_GRAPH_DISPLAY;
+                    g_graphTimer = 0.0f;
+                    g_logoHoldTimer = 0.0f;
 
-                    // Render initial graph state
-                    if (g_graph != nullptr) {
-                        g_graph->drawBackground();
-                        g_graph->drawData();
-                        g_graph->render();
-                        drawTitle();
-                        hal_display_flush();
+                    // Configure graph for current mode
+                    int visualMode = g_currentMode % 3;
+                    int layoutMode = g_currentMode / 3;
+
+                    // Apply visual theme
+                    GraphTheme newTheme;
+                    const char* visualName;
+                    switch (visualMode) {
+                        case 0:  newTheme = createGradientTheme(); visualName = "GRADIENT"; break;
+                        case 1:  newTheme = createSolidTheme();    visualName = "SOLID";    break;
+                        default: newTheme = createMixedTheme();    visualName = "MIXED";    break;
                     }
+                    g_graph->setTheme(newTheme);
+
+                    // Apply layout mode
+                    const char* layoutName;
+                    if (layoutMode == 0) {
+                        layoutName = "SCIENTIFIC";
+                        g_graph->setTickLabelPosition(TickLabelPosition::OUTSIDE);
+                        g_graph->setXAxisTitle("TIME (5m)");
+                        g_graph->setYAxisTitle("YIELD (%)");
+                    } else {
+                        layoutName = "COMPACT";
+                        g_graph->setTickLabelPosition(TickLabelPosition::INSIDE);
+                        g_graph->setXAxisTitle(nullptr);
+                        g_graph->setYAxisTitle(nullptr);
+                    }
+
+                    Serial.printf("\n>>> Mode %d: %s + %s <<<\n\n", g_currentMode, layoutName, visualName);
+
+                    // Render graph
+                    g_graph->drawBackground();
+                    g_graph->drawData();
+                    g_graph->render();
+                    drawTitle();
+                    hal_display_flush();
                 }
             }
             break;
         }
 
-        case PHASE_GRAPH_DEMO:
-            if (g_graph == nullptr) {
-                return;
-            }
+        case PHASE_GRAPH_DISPLAY: {
+            if (g_graph == nullptr) return;
 
-            // Mode switching: 6 combinations (2 layout x 3 visual), cycling every 5s
-            g_modeTimer += deltaTime;
-            if (g_modeTimer >= MODE_SWITCH_INTERVAL) {
-                g_modeTimer = 0.0f;
+            // Update graph animation
+            g_graph->update(deltaTime);
+            hal_display_flush();
+
+            // Check if it's time to switch to next mode
+            g_graphTimer += deltaTime;
+            if (g_graphTimer >= GRAPH_DISPLAY_DURATION) {
+                // Advance to next mode
                 g_currentMode = (g_currentMode + 1) % 6;
 
-                // Visual mode: 0=Gradient, 1=Solid, 2=Mixed (cycles within each layout)
-                int visualMode = g_currentMode % 3;
-                // Layout mode: 0=Scientific (first 3), 1=Compact (last 3)
-                int layoutMode = g_currentMode / 3;
-
-                // Apply visual theme
-                GraphTheme newTheme;
-                const char* visualName;
-                switch (visualMode) {
-                    case 0:  newTheme = createGradientTheme(); visualName = "GRADIENT"; break;
-                    case 1:  newTheme = createSolidTheme();    visualName = "SOLID";    break;
-                    default: newTheme = createMixedTheme();    visualName = "MIXED";    break;
-                }
-                g_graph->setTheme(newTheme);
-
-                // Apply layout mode
-                const char* layoutName;
-                if (layoutMode == 0) {
-                    layoutName = "SCIENTIFIC";
-                    g_graph->setTickLabelPosition(TickLabelPosition::OUTSIDE);
-                    g_graph->setXAxisTitle("TIME (5m)");
-                    g_graph->setYAxisTitle("YIELD (%)");
-                } else {
-                    layoutName = "COMPACT";
-                    g_graph->setTickLabelPosition(TickLabelPosition::INSIDE);
-                    g_graph->setXAxisTitle(nullptr);
-                    g_graph->setYAxisTitle(nullptr);
-                }
-
-                Serial.printf("\n>>> %s + %s <<<\n\n", layoutName, visualName);
-
-                // Redraw static layers with new theme and layout
-                g_graph->drawBackground();
-                g_graph->drawData();
-                g_graph->render();
-
-                drawTitle();
-                hal_display_flush();
+                // Reset and show logo animation again
+                Serial.printf("\n>>> Showing Logo Animation for Mode %d <<<\n\n", g_currentMode);
+                g_logoScreen->reset();
+                g_currentPhase = PHASE_LOGO_ANIMATION;
             }
-
-            // Update the graph with integrated live indicator animation
-            // This uses dirty-rect optimization to avoid flashing
-            g_graph->update(deltaTime);
-
-            // Flush to ensure display updates
-            hal_display_flush();
             break;
+        }
     }
 }

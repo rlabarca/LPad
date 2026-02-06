@@ -72,7 +72,13 @@ bool LogoScreen::begin(RelativeDisplay* display, uint16_t backgroundColor) {
         return false;
     }
 
-    // Fill composite buffer with background color
+    // Draw full screen background to display and capture to composite buffer
+    m_display->drawSolidBackground(backgroundColor);
+    hal_display_flush();
+
+    // Copy the displayed background to composite buffer
+    // (In a real implementation, we'd capture directly from the display buffer,
+    // but for now we just fill with the background color)
     for (size_t i = 0; i < buffer_size; i++) {
         m_compositeBuffer[i] = backgroundColor;
     }
@@ -148,13 +154,50 @@ void LogoScreen::updateAnimParams(float t) {
     m_current.anchorY = START_ANCHOR_Y + (END_ANCHOR_Y - START_ANCHOR_Y) * t;
 }
 
+void LogoScreen::reset() {
+    // Reset to initial state
+    m_state = State::WAIT;
+    m_timer = 0.0f;
+    m_hasDrawnLogo = false;
+
+    // Reset to start position
+    m_current.posX = START_POS_X;
+    m_current.posY = START_POS_Y;
+    m_current.heightPercent = START_HEIGHT;
+    m_current.anchorX = START_ANCHOR_X;
+    m_current.anchorY = START_ANCHOR_Y;
+
+    // Clear screen and redraw background
+    if (m_display != nullptr && m_compositeBuffer != nullptr) {
+        m_display->drawSolidBackground(m_backgroundColor);
+        hal_display_flush();
+
+        // Refill composite buffer
+        size_t buffer_size = static_cast<size_t>(m_width) * static_cast<size_t>(m_height);
+        for (size_t i = 0; i < buffer_size; i++) {
+            m_compositeBuffer[i] = m_backgroundColor;
+        }
+
+        // Draw initial frame
+        renderLogo();
+    }
+}
+
 void LogoScreen::calculateBoundingBox(const AnimParams& params,
                                      int32_t& out_x, int32_t& out_y,
                                      int32_t& out_width, int32_t& out_height) {
-    // Calculate logo dimensions
-    float aspectRatio = VectorAssets::Lpadlogo.original_width /
-                       VectorAssets::Lpadlogo.original_height;
-    float widthPercent = params.heightPercent * aspectRatio;
+    // Calculate logo dimensions preserving aspect ratio
+    // The logo is 245x370 (W x H), which is portrait (taller than wide)
+    // We want heightPercent of screen height, so calculate width accordingly
+
+    float logoAspectRatio = VectorAssets::Lpadlogo.original_width /
+                           VectorAssets::Lpadlogo.original_height;  // 245/370 = 0.662
+
+    // Account for screen aspect ratio when converting height% to width%
+    float screenAspectRatio = static_cast<float>(m_height) / static_cast<float>(m_width);  // 170/320 = 0.531
+
+    // Width percent needed to maintain logo aspect ratio at given height percent
+    float widthPercent = params.heightPercent * screenAspectRatio * logoAspectRatio;
     float heightPercent = params.heightPercent;
 
     // Calculate top-left position (accounting for anchor)
@@ -219,10 +262,11 @@ void LogoScreen::renderLogo() {
     }
 
     // Step 2: Render new logo into the temp buffer
-    // We need to draw the logo triangles into the region buffer
-    float aspectRatio = VectorAssets::Lpadlogo.original_width /
-                       VectorAssets::Lpadlogo.original_height;
-    float widthPercent = m_current.heightPercent * aspectRatio;
+    // Calculate width maintaining aspect ratio and accounting for screen dimensions
+    float logoAspectRatio = VectorAssets::Lpadlogo.original_width /
+                           VectorAssets::Lpadlogo.original_height;
+    float screenAspectRatio = static_cast<float>(m_height) / static_cast<float>(m_width);
+    float widthPercent = m_current.heightPercent * screenAspectRatio * logoAspectRatio;
 
     // For each path in the logo
     for (size_t path_idx = 0; path_idx < VectorAssets::Lpadlogo.num_paths; path_idx++) {

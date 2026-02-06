@@ -60,6 +60,11 @@ public:
      */
     State getState() const { return m_state; }
 
+    /**
+     * Reset animation to beginning (for replaying)
+     */
+    void reset();
+
 private:
     // Timing
     float m_waitDuration;
