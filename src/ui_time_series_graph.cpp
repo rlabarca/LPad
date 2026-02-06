@@ -251,9 +251,10 @@ void TimeSeriesGraph::drawBackground() {
     if (canvas) {
         // Get theme for fonts
         const LPad::Theme* lpadTheme = LPad::ThemeManager::getInstance().getTheme();
+        if (!lpadTheme) return;  // Safety check
 
         // Draw X-axis title (horizontal, centered below X-axis)
-        if (x_axis_title_ != nullptr) {
+        if (x_axis_title_ != nullptr && lpadTheme->fonts.ui != nullptr) {
             canvas->setTextColor(theme_.tickColor);
             canvas->setFont(lpadTheme->fonts.ui);  // Use UI font (18pt)
 
@@ -271,7 +272,7 @@ void TimeSeriesGraph::drawBackground() {
         }
 
         // Draw Y-axis title (vertical, rotated -90 degrees, centered along Y-axis)
-        if (y_axis_title_ != nullptr) {
+        if (y_axis_title_ != nullptr && lpadTheme->fonts.ui != nullptr) {
             canvas->setTextColor(theme_.tickColor);
             canvas->setFont(lpadTheme->fonts.ui);  // Use UI font (18pt)
 
@@ -284,15 +285,23 @@ void TimeSeriesGraph::drawBackground() {
             // Position closer to the Y-axis (at margin boundary)
             int32_t y_axis_px = rel_bg_->relativeToAbsoluteX(GRAPH_MARGIN_LEFT);
             int32_t char_x = y_axis_px - w - 5;  // 5px to left of Y-axis
+            // Ensure we don't go off screen
+            if (char_x < 0) char_x = 0;
+
             int32_t char_height = h + 2;  // Height per character with spacing
-            int32_t total_height = strlen(y_axis_title_) * char_height;
+            size_t title_len = strlen(y_axis_title_);
+            int32_t total_height = title_len * char_height;
             int32_t start_y = (height_ - total_height) / 2;  // Center vertically
 
             // Draw each character vertically
-            for (size_t i = 0; i < strlen(y_axis_title_); i++) {
+            for (size_t i = 0; i < title_len; i++) {
                 char str[2] = {y_axis_title_[i], '\0'};
-                canvas->setCursor(char_x, start_y + (i * char_height));
-                canvas->print(str);
+                int32_t y_pos = start_y + (i * char_height);
+                // Bounds check Y position too
+                if (y_pos >= 0 && y_pos < height_) {
+                    canvas->setCursor(char_x, y_pos);
+                    canvas->print(str);
+                }
             }
         }
     }
@@ -433,6 +442,8 @@ void TimeSeriesGraph::drawYTicks(RelativeDisplay* target) {
             // OUTSIDE: Place to the LEFT of Y-axis (in the margin area)
             int32_t y_axis_px = target->relativeToAbsoluteX(x_axis);
             label_x = y_axis_px - w - 3;  // 3px spacing to left of Y-axis
+            // Ensure we don't go off screen
+            if (label_x < 0) label_x = 0;
         } else {
             // INSIDE: Place to the RIGHT of tick marks (in the plot area)
             label_x = target->relativeToAbsoluteX(tick_end + 1.0f);
