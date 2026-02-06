@@ -14,8 +14,8 @@ static constexpr float START_ANCHOR_Y = 0.5f;
 // End state from spec (top-right corner, small, top-right anchor)
 // Logo's top-right corner should be 10px from screen's top-right corner
 static constexpr float END_HEIGHT = 10.0f;  // 10% of screen height
-static constexpr float END_ANCHOR_X = 1.0f;  // Top-right anchor (X: right edge)
-static constexpr float END_ANCHOR_Y = 1.0f;  // Top-right anchor (Y: top in asset space)
+static constexpr float END_ANCHOR_X = 1.0f;  // Top-right anchor (X: right edge in asset)
+static constexpr float END_ANCHOR_Y = 0.0f;  // Top-right anchor (Y: top edge in asset, Y=0 is top)
 static constexpr float CORNER_OFFSET_PX = 10.0f;  // Offset from corner in pixels
 
 LogoScreen::LogoScreen(float waitDuration, float animDuration)

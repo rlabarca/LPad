@@ -29,7 +29,7 @@ The `LogoScreen` class should manage its own state and drawing.
     -   **Target Location:** Top-right corner of the screen with 10px buffer
     -   **In Screen Pixels (origin top-left):** Logo's top-right corner at `(ScreenWidth - 10, 10)`
     -   **Visual Intent:** Logo sits 10 pixels from the right edge and 10 pixels from the TOP edge of the screen
-    -   **Anchor:** Top-right corner of logo (1.0, 1.0) - anchor Y=1.0 for top in asset space
+    -   **Anchor:** Top-right corner of logo (1.0, 0.0) - in asset space X=1.0 is right, Y=0.0 is top
     -   **Size:** 10% of screen height
 -   **Duration:** 1.5 seconds.
 -   **Easing:** Smooth acceleration/deceleration (EaseInOutCubic).
@@ -63,7 +63,7 @@ The `LogoScreen` class should manage its own state and drawing.
 -   **When** `update` is called.
 -   **Then** the Logo's top-right corner should move towards the TOP-right corner of the screen, 10 pixels from the right edge and 10 pixels from the TOP edge.
 -   **And** the Logo's size should decrease towards 10% height.
--   **And** the Logo's anchor point should transition smoothly from center (0.5, 0.5) to top-right (1.0, 1.0).
+-   **And** the Logo's anchor point should transition smoothly from center (0.5, 0.5) to top-right (1.0, 0.0).
 -   **And** the logo should remain fully visible on screen (not extend above the top edge).
 
 ### Scenario: Completion
