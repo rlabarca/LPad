@@ -84,6 +84,24 @@ graph TD
 2.  **RGB888:** Documentation and web-facing tools use 24-bit RGB888.
 3.  **Semantic Definitions:** Colors are mapped from a base palette to semantic roles (e.g., `COLOR_SAGE` -> `THEME_PRIMARY`).
 
+## 5. Asset Management
+
+### A. Vector-First Strategy
+To ensure resolution independence and maximize memory efficiency on memory-constrained hardware (ESP32-S3), the system prioritizes **Vector Assets** (SVG) over Bitmaps for UI elements (logos, icons, illustrations).
+
+1.  **Memory Efficiency:** Vector meshes occupy significantly less Flash and RAM than pre-rendered bitmaps, especially for high-resolution displays.
+2.  **Resolution Independence:** Vector assets scale perfectly to any display size or orientation without aliasing or artifacts.
+3.  **CPU over RAM:** We leverage the ESP32-S3's dual-core 240MHz CPU to calculate vertex transformations and fill polygons in real-time, preserving precious PSRAM/SRAM for data buffers.
+
+### B. Asset Pipeline
+1.  **Source:** All assets originate as `.svg` files in the `assets/` directory.
+2.  **Compilation:** A specialized script (`scripts/process_svgs.py`) parses SVGs and triangulates paths into C++ vertex meshes.
+3.  **Static Data:** The resulting meshes are stored as `const` arrays in Flash memory (using the `PROGMEM` pattern where applicable) to minimize runtime heap usage.
+
+### C. Scaling and Animation
+1.  **Pivot-Based Transforms:** Rendering supports arbitrary anchor points (0.0 to 1.0) within the asset to facilitate complex scaling (e.g., "scale from center") and translation.
+2.  **Interpolation:** Asset properties (X, Y, Scale, Rotation) are interpolated using `deltaTime` to ensure smooth animation at the target frame rate.
+
 ## 3. Implementation Patterns
 
 ### HAL Implementation
