@@ -5,7 +5,7 @@
  * This header defines the abstract interface for timer operations within the HAL.
  * Any concrete implementation of a timer must adhere to these contract definitions.
  *
- * See features/hal_contracts.md for complete specification.
+ * See features/hal_spec_timer.md for complete specification.
  */
 
 #ifndef HAL_TIMER_H

@@ -5,7 +5,7 @@
  * This header defines the abstract interface for display operations within the HAL.
  * Any concrete implementation of a display driver must adhere to these contract definitions.
  *
- * See features/hal_contracts.md for complete specification.
+ * See features/hal_spec_display.md for complete specification.
  */
 
 #ifndef HAL_DISPLAY_H
