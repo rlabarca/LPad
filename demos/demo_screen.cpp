@@ -36,10 +36,10 @@ TimeSeriesGraph* g_graph = nullptr;
 AnimationTicker* g_ticker = nullptr;
 GraphData g_graphData;  // Store data for graph
 
-// Mode switching state
+// Mode switching state (Scientific vs Compact layout modes)
 int g_currentMode = 0;
 float g_modeTimer = 0.0f;
-const float MODE_SWITCH_INTERVAL = 8.0f;  // Switch modes every 8 seconds
+const float MODE_SWITCH_INTERVAL = 5.0f;  // Switch modes every 5 seconds per spec
 
 // Create theme with ALL GRADIENTS using ThemeManager colors (Mode 0)
 GraphTheme createGradientTheme() {
@@ -337,11 +337,10 @@ void setup() {
     Serial.println("  [x] Live Indicator: Pulsing at 30fps (accent->primary)");
     Serial.println("  [x] Y-Axis Labels: ThemeFonts.smallest");
     Serial.println();
-    Serial.println("Mode Switching Demo - Tests gradient and solid rendering:");
+    Serial.println("Mode Switching Demo - Tests Scientific vs Compact layout:");
     Serial.println();
-    Serial.println("Mode 0 (ThemeManager colors with gradients)");
-    Serial.println("Mode 1 (Solid colors)");
-    Serial.println("Mode 2 (Mixed mode)");
+    Serial.println("Stage 1: Scientific Mode (OUTSIDE tick labels + Axis Titles)");
+    Serial.println("Stage 2: Compact Mode (INSIDE tick labels + No Titles)");
     Serial.println();
     Serial.printf("Switching modes every %.0f seconds...\n", MODE_SWITCH_INTERVAL);
     Serial.println("Starting 30fps animation loop...");
@@ -356,40 +355,31 @@ void loop() {
         return;
     }
 
-    // Mode switching logic - cycle through different visual styles
+    // Mode switching logic - cycle between Scientific and Compact layout modes
     g_modeTimer += deltaTime;
     if (g_modeTimer >= MODE_SWITCH_INTERVAL) {
         g_modeTimer = 0.0f;
-        g_currentMode = (g_currentMode + 1) % 3;  // Cycle through 3 modes
+        g_currentMode = (g_currentMode + 1) % 2;  // Cycle through 2 modes
 
-        // Create new theme based on mode
-        GraphTheme newTheme;
+        // Configure layout based on mode
         const char* modeName;
-        switch (g_currentMode) {
-            case 0:
-                newTheme = createGradientTheme();
-                modeName = "ALL GRADIENTS";
-                break;
-            case 1:
-                newTheme = createSolidTheme();
-                modeName = "ALL SOLID";
-                break;
-            case 2:
-                newTheme = createMixedTheme();
-                modeName = "MIXED";
-                break;
-            default:
-                newTheme = createGradientTheme();
-                modeName = "DEFAULT";
-                break;
+        if (g_currentMode == 0) {
+            // Stage 1: Scientific Mode (OUTSIDE labels + Titles)
+            modeName = "SCIENTIFIC MODE";
+            g_graph->setTickLabelPosition(TickLabelPosition::OUTSIDE);
+            g_graph->setXAxisTitle("TIME (5m)");
+            g_graph->setYAxisTitle("YIELD (%)");
+        } else {
+            // Stage 2: Compact Mode (INSIDE labels + No Titles)
+            modeName = "COMPACT MODE";
+            g_graph->setTickLabelPosition(TickLabelPosition::INSIDE);
+            g_graph->setXAxisTitle(nullptr);  // No title
+            g_graph->setYAxisTitle(nullptr);  // No title
         }
 
-        Serial.printf("\n>>> Switching to Mode %d: %s <<<\n\n", g_currentMode, modeName);
+        Serial.printf("\n>>> Switching to %s <<<\n\n", modeName);
 
-        // Update the graph's theme
-        g_graph->setTheme(newTheme);
-
-        // Redraw static layers with new theme
+        // Redraw static layers with new layout
         g_graph->drawBackground();
         g_graph->drawData();
         g_graph->render();

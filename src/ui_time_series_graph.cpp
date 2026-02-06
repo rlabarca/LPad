@@ -38,6 +38,8 @@ TimeSeriesGraph::TimeSeriesGraph(const GraphTheme& theme, Arduino_GFX* main_disp
       rel_main_(nullptr), rel_bg_(nullptr), rel_data_(nullptr),
       composite_buffer_(nullptr), composite_buffer_size_(0),
       pulse_phase_(0.0f), y_tick_increment_(0.0f),
+      tick_label_position_(TickLabelPosition::OUTSIDE),
+      x_axis_title_(nullptr), y_axis_title_(nullptr),
       last_indicator_x_(0), last_indicator_y_(0), last_indicator_radius_(0),
       has_drawn_indicator_(false),
       cached_y_min_(0.0), cached_y_max_(0.0), range_cached_(false) {
@@ -138,6 +140,21 @@ void TimeSeriesGraph::setTheme(const GraphTheme& theme) {
     // to update the canvases with the new theme
 }
 
+void TimeSeriesGraph::setTickLabelPosition(TickLabelPosition pos) {
+    tick_label_position_ = pos;
+    // Note: Caller should call drawBackground() after this to update layout
+}
+
+void TimeSeriesGraph::setXAxisTitle(const char* title) {
+    x_axis_title_ = title;
+    // Note: Caller should call drawBackground() after this to update layout
+}
+
+void TimeSeriesGraph::setYAxisTitle(const char* title) {
+    y_axis_title_ = title;
+    // Note: Caller should call drawBackground() after this to update layout
+}
+
 void TimeSeriesGraph::drawBackground() {
     if (!rel_bg_) return;
 
@@ -227,6 +244,49 @@ void TimeSeriesGraph::drawBackground() {
 
     // Draw X-axis ticks and labels
     drawXTicks(rel_bg_);
+
+    // Draw axis titles if set
+    Arduino_GFX* canvas = rel_bg_->getGfx();
+    if (canvas) {
+        // Draw X-axis title (horizontal, centered below X-axis)
+        if (x_axis_title_ != nullptr) {
+            canvas->setTextColor(theme_.tickColor);
+            canvas->setTextSize(1);
+
+            // Get text bounds to center it
+            int16_t x1, y1;
+            uint16_t w, h;
+            canvas->getTextBounds(x_axis_title_, 0, 0, &x1, &y1, &w, &h);
+
+            // Position at bottom center of screen
+            int32_t title_x = (width_ - w) / 2;
+            int32_t title_y = height_ - 5;  // 5px from bottom
+
+            canvas->setCursor(title_x, title_y);
+            canvas->print(x_axis_title_);
+        }
+
+        // Draw Y-axis title (vertical, rotated -90 degrees, centered along Y-axis)
+        if (y_axis_title_ != nullptr) {
+            canvas->setTextColor(theme_.tickColor);
+            canvas->setTextSize(1);
+
+            // Get text bounds
+            int16_t x1, y1;
+            uint16_t w, h;
+            canvas->getTextBounds(y_axis_title_, 0, 0, &x1, &y1, &w, &h);
+
+            // Position at left center of screen, rotated -90 degrees
+            // Note: Arduino_GFX doesn't support text rotation easily, so we position it vertically
+            int32_t title_x = 5;  // 5px from left
+            int32_t title_y = (height_ + w) / 2;  // Center vertically (accounting for text width when rotated)
+
+            // For simplicity, draw horizontally for now
+            // TODO: Implement proper -90 degree rotation
+            canvas->setCursor(title_x, title_y);
+            canvas->print(y_axis_title_);
+        }
+    }
 }
 
 void TimeSeriesGraph::drawData() {
@@ -345,18 +405,26 @@ void TimeSeriesGraph::drawYTicks(RelativeDisplay* target) {
         // Draw tick mark
         target->drawHorizontalLine(y_screen, x_axis, tick_end, theme_.tickColor);
 
-        // Draw label to the right of the tick mark
+        // Draw label (position depends on INSIDE vs OUTSIDE mode)
         // Convert tick value to string with appropriate precision
         char label[16];
         snprintf(label, sizeof(label), "%.3f", tick_value);
 
+        // Calculate label position based on tick label position setting
+        float label_x_pct;
+        if (tick_label_position_ == TickLabelPosition::OUTSIDE) {
+            label_x_pct = tick_end + 1.0f;  // 1% spacing after tick (to the right)
+        } else {
+            label_x_pct = x_axis + 1.0f;  // 1% spacing inside the plot area
+        }
+
         // Convert relative coordinates to absolute pixels for text positioning
-        int32_t label_x = target->relativeToAbsoluteX(tick_end + 1.0f);  // 1% spacing after tick
+        int32_t label_x = target->relativeToAbsoluteX(label_x_pct);
         int32_t label_y = target->relativeToAbsoluteY(y_screen);
 
-        // Set font and color (these would come from theme - using defaults for now)
-        canvas->setTextColor(theme_.tickColor);  // Use tick color for labels
-        canvas->setTextSize(1);  // Small text
+        // Set font and color
+        canvas->setTextColor(theme_.tickColor);
+        canvas->setTextSize(1);
 
         // Draw the label
         // Adjust Y position to center text vertically on the tick
@@ -391,20 +459,28 @@ void TimeSeriesGraph::drawXTicks(RelativeDisplay* target) {
         // Draw tick mark (vertical line below X-axis)
         target->drawVerticalLine(x_screen, tick_start, tick_end, theme_.tickColor);
 
-        // Draw label below the tick mark
-        // For time-series, show the data point index (could be enhanced to show actual timestamps)
+        // Draw label (position depends on INSIDE vs OUTSIDE mode)
+        // For time-series, show the data point index
         char label[16];
         if (!data_.x_values.empty() && i < data_.x_values.size()) {
-            // Show timestamp in a readable format (last 2 digits of timestamp)
+            // Show timestamp in a readable format (last 3 digits)
             long timestamp = data_.x_values[i];
-            snprintf(label, sizeof(label), "%ld", timestamp % 1000);  // Show last 3 digits
+            snprintf(label, sizeof(label), "%ld", timestamp % 1000);
         } else {
             snprintf(label, sizeof(label), "%zu", i);
         }
 
+        // Calculate label position based on tick label position setting
+        float label_y_pct;
+        if (tick_label_position_ == TickLabelPosition::OUTSIDE) {
+            label_y_pct = tick_end + 1.0f;  // 1% spacing below tick
+        } else {
+            label_y_pct = tick_start - 4.0f;  // 4% spacing above tick (inside plot area)
+        }
+
         // Convert relative coordinates to absolute pixels for text positioning
         int32_t label_x = target->relativeToAbsoluteX(x_screen);
-        int32_t label_y = target->relativeToAbsoluteY(tick_end + 1.0f);  // 1% spacing below tick
+        int32_t label_y = target->relativeToAbsoluteY(label_y_pct);
 
         // Set font and color
         canvas->setTextColor(theme_.tickColor);

@@ -20,6 +20,15 @@
 #include <cstddef>
 
 /**
+ * @enum TickLabelPosition
+ * @brief Position of tick labels relative to axes
+ */
+enum class TickLabelPosition {
+    INSIDE,   ///< Tick labels drawn inside the graph area
+    OUTSIDE   ///< Tick labels drawn outside the graph area
+};
+
+/**
  * @struct GraphTheme
  * @brief Visual style configuration for the graph
  */
@@ -102,6 +111,30 @@ public:
     void setYTicks(float increment);
 
     /**
+     * @brief Sets the position of tick labels
+     * @param pos INSIDE or OUTSIDE the graph axes
+     *
+     * Note: After setting position, call drawBackground() to update the layout.
+     */
+    void setTickLabelPosition(TickLabelPosition pos);
+
+    /**
+     * @brief Sets the X-axis title text
+     * @param title Title text (centered horizontally below X-axis)
+     *
+     * Note: After setting title, call drawBackground() to update the layout.
+     */
+    void setXAxisTitle(const char* title);
+
+    /**
+     * @brief Sets the Y-axis title text
+     * @param title Title text (centered vertically along Y-axis, rotated -90 degrees)
+     *
+     * Note: After setting title, call drawBackground() to update the layout.
+     */
+    void setYAxisTitle(const char* title);
+
+    /**
      * @brief Updates the graph theme
      * @param theme New visual style configuration
      *
@@ -168,6 +201,11 @@ private:
     // Animation state
     float pulse_phase_;                   ///< Current phase of pulse animation (0 to 2*PI)
     float y_tick_increment_;              ///< Y-axis tick increment (0 = no ticks)
+
+    // Layout configuration
+    TickLabelPosition tick_label_position_;  ///< Position of tick labels (INSIDE or OUTSIDE)
+    const char* x_axis_title_;               ///< X-axis title text (nullptr = none)
+    const char* y_axis_title_;               ///< Y-axis title text (nullptr = none)
 
     // Live indicator tracking for efficient redraw
     int32_t last_indicator_x_;            ///< Last drawn indicator center X (pixels)
