@@ -87,7 +87,6 @@ graph TD
 
     subgraph Graphics_Engine ["Graphics Engine"]
         direction TB
-        display_background("**Background & Gradients**<br/><small>display_background.md</small>"):::graphics
         display_canvas_drawing("**Layered Canvas Drawing**<br/><small>display_canvas_drawing.md</small>"):::graphics
         display_relative_drawing("**Relative Drawing**<br/><small>display_relative_drawing.md</small>"):::graphics
     end
@@ -108,6 +107,7 @@ graph TD
 
     subgraph UI_Framework ["UI Framework"]
         direction TB
+        ui_base("**Base UI Elements**<br/><small>ui_base.md</small>"):::ui
         ui_live_indicator("**Animated Live Indicator**<br/><small>ui_live_indicator.md</small>"):::ui
         ui_theme_support("**Theme Support**<br/><small>ui_theme_support.md</small>"):::ui
         ui_themeable_time_series_graph("**Themeable Graph**<br/><small>ui_themeable_time_series_graph.md</small>"):::ui
@@ -123,7 +123,7 @@ graph TD
     display_tdisplay_s3_plus --> RELEASE_v0_5_display_drawing_ui_base
     display_canvas_drawing --> RELEASE_v0_5_display_drawing_ui_base
     display_relative_drawing --> RELEASE_v0_5_display_drawing_ui_base
-    display_background --> RELEASE_v0_5_display_drawing_ui_base
+    ui_base --> RELEASE_v0_5_display_drawing_ui_base
     app_animation_ticker --> RELEASE_v0_5_display_drawing_ui_base
     ui_live_indicator --> RELEASE_v0_5_display_drawing_ui_base
     demos/demo_release_0_5[demos/demo_release_0_5?] -.-> RELEASE_v0_5_display_drawing_ui_base
