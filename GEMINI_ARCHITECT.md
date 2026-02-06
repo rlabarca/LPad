@@ -133,9 +133,9 @@ This dependency-driven prompting ensures the project is built layer by layer, in
 ---
 
 **CURRENT CONTEXT:**
-- **All features are [DONE].**
-- **Release v0.5 is verified.**
+- **All features are [DONE] except for those marked [TODO] by recent changes.**
+- **Release v0.5 is pending recursive validation.**
 - **Theme System established:** Semantic colors and fonts defined for UI and Graph components.
 - **Design System Assets:** Typography headers (9pt, 12pt, 18pt, 24pt, 48pt) generated and integrated.
 - **Process Updated:** Asset integrity mandates and font conversion protocols documented.
-- **Project is ready for theme-based UI implementation.**
+- **Project is ready for recursive validation by the Builder.**
