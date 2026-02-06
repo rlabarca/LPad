@@ -62,9 +62,9 @@ void ConnectivityStatusScreen::update(bool ping_result) {
         font = theme->fonts.normal;
     } else if (current_status == HAL_NETWORK_STATUS_CONNECTED && ping_result) {
         message = "PING OK";
-        font = theme->fonts.title;
+        font = theme->fonts.heading;  // Use heading (24pt) instead of title (48pt)
     } else if (current_status == HAL_NETWORK_STATUS_ERROR) {
-        message = "CONNECTIVITY ERROR";
+        message = "ERROR";
         font = theme->fonts.normal;
     } else if (current_status == HAL_NETWORK_STATUS_CONNECTED && !ping_result) {
         message = "PING FAILED";
@@ -84,16 +84,20 @@ void ConnectivityStatusScreen::update(bool ping_result) {
     gfx->setFont(font);
     gfx->setTextColor(theme->colors.text_main);
 
-    // Calculate centered position
-    // For simplicity, use approximate center
+    // Calculate properly centered position using getTextBounds
     int32_t width = hal_display_get_width_pixels();
     int32_t height = hal_display_get_height_pixels();
-    int32_t center_x = width / 2;
-    int32_t center_y = height / 2;
 
-    // Note: Arduino_GFX drawString doesn't support centering directly
-    // Use setCursor and print for basic centering (approximate)
-    gfx->setCursor(center_x - 60, center_y);  // Rough horizontal centering offset
+    // Get text bounds to calculate proper centering
+    int16_t x1, y1;
+    uint16_t text_width, text_height;
+    gfx->getTextBounds(message, 0, 0, &x1, &y1, &text_width, &text_height);
+
+    // Calculate centered position
+    int16_t text_x = (width - text_width) / 2;
+    int16_t text_y = (height / 2) + (text_height / 2);  // Vertically centered baseline
+
+    gfx->setCursor(text_x, text_y);
     gfx->print(message);
 
     // Flush to display
