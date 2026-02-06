@@ -50,5 +50,30 @@ The `cdd.sh` monitor depends on EXACT string matches in commit messages.
 ## Hardware Protocol
 Consult `hw-examples/` for vendor sequences. Port logic directly to the HAL implementation as specified in the feature file.
 
+## PlatformIO Build Configuration (Critical)
+**ALWAYS ensure `platformio.ini` links `main.cpp` to the latest demo for ALL hardware target environments.**
+
+When creating new demo apps (e.g., `V055DemoApp`, `V06DemoApp`), update ALL hardware environment `build_src_filter` sections:
+
+**Required pattern:**
+```ini
+build_src_filter =
+    +<*>
+    +<main.cpp>                      # Include main entry point
+    +<../hal/*.cpp>                  # Include HAL implementations
+    -<../hal/display_stub.cpp>       # Exclude stubs for hardware builds
+    -<../hal/timer_stub.cpp>
+    -<../hal/network_stub.cpp>
+    +<../demos/v0XX_demo_app.cpp>    # Include latest demo coordinator
+    +<../demos/v0X_demo_app.cpp>     # Include demo helper classes
+```
+
+**DO NOT:**
+- Use `-<main.cpp>` (this excludes the main entry point)
+- Use `+<../demos/demo_screen.cpp>` (old monolithic demo pattern)
+- Leave old demo files included when migrating to new demo architecture
+
+**Check these environments:** `esp32s3`, `tdisplay_s3_plus`, and any other hardware targets.
+
 ## Status Reset Logic
 Any edit to `features/X.md` resets its status to `[TODO]`. You MUST re-verify it and create a new status-marking commit (following the Tag Selection Rule) to clear it. Even if no code changed, if it has a HIL section, you MUST use `[Ready for HIL Test]`.
