@@ -11,11 +11,11 @@ static constexpr float START_HEIGHT = 75.0f;  // 75% of screen height
 static constexpr float START_ANCHOR_X = 0.5f;
 static constexpr float START_ANCHOR_Y = 0.5f;
 
-// End state from spec (top-right, small, top-left anchor)
-// Position offset by 10px from top-right corner
+// End state from spec (top-right corner, small, top-right anchor)
+// Logo's top-right corner should be 10px from screen's top-right corner
 static constexpr float END_HEIGHT = 10.0f;  // 10% of screen height
-static constexpr float END_ANCHOR_X = 0.0f;  // Top-left anchor
-static constexpr float END_ANCHOR_Y = 0.0f;
+static constexpr float END_ANCHOR_X = 1.0f;  // Top-right anchor (X: right edge)
+static constexpr float END_ANCHOR_Y = 1.0f;  // Top-right anchor (Y: top in asset space)
 static constexpr float CORNER_OFFSET_PX = 10.0f;  // Offset from corner in pixels
 
 LogoScreen::LogoScreen(float waitDuration, float animDuration)
@@ -69,15 +69,24 @@ bool LogoScreen::begin(RelativeDisplay* display, uint16_t backgroundColor) {
     m_height = hal_display_get_height_pixels();
     m_backgroundColor = backgroundColor;
 
-    // Calculate end position: top-left corner at (ScreenWidth - 10, 10) in screen pixels
-    // In RelativeDisplay coords (where Y=0 is bottom, Y=100 is top):
-    // - X = (ScreenWidth - 10) / ScreenWidth * 100
-    // - Y = (ScreenHeight - 10) / ScreenHeight * 100
+    // Calculate end position: Logo's TOP-RIGHT CORNER at (ScreenWidth - 10, 10) in screen pixels
+    //
+    // Screen pixel coordinates (origin top-left, Y increases downward):
+    //   Target: (ScreenWidth - 10, 10)
+    //   For 320x170: (310, 10)
+    //
+    // RelativeDisplay coordinates (origin bottom-left, Y=0 bottom, Y=100 top):
+    //   X: (310 / 320) * 100 = 96.875%
+    //   Y: 10px from screen top = (170 - 10) from screen bottom = 94.12%
+    //
+    // With anchor (1.0, 1.0), the position directly specifies where the
+    // top-right corner of the logo should appear.
+
     float offsetX_percent = (CORNER_OFFSET_PX / static_cast<float>(m_width)) * 100.0f;
     float offsetY_percent = (CORNER_OFFSET_PX / static_cast<float>(m_height)) * 100.0f;
 
-    m_endParams.posX = 100.0f - offsetX_percent;  // Right edge minus offset
-    m_endParams.posY = 100.0f - offsetY_percent;  // Top edge minus offset
+    m_endParams.posX = 100.0f - offsetX_percent;  // Right edge minus 10px offset
+    m_endParams.posY = 100.0f - offsetY_percent;  // Top edge minus 10px offset
 
     // Allocate composite buffer (background) in PSRAM if available
     size_t buffer_size = static_cast<size_t>(m_width) * static_cast<size_t>(m_height);
