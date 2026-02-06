@@ -47,6 +47,11 @@ This feature defines the main demo application used to validate Release v0.5. It
     -   **Y-Axis Labels:** Visible on the left or right side.
         -   **Font:** `ThemeFonts.smallest` (9pt).
         -   **Color:** `ThemeColors.axis_labels`.
+    -   **X-Axis Tick Marks:** Visible along the bottom axis at regular intervals (~5 ticks).
+        -   **Color:** `ThemeColors.graph_ticks`.
+    -   **X-Axis Labels:** Timestamps or data point indices shown below tick marks.
+        -   **Font:** Default small font (or `ThemeFonts.smallest` when available).
+        -   **Color:** `ThemeColors.graph_ticks`.
 
 4.  **Live Indicator:**
     -   Position: Exactly at the last data point on the line.
