@@ -90,12 +90,35 @@ This is the **most critical step**. The monitoring script (`cdd.sh`) is a **DUMB
 
 The `cdd.sh` script monitors feature status based on git commit timestamps. **Any modification to a feature file (`features/X.md`) automatically resets its status to `[TODO]`, even if the underlying code remains unchanged.**
 
-*   **Your Action:** If you are asked to "verify" or "re-implement" a feature (e.g., after an architectural change like a feature file rename or label update), you **MUST** ensure the corresponding commit uses the `[Complete features/FILENAME.md]` or `[Ready for HIL Test features/FILENAME.md]` tag.
-*   **No Code Changes:** If tests pass without requiring any code modifications, use the `--allow-empty` flag with your commit to explicitly record the verification timestamp.
-    ```shell
-    git commit --allow-empty -m "feat(verify): Re-validated feature after architectural changes [Complete features/FILENAME.md]"
-    ```
-    This ensures the `cdd.sh` script correctly updates the feature's status to `DONE` or `TESTING`.
+#### CRITICAL RULE FOR VERIFICATION COMMITS:
+
+**When re-validating existing features (after architectural changes, timestamp updates, etc.):**
+
+1. **ALWAYS re-check the feature file for HIL requirements** using the criteria in Step 5 above
+2. **IF the feature requires HIL testing:**
+   - Use `[Ready for HIL Test features/FILENAME.md]` - NEVER use `[Complete]`
+   - Even if the feature was previously HIL tested, the verification commit MUST use `[Ready for HIL Test]` to signal that Rich needs to re-run HIL validation
+3. **ONLY use `[Complete]` for verification commits if:**
+   - The feature has NO HIL test section
+   - The feature has NO integration test criteria
+   - The feature is NOT a demo/app
+   - The feature is pure software validated by unit tests only
+
+**Example - Feature with HIL section (CORRECT):**
+```shell
+git commit --allow-empty -m "feat(verify): Re-validated after updates [Ready for HIL Test features/demo_release_0.5.md]"
+```
+
+**Example - Pure software feature (CORRECT):**
+```shell
+git commit --allow-empty -m "feat(verify): Re-validated after updates [Complete features/ui_theme_support.md]"
+```
+
+**NEVER DO THIS for HIL-required features:**
+```shell
+# WRONG - Will skip HIL validation!
+git commit --allow-empty -m "feat(verify): Re-validated [Complete features/demo_release_0.5.md]"
+```
 
 **DO NOT** add any extra conversation or explanation after the commit. The commit IS your final handoff. If you have failed to commit, you have failed the task.
 
