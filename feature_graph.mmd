@@ -33,6 +33,11 @@ graph TD
         hal_timer_esp32("**ESP32 Timer**<br/><small>hal_timer_esp32.md</small>"):::hardware
     end
 
+    subgraph Release_Demos ["Release Demos"]
+        direction TB
+        demo_release_0_5("**Demo for Release v0.5**<br/><small>demo_release_0.5.md</small>"):::release
+    end
+
     subgraph Releases ["Releases"]
         direction TB
         RELEASE_v0_5_display_drawing_ui_base("**Release v0.5 - Display, Drawing & UI Base**<br/><small>RELEASE_v0.5_display_drawing_ui_base.md</small>"):::release
@@ -59,7 +64,7 @@ graph TD
     ui_base --> RELEASE_v0_5_display_drawing_ui_base
     app_animation_ticker --> RELEASE_v0_5_display_drawing_ui_base
     ui_live_indicator --> RELEASE_v0_5_display_drawing_ui_base
-    demos/demo_release_0_5[demos/demo_release_0_5?] -.-> RELEASE_v0_5_display_drawing_ui_base
+    demo_release_0_5 --> RELEASE_v0_5_display_drawing_ui_base
     hal_contracts --> app_animation_ticker
     hal_contracts --> display_canvas_drawing
     hal_contracts --> display_tdisplay_s3_plus

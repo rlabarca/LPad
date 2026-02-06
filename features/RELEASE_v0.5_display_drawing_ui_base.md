@@ -19,7 +19,7 @@ TODO: Trigger recursive validation.
 > Prerequisite: features/ui_base.md
 > Prerequisite: features/app_animation_ticker.md
 > Prerequisite: features/ui_live_indicator.md
-> Prerequisite: features/demos/demo_release_0.5.md
+> Prerequisite: features/demo_release_0.5.md
 
 ## 1. Release Capability Description
 This release marks the completion of the core rendering engine and the unified "Demo Screen". It validates the system's ability to handle complex UI composition, resolution independence, and smooth 30fps animation across different hardware targets.

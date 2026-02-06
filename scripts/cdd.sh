@@ -43,16 +43,16 @@ while true; do
     fi
 
     # --- Feature Queue ---
-    echo -e "\n${C_CYAN}=== 📜 FEATURE QUEUE (features/**/*.md) ===${C_RESET}"
+    echo -e "\n${C_CYAN}=== 📜 FEATURE QUEUE (features/*.md) ===${C_RESET}"
     if [ -d "features" ]; then
         done_features=()
         testing_features=()
         todo_features=()
 
         # Determine feature status
-        for f in features/**/*.md; do
+        for f in features/*.md; do
             [ -e "$f" ] || continue
-            fname=${f#features/}
+            fname=$(basename "$f")
             complete_commit=$(git log -1 --grep="\[Complete features/$fname\]" --format=%H 2>/dev/null)
             test_commit=$(git log -1 --grep="\[Ready for HIL Test features/$fname\]" --format=%H 2>/dev/null)
             complete_timestamp=0; [ -n "$complete_commit" ] && complete_timestamp=$(git show -s --format=%ct $complete_commit 2>/dev/null)

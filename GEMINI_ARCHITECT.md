@@ -87,7 +87,6 @@ All feature files in `features/` MUST adhere to the following metadata header fo
 ```
 This metadata is required for the automated visualization system.
 
-*   **Feature Completeness in Demos:** When defining demo features, especially for releases, the Architect MUST ensure the specification includes scenarios that comprehensively test all variations of UI elements introduced by the milestone. This includes both complex (e.g., gradients, animations) and basic (e.g., solid colors, static states) implementations of each UI component. The Architect is responsible for identifying all relevant features and explicitly proposing how to render their tests within the demo's scenarios.
 *   **Graph Autogeneration:** I must NEVER edit `feature_graph.mmd` manually. This file is a generated artifact. To change a node's label, I must edit the `> Label:` metadata in the corresponding feature file, then run `./scripts/generate_graph.sh`.
 
 ### README & Documentation Sync
