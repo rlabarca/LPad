@@ -27,7 +27,7 @@ The `LogoScreen` class should manage its own state and drawing.
     -   Size: 75% of screen height (approx).
 -   **End State:**
     -   Position: Top Right of screen (Absolute Top Right), but offset by 10 pixels in both X and Y (moving away from the corner).
-    -   Anchor: Top Left of logo (0.0, 0.0).
+    -   Anchor: Top Right of logo (1.0, 0.0).
     -   Size: 10% of screen height.
 -   **Duration:** TBD (e.g., 1.5 seconds).
 -   **Easing:** Smooth acceleration/deceleration (EaseInOut).
@@ -40,7 +40,7 @@ The `LogoScreen` class should manage its own state and drawing.
     -   Increments internal timers.
     -   Updates position/scale values based on the state.
     -   Calculates interpolation factor `t` (0.0 to 1.0) during the ANIMATE phase.
-    -   Target Position Calculation: The endpoint is `(ScreenWidth - 10, 10)` in absolute pixels, using a Top-Left anchor for the logo.
+    -   Target Position Calculation: The endpoint is `(ScreenWidth - 10, 10)` in absolute pixels, using a Top-Right anchor for the logo.
     -   Returns a status indicating if the screen is "Active" or "Finished".
 -   **Method `draw(RelativeDisplay& display)`:**
     -   Clears background (Theme background color).
@@ -56,9 +56,9 @@ The `LogoScreen` class should manage its own state and drawing.
 ### Scenario: Animation to Corner
 -   **Given** the 2-second wait period has elapsed.
 -   **When** `update` is called.
--   **Then** the Logo's top-left corner should move towards 10 pixels from the top-right corner of the screen.
+-   **Then** the Logo's top-right corner should move towards 10 pixels from the top-right corner of the screen.
 -   **And** the Logo's size should decrease towards 10% height.
--   **And** the Logo's anchor point should transition smoothly from center (0.5, 0.5) to top-left (0.0, 0.0).
+-   **And** the Logo's anchor point should transition smoothly from center (0.5, 0.5) to top-right (1.0, 0.0).
 
 ### Scenario: Completion
 -   **Given** the animation is finished.
