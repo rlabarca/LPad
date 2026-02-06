@@ -7,33 +7,51 @@
 > **Prerequisite:** `features/ui_live_indicator.md`
 > **Prerequisite:** `features/ui_base.md`
 > **Prerequisite:** `features/display_canvas_drawing.md`
+> **Prerequisite:** `features/ui_theme_support.md`
 
-This feature defines the main demo application. It orchestrates all UI components to showcase the system's capabilities: HAL abstraction, resolution independence, layered rendering, and smooth animation.
+This feature defines the main demo application used to validate Release v0.5. It orchestrates all UI components to showcase the system's capabilities using the active theme.
 
 ## Scenario: Application Startup
 
 **Given** the device has booted up and the HAL is initialized.
 **When** the demo application starts.
 **Then** the following resources should be initialized:
-1.  **AnimationTicker:** Configured for 30 FPS.
-2.  **Off-screen Canvas:** `main_canvas` sized to the full display resolution.
-3.  **Graph Data:** Loaded from `test_data/yahoo_chart_tnx_5m_1d.json`.
-4.  **Components:**
-    -   `BackgroundDrawer`: Configured for both a 45-degree gradient (Purple -> Pink -> Dark Blue) AND a solid color (e.g., Dark Grey).
-    -   `TimeSeriesGraph`: Configured with hardcoded sample data (e.g., a simple sine wave or flat line) and tested with both a gradient plot line (e.g., Cyan->Pink) AND a solid plot line (e.g., White), with ticks enabled.
-    -   `LiveIndicator`: Configured with both a radial gradient (Pink->Cyan) AND a solid color (e.g., Green), and includes pulsing animation.
+1.  **Theme:** The default theme is loaded via `ThemeManager`.
+2.  **AnimationTicker:** Configured for 30 FPS.
+3.  **Off-screen Canvas:** `main_canvas` sized to the full display resolution.
+4.  **Graph Data:** Loaded from `test_data/yahoo_chart_tnx_5m_1d.json`.
+5.  **Components:**
+    -   `BackgroundDrawer`: Configured to use theme colors.
+    -   `TimeSeriesGraph`: Configured with loaded data, referencing theme fonts for labels.
+    -   `LiveIndicator`: Configured to use theme colors for its pulsing animation.
 
-## Scenario: Application Loop and Rendering
+## Scenario: Visual Requirements & Rendering
 
 **Given** the application is running.
 **When** the loop executes.
-**Then** it should wait for the `AnimationTicker` to signal the next frame.
-**And** perform the drawing sequence:
-1.  **Select Target:** Select `main_canvas` for drawing.
-2.  **Draw Background:** Call `drawGradientBackground` to fill the canvas.
-3.  **Draw Graph:** Update and draw the `TimeSeriesGraph` on the canvas.
-4.  **Draw Indicator:** Update the `LiveIndicator` (pulse animation) and draw it at the position of the last data point.
-5.  **Blit to Screen:** Select the main display (nullptr) and draw `main_canvas` to (0,0).
+**Then** the display should render the following layered elements:
+
+1.  **Gradient Background:** 
+    -   Draws a 45-degree angled gradient.
+    -   **Colors:** Transitions from `ThemeColors.background` (Top-Left) to `ThemeColors.secondary` (Bottom-Right).
+    
+2.  **Title:**
+    -   Text: "V0.5 DEMO"
+    -   **Font:** `ThemeFonts.heading` (24pt).
+    -   **Color:** `ThemeColors.text_main`.
+    -   Position: Top-center of the screen, z-index above all other elements.
+
+3.  **Time Series Graph:**
+    -   **Plot Line:** Draws a gradient line.
+        -   **Colors:** `ThemeColors.primary` (Oldest data/Left) -> `ThemeColors.accent` (Newest data/Right).
+    -   **Y-Axis Labels:** Visible on the left or right side.
+        -   **Font:** `ThemeFonts.smallest` (9pt).
+        -   **Color:** `ThemeColors.axis_labels`.
+
+4.  **Live Indicator:**
+    -   Position: Exactly at the last data point on the line.
+    -   **Animation:** Smooth pulsing (growing/shrinking) at 30fps.
+    -   **Colors:** Radial gradient from `ThemeColors.accent` (Center) to `ThemeColors.primary` (Outer edge).
 
 ## Hardware (HIL) Test
 
@@ -41,8 +59,6 @@ To visually confirm the correct operation of this feature, the `src/main.cpp` fi
 
 **Instructions for the Builder:**
 
-1.  **Modify `src/main.cpp`:** Implement the full demo logic (as described in the "Application Startup" and "Application Loop" scenarios) directly within `src/main.cpp`. This file must contain its own `setup()` and `loop()` functions.
-2.  **Verify:** Compile and upload the firmware to the target hardware using the standard build environment (e.g., `pio run -e esp32s3`).
-
-
-
+1.  **Modify `src/main.cpp`:** Implement the full demo logic directly within `src/main.cpp`.
+2.  **Theme Usage:** explicitly use the `ThemeManager` singleton to retrieve colors and fonts. Do not hardcode hex values.
+3.  **Verify:** Compile and upload the firmware. The resulting display must match the Visual Requirements scenario above, adhering to the "Earth/Green" tones of the default theme (Night/Forest/Sage).

@@ -7,8 +7,9 @@
 > - `features/ui_time_series_graph.md`
 > - `features/display_relative_drawing.md` (Object-Oriented version)
 > - `features/hal_dma_blitting.md`
+> - `features/ui_theme_support.md`
 
-This feature refactors the `TimeSeriesGraph` to use a high-performance, layered rendering architecture. It uses multiple off-screen canvases, wrapped by the `RelativeDisplay` class, to eliminate flicker and allow for smooth 30fps animations.
+This feature refactors the `TimeSeriesGraph` to use a high-performance, layered rendering architecture. It uses multiple off-screen canvases, wrapped by the `RelativeDisplay` class, to eliminate flicker and allow for smooth 30fps animations, while fully supporting dynamic theming.
 
 ---
 
@@ -40,7 +41,7 @@ The class will be updated to include:
 
 ### API and Behavior
 
-- **`drawBackground()`**: This method renders static elements (axes, gridlines, background gradients) to the `bg_canvas`. It should be called only once or when the theme changes.
+- **`drawBackground()`**: This method renders static elements (axes, gridlines, background gradients) to the `bg_canvas`. **It MUST retrieve colors and fonts from `ThemeManager::getInstance().getTheme()`**. It should be called only once or when the theme changes.
 - **`drawData()`**: This method clears the `data_canvas` to be fully transparent, then draws the current data set (e.g., the line graph) onto it. It is called only when data is updated via `setData()`.
 - **`render()`**: This method performs the final composition to the main display. It first blits the `bg_canvas`, then blits the `data_canvas` on top of it. This method is fast and should be called every frame.
 - **`update(float deltaTime)`**: This method handles real-time animations. It draws primitives (like the pulsing live indicator) **directly to the main display** *after* `render()` has been called. This ensures the animation is drawn on top of all other layers without requiring any expensive canvas redraws.
@@ -55,7 +56,7 @@ The class will be updated to include:
 **When** the component is first drawn.
 **Then** it must allocate two `GfxCanvas16` buffers in PSRAM with the specified dimensions.
 **And** it must instantiate `RelativeDisplay` wrappers for the background canvas, data canvas, and main display.
-**And** the `drawBackground()` method should be called, which renders the axes and background gradient onto the `bg_canvas`.
+**And** the `drawBackground()` method should be called, which renders the axes and background gradient onto the `bg_canvas` using the active theme's colors.
 
 ### Scenario: Updating Data
 
