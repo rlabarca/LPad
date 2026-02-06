@@ -19,9 +19,9 @@ This feature defines the main demo application. It orchestrates all UI component
 2.  **Off-screen Canvas:** `main_canvas` sized to the full display resolution.
 3.  **Graph Data:** Loaded from `test_data/yahoo_chart_tnx_5m_1d.json`.
 4.  **Components:**
-    -   `BackgroundDrawer`: Configured for a 45-degree gradient (Purple -> Pink -> Dark Blue).
-    -   `TimeSeriesGraph`: Configured with the "Vaporwave" theme (Cyan->Pink gradient line, ticks enabled).
-    -   `LiveIndicator`: Configured with a radial gradient (Pink->Cyan) and pulsing animation.
+    -   `BackgroundDrawer`: Configured for both a 45-degree gradient (Purple -> Pink -> Dark Blue) AND a solid color (e.g., Dark Grey).
+    -   `TimeSeriesGraph`: Configured with hardcoded sample data (e.g., a simple sine wave or flat line) and tested with both a gradient plot line (e.g., Cyan->Pink) AND a solid plot line (e.g., White), with ticks enabled.
+    -   `LiveIndicator`: Configured with both a radial gradient (Pink->Cyan) AND a solid color (e.g., Green), and includes pulsing animation.
 
 ## Scenario: Application Loop and Rendering
 
