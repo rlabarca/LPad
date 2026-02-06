@@ -3,7 +3,7 @@
  * @brief Unity tests for Display HAL contracts
  *
  * These tests verify that the Display HAL interface is correctly defined
- * and can be used as specified in features/hal_contracts.md.
+ * and can be used as specified in features/hal_spec_display.md.
  */
 
 #include <unity.h>
