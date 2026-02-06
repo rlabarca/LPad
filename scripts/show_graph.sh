@@ -15,24 +15,53 @@ fi
 LOG_FILE=".pio/show_graph.log"
 mkdir -p .pio
 
-update_graph() {
-    echo "--- Update Triggered at $(date '+%H:%M:%S') ---"
-    
+generate_and_render() {
     # Generate the MMD file first
-    echo "Generating graph structure..."
     if ! ./scripts/generate_graph.sh > "$LOG_FILE" 2>&1; then
         echo "Error: generate_graph.sh failed. Check $LOG_FILE"
         return 1
     fi
 
     # Generate PNG
-    echo "Converting to PNG (this may take a few seconds)..."
-    if mmdc -i "$MMD_FILE" -o "$IMG_FILE" -b transparent -s 2 >> "$LOG_FILE" 2>&1; then
-        if [ ! -f "$IMG_FILE" ]; then
-            echo "Error: $IMG_FILE was not created. Check $LOG_FILE"
-            return 1
+    if ! mmdc -i "$MMD_FILE" -o "$IMG_FILE" -b transparent -s 2 >> "$LOG_FILE" 2>&1; then
+        echo "Error: mmdc failed. Check $LOG_FILE"
+        return 1
+    fi
+
+    # Verify image exists and has size > 0
+    if [ ! -s "$IMG_FILE" ]; then
+        echo "Error: $IMG_FILE is empty or missing. Check $LOG_FILE"
+        return 1
+    fi
+    
+    return 0
+}
+
+update_graph() {
+    echo "--- Update Triggered at $(date '+%H:%M:%S') ---"
+    
+    local max_retries=3
+    local attempt=1
+    local success=0
+
+    while [ $attempt -le $max_retries ]; do
+        if [ $attempt -gt 1 ]; then
+             echo "Retry attempt $attempt of $max_retries..."
+        else
+             echo "Generating graph..."
         fi
 
+        if generate_and_render; then
+            success=1
+            break
+        fi
+        
+        echo "Generation failed. Retrying in 1 second..."
+        sleep 1
+        ((attempt++))
+    done
+
+    if [ $success -eq 1 ]; then
         # Clear screen only on success
         clear
         
@@ -44,9 +73,9 @@ update_graph() {
         echo "Last updated: $(date '+%Y-%m-%d %H:%M:%S')"
         echo "Watching $FEATURES_DIR for changes..."
     else
-        echo "Error: mmdc failed. Check $LOG_FILE"
+        echo "Failed to update graph after $max_retries attempts."
         # Print the last few lines of the log for immediate feedback
-        tail -n 5 "$LOG_FILE"
+        tail -n 10 "$LOG_FILE"
     fi
 }
 
@@ -55,11 +84,8 @@ update_graph
 
 # Watch for changes if fswatch is available
 if command -v fswatch &> /dev/null; then
-    # Use -1 to wait for at least one event, and -r to watch recursively if needed
-    # fswatch -o only outputs a number, which we use to trigger the update
-    fswatch -o "$FEATURES_DIR" | while read -r event_count; do
-        # Debounce a bit if many files change at once
-        sleep 0.2
+    # Use --latency 1 to batch events and avoid rapid firing
+    fswatch -o --latency 1 "$FEATURES_DIR" | while read -r event_count; do
         update_graph
     done
 else
