@@ -28,9 +28,3 @@ PID=$!
 echo "Graph Viewer started with PID: $PID"
 echo "Log file: $LOG_FILE"
 echo "URL: http://localhost:$PORT"
-
-# Optional: try to open the browser automatically
-if command -v open &> /dev/null; then
-    sleep 1 # Wait a moment for server to bind
-    open "http://localhost:$PORT"
-fi
