@@ -31,6 +31,14 @@ bool V055DemoApp::begin(RelativeDisplay* display) {
 
     m_display = display;
 
+    // Clear display immediately to remove any previous content
+    Serial.println("[V055DemoApp] Clearing display at startup...");
+    Arduino_GFX* gfx = m_display->getGfx();
+    if (gfx != nullptr) {
+        gfx->fillScreen(0x0000);  // Clear to black
+        hal_display_flush();
+    }
+
     // Create ConnectivityStatusScreen
     m_connectivityScreen = new ConnectivityStatusScreen();
     if (!m_connectivityScreen->begin(m_display)) {
