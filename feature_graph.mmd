@@ -43,6 +43,7 @@ graph TD
     subgraph Release_Demos ["<span class='subgraph-title'>Release Demos</span>"]
         direction TB
         demo_release_0_5("**Demo for Release v0.5**<br/><small>demo_release_0.5.md</small>"):::release
+        demo_release_0_55("**Demo for Release v0.55**<br/><small>demo_release_0.55.md</small>"):::release
     end
 
     subgraph Releases ["<span class='subgraph-title'>Releases</span>"]
@@ -65,6 +66,7 @@ graph TD
     hal_spec_network --> RELEASE_v0_55_connectivity_smoke_test
     app_config_system --> RELEASE_v0_55_connectivity_smoke_test
     ui_connectivity_status_screen --> RELEASE_v0_55_connectivity_smoke_test
+    demo_release_0_55 --> RELEASE_v0_55_connectivity_smoke_test
     hal_spec_display --> RELEASE_v0_5_display_drawing_ui_base
     hal_spec_timer --> RELEASE_v0_5_display_drawing_ui_base
     hal_timer_esp32 --> RELEASE_v0_5_display_drawing_ui_base

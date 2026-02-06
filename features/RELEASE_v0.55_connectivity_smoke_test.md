@@ -6,11 +6,13 @@
 > Prerequisite: features/hal_spec_network.md
 > Prerequisite: features/app_config_system.md
 > Prerequisite: features/ui_connectivity_status_screen.md
+> Prerequisite: features/demo_release_0.55.md
 
 ## 1. Release Capability Description
 This release validates the system's ability to securely manage Wi-Fi credentials, establish a network connection on ESP32 hardware, and verify internet reachability via a ping. It bridges the gap between the static UI (v0.5) and dynamic data (v0.6).
 
 ## 2. Integration Test Criteria
+To validate this release, the system must successfully run the demo application defined in `features/demo_release_0.55.md` on the target hardware.
 
 ### Success Metrics
 1.  **Secure Build:** The firmware compiles correctly using credentials from `config.json` without those credentials appearing in the source code.
