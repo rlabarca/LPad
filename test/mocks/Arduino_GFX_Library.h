@@ -9,6 +9,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <stddef.h>
 
 // Define PROGMEM for native environment (no-op)
 #ifndef PROGMEM
@@ -49,6 +50,19 @@ public:
     virtual void drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color) {}
     virtual void fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color) {}
     virtual void fillTriangle(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, uint16_t color) {}
+
+    // Text methods
+    virtual void setFont(const GFXfont* f = nullptr) { (void)f; }
+    virtual void setTextColor(uint16_t color) { (void)color; }
+    virtual void setCursor(int16_t x, int16_t y) { (void)x; (void)y; }
+    virtual size_t print(const char* str) { (void)str; return 0; }
+    virtual void getTextBounds(const char* str, int16_t x, int16_t y, int16_t* x1, int16_t* y1, uint16_t* w, uint16_t* h) {
+        (void)str; (void)x; (void)y;
+        if (x1) *x1 = 0;
+        if (y1) *y1 = 0;
+        if (w) *w = 0;
+        if (h) *h = 0;
+    }
 
     int16_t width() const { return _width; }
     int16_t height() const { return _height; }
