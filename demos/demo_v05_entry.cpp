@@ -1,28 +1,22 @@
 /**
- * @file demo_screen.cpp
- * @brief Release 0.5 Demo Application Entry Point
- *
- * This file serves as the main entry point for the demo_v05_* build environments.
- * It uses the V05DemoApp class which implements the full v0.5 demo specification:
- * - Logo Animation
- * - 6 Graph Modes (2 layouts × 3 themes)
- *
- * See features/demo_release_0.5.md for specification.
+ * @file demo_v05_entry.cpp
+ * @brief Release 0.5 Demo Entry Point Implementation
  */
 
+#include "demo_v05_entry.h"
 #include <Arduino.h>
 #include <Arduino_GFX_Library.h>
 #include "v05_demo_app.h"
-#include "display.h"
+#include "../hal/display.h"
 #include "relative_display.h"
 #include "animation_ticker.h"
 
 // Global instances
-V05DemoApp* g_demoApp = nullptr;
-AnimationTicker* g_ticker = nullptr;
-RelativeDisplay* g_relativeDisplay = nullptr;
+static V05DemoApp* g_demoApp = nullptr;
+static AnimationTicker* g_ticker = nullptr;
+static RelativeDisplay* g_relativeDisplay = nullptr;
 
-void displayError(const char* message) {
+static void displayError(const char* message) {
     hal_display_clear(RGB565_RED);
     hal_display_flush();
     Serial.println("=== ERROR ===");
@@ -30,13 +24,12 @@ void displayError(const char* message) {
     Serial.println("=============");
 }
 
-void setup() {
+void demo_setup() {
     Serial.begin(115200);
     delay(500);  // Brief delay for ESP32-S3 USB CDC
     yield();
 
     Serial.println("\n\n\n=== LPad Release 0.5 Demo Application ===");
-    Serial.println("Using V05DemoApp class");
     Serial.flush();
     yield();
 
@@ -121,7 +114,7 @@ void setup() {
     Serial.println();
 }
 
-void loop() {
+void demo_loop() {
     // Wait for next frame and get deltaTime
     float deltaTime = g_ticker->waitForNextFrame();
 
