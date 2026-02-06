@@ -256,17 +256,11 @@ void LogoScreen::renderLogo() {
     int32_t new_top = curr_y;
     int32_t new_bottom = curr_y + curr_height;
 
-    // Union of both bounding boxes with 1px padding to avoid rounding artifacts
+    // Union of both bounding boxes
     int32_t box_x = (old_left < new_left) ? old_left : new_left;
     int32_t box_y = (old_top < new_top) ? old_top : new_top;
     int32_t box_right = (old_right > new_right) ? old_right : new_right;
     int32_t box_bottom = (old_bottom > new_bottom) ? old_bottom : new_bottom;
-
-    // Add 1px padding to prevent scan line artifacts from rounding errors
-    box_x -= 1;
-    box_y -= 1;
-    box_right += 1;
-    box_bottom += 1;
 
     // Clamp to screen bounds
     if (box_x < 0) box_x = 0;
