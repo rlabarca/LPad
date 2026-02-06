@@ -4,18 +4,19 @@
 #include <algorithm>
 #include <cstring>
 
-// Start and end states from spec
+// Start state from spec (centered, large, center anchor)
 static constexpr float START_POS_X = 50.0f;
 static constexpr float START_POS_Y = 50.0f;
 static constexpr float START_HEIGHT = 75.0f;  // 75% of screen height
 static constexpr float START_ANCHOR_X = 0.5f;
 static constexpr float START_ANCHOR_Y = 0.5f;
 
-static constexpr float END_POS_X = 100.0f;
-static constexpr float END_POS_Y = 0.0f;
-static constexpr float END_HEIGHT = 5.0f;  // 5% of screen height
-static constexpr float END_ANCHOR_X = 1.0f;
+// End state from spec (top-right, small, top-left anchor)
+// Position offset by 10px from top-right corner
+static constexpr float END_HEIGHT = 10.0f;  // 10% of screen height
+static constexpr float END_ANCHOR_X = 0.0f;  // Top-left anchor
 static constexpr float END_ANCHOR_Y = 0.0f;
+static constexpr float CORNER_OFFSET_PX = 10.0f;  // Offset from corner in pixels
 
 LogoScreen::LogoScreen(float waitDuration, float animDuration)
     : m_waitDuration(waitDuration)
@@ -34,12 +35,22 @@ LogoScreen::LogoScreen(float waitDuration, float animDuration)
     , m_lastLogoWidth(0)
     , m_lastLogoHeight(0)
 {
-    // Set initial position (centered, large)
-    m_current.posX = START_POS_X;
-    m_current.posY = START_POS_Y;
-    m_current.heightPercent = START_HEIGHT;
-    m_current.anchorX = START_ANCHOR_X;
-    m_current.anchorY = START_ANCHOR_Y;
+    // Initialize start state (will be copied to m_current in begin())
+    m_startParams.posX = START_POS_X;
+    m_startParams.posY = START_POS_Y;
+    m_startParams.heightPercent = START_HEIGHT;
+    m_startParams.anchorX = START_ANCHOR_X;
+    m_startParams.anchorY = START_ANCHOR_Y;
+
+    // End state will be calculated in begin() based on screen dimensions
+    m_endParams.heightPercent = END_HEIGHT;
+    m_endParams.anchorX = END_ANCHOR_X;
+    m_endParams.anchorY = END_ANCHOR_Y;
+    m_endParams.posX = 0.0f;  // Calculated in begin()
+    m_endParams.posY = 0.0f;  // Calculated in begin()
+
+    // Set initial position
+    m_current = m_startParams;
 }
 
 LogoScreen::~LogoScreen() {
@@ -57,6 +68,16 @@ bool LogoScreen::begin(RelativeDisplay* display, uint16_t backgroundColor) {
     m_width = hal_display_get_width_pixels();
     m_height = hal_display_get_height_pixels();
     m_backgroundColor = backgroundColor;
+
+    // Calculate end position: top-left corner at (ScreenWidth - 10, 10) in screen pixels
+    // In RelativeDisplay coords (where Y=0 is bottom, Y=100 is top):
+    // - X = (ScreenWidth - 10) / ScreenWidth * 100
+    // - Y = (ScreenHeight - 10) / ScreenHeight * 100
+    float offsetX_percent = (CORNER_OFFSET_PX / static_cast<float>(m_width)) * 100.0f;
+    float offsetY_percent = (CORNER_OFFSET_PX / static_cast<float>(m_height)) * 100.0f;
+
+    m_endParams.posX = 100.0f - offsetX_percent;  // Right edge minus offset
+    m_endParams.posY = 100.0f - offsetY_percent;  // Top edge minus offset
 
     // Allocate composite buffer (background) in PSRAM if available
     size_t buffer_size = static_cast<size_t>(m_width) * static_cast<size_t>(m_height);
@@ -146,12 +167,12 @@ float LogoScreen::easeInOutCubic(float t) {
 }
 
 void LogoScreen::updateAnimParams(float t) {
-    // Linear interpolation of all parameters
-    m_current.posX = START_POS_X + (END_POS_X - START_POS_X) * t;
-    m_current.posY = START_POS_Y + (END_POS_Y - START_POS_Y) * t;
-    m_current.heightPercent = START_HEIGHT + (END_HEIGHT - START_HEIGHT) * t;
-    m_current.anchorX = START_ANCHOR_X + (END_ANCHOR_X - START_ANCHOR_X) * t;
-    m_current.anchorY = START_ANCHOR_Y + (END_ANCHOR_Y - START_ANCHOR_Y) * t;
+    // Linear interpolation of all parameters from start to end
+    m_current.posX = m_startParams.posX + (m_endParams.posX - m_startParams.posX) * t;
+    m_current.posY = m_startParams.posY + (m_endParams.posY - m_startParams.posY) * t;
+    m_current.heightPercent = m_startParams.heightPercent + (m_endParams.heightPercent - m_startParams.heightPercent) * t;
+    m_current.anchorX = m_startParams.anchorX + (m_endParams.anchorX - m_startParams.anchorX) * t;
+    m_current.anchorY = m_startParams.anchorY + (m_endParams.anchorY - m_startParams.anchorY) * t;
 }
 
 void LogoScreen::reset() {
@@ -161,11 +182,7 @@ void LogoScreen::reset() {
     m_hasDrawnLogo = false;
 
     // Reset to start position
-    m_current.posX = START_POS_X;
-    m_current.posY = START_POS_Y;
-    m_current.heightPercent = START_HEIGHT;
-    m_current.anchorX = START_ANCHOR_X;
-    m_current.anchorY = START_ANCHOR_Y;
+    m_current = m_startParams;
 
     // Clear screen and redraw background
     if (m_display != nullptr && m_compositeBuffer != nullptr) {

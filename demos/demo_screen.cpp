@@ -385,7 +385,7 @@ void setup() {
     Serial.println("    Mode 5: Mixed");
     Serial.println();
     Serial.println("Visual Elements:");
-    Serial.println("  [x] Animated Vector Logo (start: 75% height, end: 5% height)");
+    Serial.println("  [x] Animated Vector Logo (start: 75% height, end: 10% height)");
     Serial.println("  [x] Dirty-rect optimization (flicker-free)");
     Serial.println("  [x] Smooth 30fps animation");
     Serial.println("  [x] Aspect ratio preservation");

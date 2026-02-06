@@ -172,10 +172,19 @@ Applied the same technique used in TimeSeriesGraph's live indicator:
 - Tracks `m_lastLogoX/Y/Width/Height` for dirty-rect calculation
 - Aspect ratio preserved: `widthPercent = heightPercent * (original_width / original_height)`
 
+### Updated Animation Parameters (2026-02-06)
+Re-implemented LogoScreen with corrected animation parameters per feature spec:
+- **End size**: 10% of screen height (was 5%)
+- **End position**: Top-right corner with dynamic 10px offset calculated from actual screen dimensions
+- **End anchor**: Top-left (0.0, 0.0) instead of bottom-right (1.0, 0.0)
+- **Dynamic calculation**: End position now calculated in `begin()` based on screen width/height instead of hardcoded constants
+- Formula: `posX = 100% - (10px / screenWidth * 100%)`, `posY = 100% - (10px / screenHeight * 100%)`
+
 ### Key Lessons
 1. **Same solution for same problem**: Animated vector graphics require the same dirty-rect optimization as animated raster graphics
 2. **Software rasterization trade-off**: Slight CPU cost (barycentric test per pixel) for smooth animation via atomic blit
 3. **PSRAM allocation strategy**: Composite buffer allocation uses `ps_malloc` on BOARD_HAS_PSRAM for optimal performance
+4. **Resolution independence**: Animation parameters should be calculated dynamically based on actual screen dimensions, not hardcoded for specific resolutions
 
 ---
 

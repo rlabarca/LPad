@@ -102,6 +102,10 @@ private:
 
     AnimParams m_current;
 
+    // Start and end animation states (end state calculated in begin())
+    AnimParams m_startParams;
+    AnimParams m_endParams;
+
     // Easing function (EaseInOutCubic)
     static float easeInOutCubic(float t);
 
