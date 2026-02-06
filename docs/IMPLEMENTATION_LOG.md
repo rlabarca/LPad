@@ -197,3 +197,4 @@ The demo code (which already includes `theme_manager.h`) sets these when creatin
 1. **Never include font headers in draw code** - pass font pointers through configuration structs instead
 2. **Watchdog crashes on ESP32-S3** are often caused by memory pressure during pixel-intensive operations, not necessarily by timing
 3. **Incremental modification of draw methods** after full revert is safer than trying to fix crashes in-place
+4. **CRITICAL: Custom GFX fonts crash on PSRAM Arduino_Canvas** - calling `canvas->setFont(GFXfont*)` on an Arduino_Canvas allocated in PSRAM causes TG1WDT_SYS_RST watchdog resets. **Workaround:** Use built-in font with `canvas->setFont(nullptr); canvas->setTextSize(N);` instead. This limitation means axis titles use 10x14 pixel characters (size 2) and tick labels use 5x7 pixel characters (size 1), instead of the 9pt and 18pt custom fonts specified in the theme.
