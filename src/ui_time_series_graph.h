@@ -191,11 +191,11 @@ private:
     double cached_y_max_;
     bool range_cached_;
 
-    // Graph drawing area (in percentage coordinates)
-    static constexpr float GRAPH_MARGIN_LEFT = 10.0f;
-    static constexpr float GRAPH_MARGIN_RIGHT = 5.0f;
-    static constexpr float GRAPH_MARGIN_TOP = 5.0f;
-    static constexpr float GRAPH_MARGIN_BOTTOM = 10.0f;
+    // Dynamic margin computation
+    struct GraphMargins {
+        float left, right, top, bottom;
+    };
+    GraphMargins getMargins() const;
 
     /**
      * @brief Draws the X and Y axes to the given RelativeDisplay

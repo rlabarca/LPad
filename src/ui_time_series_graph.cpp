@@ -150,6 +150,24 @@ void TimeSeriesGraph::setYAxisTitle(const char* title) {
     y_axis_title_ = title;
 }
 
+TimeSeriesGraph::GraphMargins TimeSeriesGraph::getMargins() const {
+    GraphMargins m;
+    if (tick_label_position_ == TickLabelPosition::OUTSIDE) {
+        m.left = 12.0f;
+        m.bottom = 12.0f;
+        m.top = 5.0f;
+        m.right = 5.0f;
+        if (y_axis_title_) m.left += 4.0f;
+        if (x_axis_title_) m.bottom += 4.0f;
+    } else {
+        m.left = 3.0f;
+        m.bottom = 3.0f;
+        m.top = 3.0f;
+        m.right = 3.0f;
+    }
+    return m;
+}
+
 void TimeSeriesGraph::drawBackground() {
     if (!rel_bg_) return;
 
@@ -321,10 +339,11 @@ void TimeSeriesGraph::update(float deltaTime) {
 }
 
 void TimeSeriesGraph::drawAxes(RelativeDisplay* target) {
-    float x_min = GRAPH_MARGIN_LEFT;
-    float x_max = 100.0f - GRAPH_MARGIN_RIGHT;
-    float y_min = GRAPH_MARGIN_TOP;
-    float y_max = 100.0f - GRAPH_MARGIN_BOTTOM;
+    GraphMargins m = getMargins();
+    float x_min = m.left;
+    float x_max = 100.0f - m.right;
+    float y_min = m.top;
+    float y_max = 100.0f - m.bottom;
 
     // Draw Y-axis (left edge)
     target->drawVerticalLine(x_min, y_min, y_max, theme_.axisColor);
@@ -342,10 +361,11 @@ void TimeSeriesGraph::drawYTicks(RelativeDisplay* target) {
 
     if (y_max - y_min < 0.001) return;
 
-    float x_axis = GRAPH_MARGIN_LEFT;
+    GraphMargins m = getMargins();
+    float x_axis = m.left;
     float tick_end = x_axis + theme_.tickLength;
-    float screen_y_min = GRAPH_MARGIN_TOP;
-    float screen_y_max = 100.0f - GRAPH_MARGIN_BOTTOM;
+    float screen_y_min = m.top;
+    float screen_y_max = 100.0f - m.bottom;
 
     // Get the underlying canvas to draw text labels
     Arduino_GFX* canvas = target->getGfx();
@@ -381,11 +401,12 @@ void TimeSeriesGraph::drawYTicks(RelativeDisplay* target) {
 void TimeSeriesGraph::drawXTicks(RelativeDisplay* target) {
     if (data_.x_values.empty()) return;
 
-    float y_axis = 100.0f - GRAPH_MARGIN_BOTTOM;
+    GraphMargins mx = getMargins();
+    float y_axis = 100.0f - mx.bottom;
     float tick_start = y_axis;
     float tick_end = y_axis + theme_.tickLength;
-    float screen_x_min = GRAPH_MARGIN_LEFT;
-    float screen_x_max = 100.0f - GRAPH_MARGIN_RIGHT;
+    float screen_x_min = mx.left;
+    float screen_x_max = 100.0f - mx.right;
 
     // Get the underlying canvas to draw text labels
     Arduino_GFX* canvas = target->getGfx();
@@ -673,8 +694,9 @@ float TimeSeriesGraph::mapYToScreen(double y_value, double y_min, double y_max) 
     float y_range = static_cast<float>(y_max - y_min);
     float normalized = static_cast<float>(y_value - y_min) / y_range;
 
-    float screen_y_min = GRAPH_MARGIN_TOP;
-    float screen_y_max = 100.0f - GRAPH_MARGIN_BOTTOM;
+    GraphMargins m = getMargins();
+    float screen_y_min = m.top;
+    float screen_y_max = 100.0f - m.bottom;
     float screen_range = screen_y_max - screen_y_min;
 
     // Invert Y-axis (higher values at top)
@@ -684,8 +706,9 @@ float TimeSeriesGraph::mapYToScreen(double y_value, double y_min, double y_max) 
 float TimeSeriesGraph::mapXToScreen(size_t x_index, size_t x_count) {
     float normalized = static_cast<float>(x_index) / static_cast<float>(x_count - 1);
 
-    float screen_x_min = GRAPH_MARGIN_LEFT;
-    float screen_x_max = 100.0f - GRAPH_MARGIN_RIGHT;
+    GraphMargins m = getMargins();
+    float screen_x_min = m.left;
+    float screen_x_max = 100.0f - m.right;
     float screen_range = screen_x_max - screen_x_min;
 
     return screen_x_min + (normalized * screen_range);
