@@ -8,6 +8,7 @@
 > **Prerequisite:** `features/ui_base.md`
 > **Prerequisite:** `features/display_canvas_drawing.md`
 > **Prerequisite:** `features/ui_theme_support.md`
+> **Prerequisite:** `features/ui_logo_screen.md`
 
 This feature defines the main demo application used to validate Release v0.5. It orchestrates all UI components to showcase the system's capabilities using the active theme.
 
@@ -21,27 +22,32 @@ This feature defines the main demo application used to validate Release v0.5. It
 3.  **Off-screen Canvas:** `main_canvas` sized to the full display resolution.
 4.  **Graph Data:** Loaded from `test_data/yahoo_chart_tnx_5m_1d.json`.
 5.  **Components:**
+    -   `LogoScreen`: Initialized and ready to play.
     -   `BackgroundDrawer`: Configured to use theme colors.
     -   `TimeSeriesGraph`: Configured with loaded data, referencing theme fonts for labels.
     -   `LiveIndicator`: Configured to use theme colors for its pulsing animation.
 
 ## Scenario: Visual Requirements & Rendering (Demo Loop)
 
-
-
 **Given** the application is running.
-
 **When** the loop executes.
+**Then** the display should cycle through the following stages:
 
-**Then** the display should cycle through the following configurations every 5 seconds to demonstrate layout capabilities:
+### Stage 0: Logo Animation
+1.  **Display:**
+    -   Solid background (Theme Background Color).
+    -   LPad Logo starts centered and large (~75% height).
+2.  **Behavior:**
+    -   Waits for 2 seconds.
+    -   Animates smoothly (EaseInOut) to the top-right corner, shrinking to ~5% height.
+    -   Holds the final position for 2 seconds.
+    -   Transitions to Stage 1.
 
-
-
-### Stage 1: "Scientific Mode" (Full Details)
-
+### Stage 1: "Scientific Mode" (Graph)
+(Duration: 5 seconds)
 1.  **Graph Configuration:**
-
     -   **Tick Labels:** `OUTSIDE`.
+
 
     -   **Axis Titles:** Enabled.
 

@@ -77,6 +77,7 @@ graph TD
     subgraph Application_Layer ["Application Layer"]
         direction TB
         app_animation_ticker("**Animation Ticker Engine**<br/><small>app_animation_ticker.md</small>"):::app
+        ui_logo_screen("**Logo Splash Screen**<br/><small>ui_logo_screen.md</small>"):::app
     end
 
     subgraph Board_Drivers ["Board Drivers"]
@@ -89,6 +90,7 @@ graph TD
         direction TB
         display_canvas_drawing("**Layered Canvas Drawing**<br/><small>display_canvas_drawing.md</small>"):::graphics
         display_relative_drawing("**Relative Drawing**<br/><small>display_relative_drawing.md</small>"):::graphics
+        ui_vector_assets("**Vector Asset Pipeline**<br/><small>ui_vector_assets.md</small>"):::graphics
     end
 
     subgraph Hardware_Layer ["Hardware Layer"]
@@ -132,12 +134,17 @@ graph TD
     app_animation_ticker --> RELEASE_v0_5_display_drawing_ui_base
     ui_live_indicator --> RELEASE_v0_5_display_drawing_ui_base
     ui_theme_support --> RELEASE_v0_5_display_drawing_ui_base
+    ui_vector_assets --> RELEASE_v0_5_display_drawing_ui_base
+    ui_logo_screen --> RELEASE_v0_5_display_drawing_ui_base
     demo_release_0_5 --> RELEASE_v0_5_display_drawing_ui_base
     hal_contracts --> app_animation_ticker
     hal_contracts --> display_canvas_drawing
     hal_contracts --> display_tdisplay_s3_plus
     hal_contracts --> hal_timer_esp32
+    ui_vector_assets --> ui_logo_screen
+    app_animation_ticker --> ui_logo_screen
     display_canvas_drawing --> ui_theme_support
+    display_relative_drawing --> ui_vector_assets
 ```
 <!-- MERMAID_END -->
 

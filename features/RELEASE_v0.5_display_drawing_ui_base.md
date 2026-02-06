@@ -16,6 +16,8 @@
 > Prerequisite: features/app_animation_ticker.md
 > Prerequisite: features/ui_live_indicator.md
 > Prerequisite: features/ui_theme_support.md
+> Prerequisite: features/ui_vector_assets.md
+> Prerequisite: features/ui_logo_screen.md
 > Prerequisite: features/demo_release_0.5.md
 
 ## 1. Release Capability Description
