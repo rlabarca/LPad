@@ -220,10 +220,13 @@ void TimeSeriesGraph::drawBackground() {
     // Draw axes to background canvas
     drawAxes(rel_bg_);
 
-    // Draw ticks if enabled
+    // Draw Y-axis ticks and labels if enabled
     if (y_tick_increment_ > 0.0f) {
         drawYTicks(rel_bg_);
     }
+
+    // Draw X-axis ticks and labels
+    drawXTicks(rel_bg_);
 }
 
 void TimeSeriesGraph::drawData() {
@@ -358,6 +361,61 @@ void TimeSeriesGraph::drawYTicks(RelativeDisplay* target) {
         // Draw the label
         // Adjust Y position to center text vertically on the tick
         canvas->setCursor(label_x, label_y + 3);  // +3 to roughly center with tick
+        canvas->print(label);
+    }
+}
+
+void TimeSeriesGraph::drawXTicks(RelativeDisplay* target) {
+    if (data_.x_values.empty()) return;
+
+    float y_axis = 100.0f - GRAPH_MARGIN_BOTTOM;
+    float tick_start = y_axis;
+    float tick_end = y_axis + theme_.tickLength;
+    float screen_x_min = GRAPH_MARGIN_LEFT;
+    float screen_x_max = 100.0f - GRAPH_MARGIN_RIGHT;
+
+    // Get the underlying canvas to draw text labels
+    Arduino_GFX* canvas = target->getGfx();
+    if (!canvas) return;
+
+    // Draw tick marks at regular intervals (show ~5-7 ticks across the X-axis)
+    size_t num_points = data_.x_values.size();
+    if (num_points < 2) return;
+
+    // Calculate tick interval (aim for ~5 ticks)
+    size_t tick_interval = (num_points > 5) ? (num_points / 5) : 1;
+
+    for (size_t i = 0; i < num_points; i += tick_interval) {
+        float x_screen = mapXToScreen(i, num_points);
+
+        // Draw tick mark (vertical line below X-axis)
+        target->drawVerticalLine(x_screen, tick_start, tick_end, theme_.tickColor);
+
+        // Draw label below the tick mark
+        // For time-series, show the data point index (could be enhanced to show actual timestamps)
+        char label[16];
+        if (!data_.x_values.empty() && i < data_.x_values.size()) {
+            // Show timestamp in a readable format (last 2 digits of timestamp)
+            long timestamp = data_.x_values[i];
+            snprintf(label, sizeof(label), "%ld", timestamp % 1000);  // Show last 3 digits
+        } else {
+            snprintf(label, sizeof(label), "%zu", i);
+        }
+
+        // Convert relative coordinates to absolute pixels for text positioning
+        int32_t label_x = target->relativeToAbsoluteX(x_screen);
+        int32_t label_y = target->relativeToAbsoluteY(tick_end + 1.0f);  // 1% spacing below tick
+
+        // Set font and color
+        canvas->setTextColor(theme_.tickColor);
+        canvas->setTextSize(1);
+
+        // Draw the label (center it on the tick)
+        // Calculate text width to center it
+        int16_t x1, y1;
+        uint16_t w, h;
+        canvas->getTextBounds(label, 0, 0, &x1, &y1, &w, &h);
+        canvas->setCursor(label_x - w/2, label_y);
         canvas->print(label);
     }
 }

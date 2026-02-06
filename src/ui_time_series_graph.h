@@ -192,9 +192,14 @@ private:
     void drawAxes(RelativeDisplay* target);
 
     /**
-     * @brief Draws Y-axis tick marks to the given RelativeDisplay
+     * @brief Draws Y-axis tick marks and labels to the given RelativeDisplay
      */
     void drawYTicks(RelativeDisplay* target);
+
+    /**
+     * @brief Draws X-axis tick marks and labels to the given RelativeDisplay
+     */
+    void drawXTicks(RelativeDisplay* target);
 
     /**
      * @brief Draws the data line to the given RelativeDisplay
