@@ -14,7 +14,7 @@ TODO: Trigger recursive validation.
 > Prerequisite: features/display_tdisplay_s3_plus.md
 > Prerequisite: features/display_canvas_drawing.md
 > Prerequisite: features/display_relative_drawing.md
-> Prerequisite: features/display_background.md
+> Prerequisite: features/ui_base.md
 > Prerequisite: features/app_animation_ticker.md
 > Prerequisite: features/ui_live_indicator.md
 > Prerequisite: features/demos/demo_release_0.5.md

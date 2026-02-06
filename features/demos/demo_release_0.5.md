@@ -5,7 +5,7 @@
 
 > **Prerequisite:** `features/app_animation_ticker.md`
 > **Prerequisite:** `features/ui_live_indicator.md`
-> **Prerequisite:** `features/display_background.md`
+> **Prerequisite:** `features/ui_base.md`
 > **Prerequisite:** `features/display_canvas_drawing.md`
 
 This feature defines the main demo application. It orchestrates all UI components to showcase the system's capabilities: HAL abstraction, resolution independence, layered rendering, and smooth animation.

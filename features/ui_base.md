@@ -1,7 +1,7 @@
-# Feature: Background & Gradient Drawing
+# Feature: Base UI Elements
 
-> Label: "Background & Gradients"
-> Category: "Graphics Engine"
+> Label: "Base UI Elements"
+> Category: "UI Framework"
 
 > **Prerequisite:** `features/display_relative_drawing.md`
 
