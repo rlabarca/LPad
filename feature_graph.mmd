@@ -19,11 +19,6 @@ graph TD
         display_tdisplay_s3_plus("**T-Display S3+ Driver**<br/><small>display_tdisplay_s3_plus.md</small>")
     end
 
-    subgraph Data_Layer ["Data Layer"]
-        direction TB
-        data_yahoo_chart_parser("**Yahoo Chart Parser**<br/><small>data_yahoo_chart_parser.md</small>")
-    end
-
     subgraph Graphics_Engine ["Graphics Engine"]
         direction TB
         display_background("**Background & Gradients**<br/><small>display_background.md</small>"):::graphics
@@ -50,7 +45,6 @@ graph TD
         ui_live_indicator("**Animated Live Indicator**<br/><small>ui_live_indicator.md</small>"):::ui
         ui_theme_support("**Theme Support**<br/><small>ui_theme_support.md</small>"):::ui
         ui_themeable_time_series_graph("**Themeable Graph**<br/><small>ui_themeable_time_series_graph.md</small>"):::ui
-        ui_time_series_graph("**Time Series Graph**<br/><small>ui_time_series_graph.md</small>"):::ui
     end
 
     %% Relationships
@@ -64,9 +58,7 @@ graph TD
     display_canvas_drawing --> RELEASE_v0_5_display_drawing_ui_base
     display_relative_drawing --> RELEASE_v0_5_display_drawing_ui_base
     display_background --> RELEASE_v0_5_display_drawing_ui_base
-    data_yahoo_chart_parser --> RELEASE_v0_5_display_drawing_ui_base
     app_animation_ticker --> RELEASE_v0_5_display_drawing_ui_base
-    ui_time_series_graph --> RELEASE_v0_5_display_drawing_ui_base
     ui_live_indicator --> RELEASE_v0_5_display_drawing_ui_base
     app_demo_screen --> RELEASE_v0_5_display_drawing_ui_base
     hal_contracts --> app_animation_ticker
