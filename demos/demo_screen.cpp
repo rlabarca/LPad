@@ -1,17 +1,18 @@
 /**
  * @file demo_screen.cpp
- * @brief Base UI Demo Application
+ * @brief Release 0.5 Demo Application
  *
  * This demo demonstrates the full capabilities of the LPad UI system:
  * - HAL abstraction for hardware independence
  * - Resolution-independent display via RelativeDisplay
  * - Layered rendering with off-screen canvases
  * - Smooth 30fps animation via AnimationTicker
+ * - ThemeManager for runtime theming
  * - Gradient backgrounds
  * - Time series graphs
  * - Animated live indicators
  *
- * See features/app_demo_screen.md for specification.
+ * See features/demo_release_0.5.md for specification.
  */
 
 #include <Arduino.h>
@@ -21,6 +22,7 @@
 #include "ui_time_series_graph.h"
 #include "yahoo_chart_parser.h"
 #include "animation_ticker.h"
+#include "theme_manager.h"
 
 // Custom RGB565 colors for the demo
 #define RGB565_DARK_PURPLE 0x4810  // Deep purple
@@ -39,39 +41,44 @@ int g_currentMode = 0;
 float g_modeTimer = 0.0f;
 const float MODE_SWITCH_INTERVAL = 8.0f;  // Switch modes every 8 seconds
 
-// Create Vaporwave theme with ALL GRADIENTS (Mode 0)
+// Create theme with ALL GRADIENTS using ThemeManager colors (Mode 0)
 GraphTheme createGradientTheme() {
     GraphTheme theme = {};
 
-    // Basic colors
-    theme.backgroundColor = RGB565_DARK_PURPLE;
-    theme.lineColor = RGB565_CYAN;
-    theme.axisColor = RGB565_MAGENTA;
+    // Get colors from ThemeManager (default theme)
+    const LPad::Theme* lpadTheme = LPad::ThemeManager::getInstance().getTheme();
 
-    // Enable 45-degree background gradient (Purple -> Pink -> Dark Blue)
+    // Basic colors from ThemeManager
+    theme.backgroundColor = lpadTheme->colors.background;
+    theme.lineColor = lpadTheme->colors.primary;
+    theme.axisColor = lpadTheme->colors.secondary;
+
+    // Enable 45-degree background gradient using theme colors
+    // Background (darker) -> Secondary (lighter)
     theme.useBackgroundGradient = true;
     theme.backgroundGradient.angle_deg = 45.0f;
-    theme.backgroundGradient.color_stops[0] = RGB565_DARK_PURPLE;
-    theme.backgroundGradient.color_stops[1] = RGB565_MAGENTA;
-    theme.backgroundGradient.color_stops[2] = RGB565_DARK_BLUE;
-    theme.backgroundGradient.num_stops = 3;
+    theme.backgroundGradient.color_stops[0] = lpadTheme->colors.background;
+    theme.backgroundGradient.color_stops[1] = lpadTheme->colors.secondary;
+    theme.backgroundGradient.num_stops = 2;
 
-    // Enable gradient line (horizontal, Cyan to Pink)
+    // Enable gradient line (horizontal, Primary -> Accent)
+    // Primary (left/old data) -> Accent (right/new data)
     theme.useLineGradient = true;
     theme.lineGradient.angle_deg = 0.0f;
-    theme.lineGradient.color_stops[0] = RGB565_CYAN;
-    theme.lineGradient.color_stops[1] = RGB565_MAGENTA;
+    theme.lineGradient.color_stops[0] = lpadTheme->colors.primary;
+    theme.lineGradient.color_stops[1] = lpadTheme->colors.accent;
     theme.lineGradient.num_stops = 2;
 
     // Line and axis styling
     theme.lineThickness = 2.0f;
     theme.axisThickness = 0.8f;
-    theme.tickColor = RGB565_WHITE;
+    theme.tickColor = lpadTheme->colors.graph_ticks;
     theme.tickLength = 2.5f;
 
-    // Enable integrated live indicator with radial gradient (Pink->Cyan)
-    theme.liveIndicatorGradient.color_stops[0] = RGB565_MAGENTA;  // Pink/magenta center
-    theme.liveIndicatorGradient.color_stops[1] = RGB565_CYAN;     // Cyan edge
+    // Enable integrated live indicator with radial gradient
+    // Accent (center) -> Primary (outer edge) as per spec
+    theme.liveIndicatorGradient.color_stops[0] = lpadTheme->colors.accent;
+    theme.liveIndicatorGradient.color_stops[1] = lpadTheme->colors.primary;
     theme.liveIndicatorPulseSpeed = 0.5f;  // 0.5 pulses per second (2 second cycle)
 
     return theme;
@@ -144,6 +151,34 @@ void displayError(const char* message) {
     Serial.println("=== ERROR ===");
     Serial.println(message);
     Serial.println("=============");
+}
+
+// Draw the "V0.5 DEMO" title using ThemeManager
+void drawTitle() {
+    const LPad::Theme* theme = LPad::ThemeManager::getInstance().getTheme();
+    Arduino_GFX* gfx = static_cast<Arduino_GFX*>(hal_display_get_gfx());
+
+    if (gfx == nullptr) return;
+
+    // Get display dimensions
+    int32_t width = hal_display_get_width_pixels();
+
+    // Set font and color from theme
+    gfx->setFont(theme->fonts.heading);
+    gfx->setTextColor(theme->colors.text_main);
+
+    // Calculate text position (centered at top)
+    const char* title = "V0.5 DEMO";
+    int16_t x1, y1;
+    uint16_t w, h;
+    gfx->getTextBounds(title, 0, 0, &x1, &y1, &w, &h);
+
+    int16_t text_x = (width - w) / 2;
+    int16_t text_y = 10 + h;  // 10px from top + text height
+
+    // Draw title
+    gfx->setCursor(text_x, text_y);
+    gfx->print(title);
 }
 
 void setup() {
@@ -283,28 +318,30 @@ void setup() {
     // Composite and render to display
     Serial.println("  Compositing to display...");
     graph.render();
+
+    // Draw title using ThemeManager (spec requirement)
+    Serial.println("  Drawing title...");
+    drawTitle();
+
     hal_display_flush();
 
     Serial.println("  [PASS] Initial render complete");
     Serial.println();
 
-    Serial.println("=== Demo Application Ready ===");
-    Serial.println("Mode Switching Demo - Tests both gradient and solid rendering:");
+    Serial.println("=== Release 0.5 Demo Application Ready ===");
     Serial.println();
-    Serial.println("Mode 0 (ALL GRADIENTS):");
-    Serial.println("  [ ] 45-degree gradient background (purple->pink->blue)");
-    Serial.println("  [ ] Gradient plot line (cyan->pink)");
-    Serial.println("  [ ] Gradient live indicator (magenta->cyan)");
+    Serial.println("Visual Elements (using ThemeManager colors):");
+    Serial.println("  [x] Title: 'V0.5 DEMO' (ThemeFonts.heading, ThemeColors.text_main)");
+    Serial.println("  [x] Background: 45-degree gradient (background->secondary)");
+    Serial.println("  [x] Graph Line: Gradient (primary->accent)");
+    Serial.println("  [x] Live Indicator: Pulsing at 30fps (accent->primary)");
+    Serial.println("  [x] Y-Axis Labels: ThemeFonts.smallest");
     Serial.println();
-    Serial.println("Mode 1 (ALL SOLID COLORS):");
-    Serial.println("  [ ] Solid dark grey background");
-    Serial.println("  [ ] Solid white plot line");
-    Serial.println("  [ ] Solid green live indicator");
+    Serial.println("Mode Switching Demo - Tests gradient and solid rendering:");
     Serial.println();
-    Serial.println("Mode 2 (MIXED):");
-    Serial.println("  [ ] Solid dark blue background");
-    Serial.println("  [ ] Gradient plot line (yellow->red)");
-    Serial.println("  [ ] Gradient live indicator (yellow->red)");
+    Serial.println("Mode 0 (ThemeManager colors with gradients)");
+    Serial.println("Mode 1 (Solid colors)");
+    Serial.println("Mode 2 (Mixed mode)");
     Serial.println();
     Serial.printf("Switching modes every %.0f seconds...\n", MODE_SWITCH_INTERVAL);
     Serial.println("Starting 30fps animation loop...");
@@ -356,6 +393,10 @@ void loop() {
         g_graph->drawBackground();
         g_graph->drawData();
         g_graph->render();
+
+        // Redraw title on top
+        drawTitle();
+
         hal_display_flush();
     }
 
