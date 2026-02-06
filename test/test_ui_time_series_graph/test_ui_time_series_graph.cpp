@@ -39,7 +39,10 @@ void test_initialize_graph_with_theme(void) {
     theme.useBackgroundGradient = false;
     theme.useLineGradient = false;
 
-    TimeSeriesGraph graph(theme);
+    TimeSeriesGraph graph(theme,
+                         (Arduino_GFX*)hal_display_get_gfx(),
+                         hal_display_get_width_pixels(),
+                         hal_display_get_height_pixels());
 
     // Should not crash - initialization successful
     TEST_ASSERT_TRUE(true);
@@ -57,10 +60,15 @@ void test_draw_empty_graph(void) {
     theme.useBackgroundGradient = false;
     theme.useLineGradient = false;
 
-    TimeSeriesGraph graph(theme);
+    TimeSeriesGraph graph(theme,
+                         (Arduino_GFX*)hal_display_get_gfx(),
+                         hal_display_get_width_pixels(),
+                         hal_display_get_height_pixels());
 
     // Draw should not crash even with no data
-    graph.draw();
+    graph.drawBackground();
+    graph.drawData();
+    graph.render();
 
     TEST_ASSERT_TRUE(true);
 }
@@ -76,7 +84,10 @@ void test_set_data(void) {
     theme.useBackgroundGradient = false;
     theme.useLineGradient = false;
 
-    TimeSeriesGraph graph(theme);
+    TimeSeriesGraph graph(theme,
+                         (Arduino_GFX*)hal_display_get_gfx(),
+                         hal_display_get_width_pixels(),
+                         hal_display_get_height_pixels());
 
     GraphData data;
     data.x_values = {1, 2, 3, 4, 5};
@@ -100,14 +111,19 @@ void test_draw_graph_with_data(void) {
     theme.useBackgroundGradient = false;
     theme.useLineGradient = false;
 
-    TimeSeriesGraph graph(theme);
+    TimeSeriesGraph graph(theme,
+                         (Arduino_GFX*)hal_display_get_gfx(),
+                         hal_display_get_width_pixels(),
+                         hal_display_get_height_pixels());
 
     GraphData data;
     data.x_values = {1, 2, 3, 4, 5};
     data.y_values = {10.0, 20.0, 15.0, 25.0, 30.0};
 
     graph.setData(data);
-    graph.draw();
+    graph.drawBackground();
+    graph.drawData();
+    graph.render();
 
     // Should not crash - graph drawn successfully
     TEST_ASSERT_TRUE(true);
@@ -125,7 +141,10 @@ void test_update_data_different_range(void) {
     theme.useBackgroundGradient = false;
     theme.useLineGradient = false;
 
-    TimeSeriesGraph graph(theme);
+    TimeSeriesGraph graph(theme,
+                         (Arduino_GFX*)hal_display_get_gfx(),
+                         hal_display_get_width_pixels(),
+                         hal_display_get_height_pixels());
 
     // First dataset
     GraphData data1;
@@ -133,7 +152,9 @@ void test_update_data_different_range(void) {
     data1.y_values = {10.0, 20.0, 30.0};
 
     graph.setData(data1);
-    graph.draw();
+    graph.drawBackground();
+    graph.drawData();
+    graph.render();
 
     // Second dataset with different range
     GraphData data2;
@@ -141,7 +162,9 @@ void test_update_data_different_range(void) {
     data2.y_values = {100.0, 200.0, 150.0, 250.0, 300.0};
 
     graph.setData(data2);
-    graph.draw();
+    graph.drawBackground();
+    graph.drawData();
+    graph.render();
 
     // Should not crash - graph rescaled and redrawn
     TEST_ASSERT_TRUE(true);
@@ -158,13 +181,18 @@ void test_handle_empty_data(void) {
     theme.useBackgroundGradient = false;
     theme.useLineGradient = false;
 
-    TimeSeriesGraph graph(theme);
+    TimeSeriesGraph graph(theme,
+                         (Arduino_GFX*)hal_display_get_gfx(),
+                         hal_display_get_width_pixels(),
+                         hal_display_get_height_pixels());
 
     GraphData data;
     // Empty vectors
 
     graph.setData(data);
-    graph.draw();
+    graph.drawBackground();
+    graph.drawData();
+    graph.render();
 
     // Should not crash with empty data
     TEST_ASSERT_TRUE(true);
@@ -181,14 +209,19 @@ void test_handle_single_data_point(void) {
     theme.useBackgroundGradient = false;
     theme.useLineGradient = false;
 
-    TimeSeriesGraph graph(theme);
+    TimeSeriesGraph graph(theme,
+                         (Arduino_GFX*)hal_display_get_gfx(),
+                         hal_display_get_width_pixels(),
+                         hal_display_get_height_pixels());
 
     GraphData data;
     data.x_values = {1};
     data.y_values = {42.0};
 
     graph.setData(data);
-    graph.draw();
+    graph.drawBackground();
+    graph.drawData();
+    graph.render();
 
     // Should not crash with single point
     TEST_ASSERT_TRUE(true);
@@ -216,7 +249,10 @@ void test_gradient_background(void) {
 
     theme.axisThickness = 0.5f;
 
-    TimeSeriesGraph graph(theme);
+    TimeSeriesGraph graph(theme,
+                         (Arduino_GFX*)hal_display_get_gfx(),
+                         hal_display_get_width_pixels(),
+                         hal_display_get_height_pixels());
 
     // Call drawBackground
     graph.drawBackground();
@@ -247,7 +283,10 @@ void test_thick_gradient_data_line(void) {
     theme.lineGradient.color_stops[1] = RGB565_MAGENTA;
     theme.lineGradient.num_stops = 2;
 
-    TimeSeriesGraph graph(theme);
+    TimeSeriesGraph graph(theme,
+                         (Arduino_GFX*)hal_display_get_gfx(),
+                         hal_display_get_width_pixels(),
+                         hal_display_get_height_pixels());
 
     GraphData data;
     data.x_values = {1, 2, 3, 4, 5};
@@ -278,7 +317,10 @@ void test_axis_tick_marks(void) {
     theme.tickLength = 2.0f;
     theme.axisThickness = 0.3f;
 
-    TimeSeriesGraph graph(theme);
+    TimeSeriesGraph graph(theme,
+                         (Arduino_GFX*)hal_display_get_gfx(),
+                         hal_display_get_width_pixels(),
+                         hal_display_get_height_pixels());
 
     GraphData data;
     data.x_values = {1, 2, 3, 4, 5};
@@ -315,7 +357,10 @@ void test_animate_live_indicator(void) {
     theme.liveIndicatorGradient.color_stops[1] = RGB565_DARK_PURPLE;
     theme.liveIndicatorPulseSpeed = 1.0f;  // 1 cycle per second
 
-    TimeSeriesGraph graph(theme);
+    TimeSeriesGraph graph(theme,
+                         (Arduino_GFX*)hal_display_get_gfx(),
+                         hal_display_get_width_pixels(),
+                         hal_display_get_height_pixels());
 
     GraphData data;
     data.x_values = {1, 2, 3, 4, 5};
@@ -354,7 +399,10 @@ void test_independent_refresh(void) {
     theme.useLineGradient = false;
     theme.lineThickness = 0.5f;
 
-    TimeSeriesGraph graph(theme);
+    TimeSeriesGraph graph(theme,
+                         (Arduino_GFX*)hal_display_get_gfx(),
+                         hal_display_get_width_pixels(),
+                         hal_display_get_height_pixels());
 
     // Initial data
     GraphData data1;
