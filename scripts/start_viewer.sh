@@ -9,10 +9,12 @@ LOG_FILE=".pio/graph_server.log"
 
 mkdir -p .pio
 
-# Check if already running
-if lsof -Pi :$PORT -sTCP:LISTEN -t >/dev/null ; then
-    echo "Graph server is already running on port $PORT."
-    exit 0
+# Restart if already running
+PID=$(lsof -Pi :$PORT -sTCP:LISTEN -t)
+if [ -n "$PID" ]; then
+    echo "Graph server is already running (PID: $PID). Restarting..."
+    ./scripts/stop_viewer.sh
+    sleep 1 # Wait for port to clear
 fi
 
 if [ ! -f "$SCRIPT_PATH" ]; then
