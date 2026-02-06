@@ -125,6 +125,7 @@ git commit --allow-empty -m "feat(verify): Re-validated [Complete features/demo_
 ---
 ## General Directives
 
+0.  **Efficiency & Communication:** If a task is ambiguous, potentially redundant, or appears to be leading toward an inefficient use of tokens/time, you MUST stop and ask for clarification. Do not "blindly" implement if you suspect a more efficient path or if a crucial piece of information is missing.
 1.  **Feature-First:** Code is secondary. Truth lives in `features/*.md`. Strictly follow the Gherkin-style behavior defined there.
 2.  **HAL Architecture:** NEVER write hardware-specific code in `src/`. All hardware interaction (GPIO, I2C, Display) must go through `hal/`.
 3.  **TDD Workflow:** Write the test (Unity), see it fail, write the code, pass.

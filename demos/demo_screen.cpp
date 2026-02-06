@@ -11,6 +11,7 @@
  * - Gradient backgrounds
  * - Time series graphs
  * - Animated live indicators
+ * - Vector asset rendering (logo splash screen)
  *
  * See features/demo_release_0.5.md for specification.
  */
@@ -23,6 +24,8 @@
 #include "yahoo_chart_parser.h"
 #include "animation_ticker.h"
 #include "theme_manager.h"
+#include "vector_renderer.h"
+#include "generated/vector_assets.h"
 
 // Custom RGB565 colors for the demo
 #define RGB565_DARK_PURPLE 0x4810  // Deep purple
@@ -35,8 +38,18 @@ const char* TEST_DATA_JSON = R"({"chart":{"result":[{"meta":{"currency":"USD","s
 TimeSeriesGraph* g_graph = nullptr;
 AnimationTicker* g_ticker = nullptr;
 GraphData g_graphData;  // Store data for graph
+RelativeDisplay* g_relativeDisplay = nullptr;
 
-// Mode switching state
+// Demo state machine
+enum DemoPhase {
+    PHASE_LOGO_SPLASH,    // Show LPad logo
+    PHASE_GRAPH_DEMO      // Show graph with mode switching
+};
+DemoPhase g_currentPhase = PHASE_LOGO_SPLASH;
+float g_phaseTimer = 0.0f;
+const float LOGO_SPLASH_DURATION = 3.0f;  // Show logo for 3 seconds
+
+// Mode switching state (for graph phase)
 int g_currentMode = 0;       // 0-5: cycles through 6 combinations
 float g_modeTimer = 0.0f;
 const float MODE_SWITCH_INTERVAL = 5.0f;  // Switch modes every 5 seconds
@@ -249,6 +262,12 @@ void setup() {
         displayError("Display object unavailable");
         while (1) delay(1000);
     }
+
+    // Create RelativeDisplay wrapper for vector rendering
+    static RelativeDisplay relDisplay(display, width, height);
+    g_relativeDisplay = &relDisplay;
+    g_relativeDisplay->init();
+
     Serial.println("  [PASS] RelativeDisplay initialized");
     Serial.println();
     yield();
@@ -323,32 +342,44 @@ void setup() {
     Serial.println();
     yield();
 
-    // [6/6] Initial render
-    Serial.println("[6/6] Performing initial render...");
+    // [6/6] Initial render - Logo Splash Screen
+    Serial.println("[6/6] Rendering logo splash screen...");
 
-    // Draw static layers to canvases
-    Serial.println("  Drawing background layer...");
-    graph.drawBackground();
+    // Get theme colors for logo background
+    const LPad::Theme* theme_ptr = LPad::ThemeManager::getInstance().getTheme();
 
-    Serial.println("  Drawing data layer...");
-    graph.drawData();
+    // Draw gradient background for logo splash
+    g_relativeDisplay->drawGradientBackground(
+        theme_ptr->colors.background,
+        theme_ptr->colors.secondary,
+        45.0f
+    );
 
-    // Composite and render to display
-    Serial.println("  Compositing to display...");
-    graph.render();
-
-    // Draw title using ThemeManager (spec requirement)
-    Serial.println("  Drawing title...");
-    drawTitle();
+    // Draw LPad logo centered on screen (30% width)
+    Serial.println("  Drawing LPad vector logo...");
+    VectorRenderer::draw(
+        *g_relativeDisplay,
+        VectorAssets::Lpadlogo,
+        50.0f,  // Center X
+        50.0f,  // Center Y
+        30.0f,  // 30% screen width
+        0.5f,   // Center anchor X
+        0.5f    // Center anchor Y
+    );
 
     hal_display_flush();
 
-    Serial.println("  [PASS] Initial render complete");
+    Serial.println("  [PASS] Logo splash screen rendered");
     Serial.println();
 
     Serial.println("=== Release 0.5 Demo Application Ready ===");
     Serial.println();
+    Serial.println("Demo Phases:");
+    Serial.println("  Phase 1: LPad Logo Splash (3 seconds)");
+    Serial.println("  Phase 2: Graph Demo with Mode Switching");
+    Serial.println();
     Serial.println("Visual Elements (using ThemeManager colors):");
+    Serial.println("  [x] Vector Logo: Resolution-independent LPad logo");
     Serial.println("  [x] Title: 'V0.5 DEMO' (ThemeFonts.heading, ThemeColors.text_main)");
     Serial.println("  [x] Background: 45-degree gradient (background->secondary)");
     Serial.println("  [x] Graph Line: Gradient (primary->accent)");
@@ -370,60 +401,85 @@ void loop() {
     // Wait for next frame and get deltaTime
     float deltaTime = g_ticker->waitForNextFrame();
 
-    if (g_graph == nullptr) {
-        return;
+    // Phase state machine
+    g_phaseTimer += deltaTime;
+
+    switch (g_currentPhase) {
+        case PHASE_LOGO_SPLASH:
+            // Wait for splash duration, then transition to graph demo
+            if (g_phaseTimer >= LOGO_SPLASH_DURATION) {
+                Serial.println("\n=== Transitioning to Graph Demo Phase ===\n");
+                g_currentPhase = PHASE_GRAPH_DEMO;
+                g_phaseTimer = 0.0f;
+
+                // Render initial graph state
+                if (g_graph != nullptr) {
+                    g_graph->drawBackground();
+                    g_graph->drawData();
+                    g_graph->render();
+                    drawTitle();
+                    hal_display_flush();
+                }
+            }
+            break;
+
+        case PHASE_GRAPH_DEMO:
+            if (g_graph == nullptr) {
+                return;
+            }
+
+            // Mode switching: 6 combinations (2 layout x 3 visual), cycling every 5s
+            g_modeTimer += deltaTime;
+            if (g_modeTimer >= MODE_SWITCH_INTERVAL) {
+                g_modeTimer = 0.0f;
+                g_currentMode = (g_currentMode + 1) % 6;
+
+                // Visual mode: 0=Gradient, 1=Solid, 2=Mixed (cycles within each layout)
+                int visualMode = g_currentMode % 3;
+                // Layout mode: 0=Scientific (first 3), 1=Compact (last 3)
+                int layoutMode = g_currentMode / 3;
+
+                // Apply visual theme
+                GraphTheme newTheme;
+                const char* visualName;
+                switch (visualMode) {
+                    case 0:  newTheme = createGradientTheme(); visualName = "GRADIENT"; break;
+                    case 1:  newTheme = createSolidTheme();    visualName = "SOLID";    break;
+                    default: newTheme = createMixedTheme();    visualName = "MIXED";    break;
+                }
+                g_graph->setTheme(newTheme);
+
+                // Apply layout mode
+                const char* layoutName;
+                if (layoutMode == 0) {
+                    layoutName = "SCIENTIFIC";
+                    g_graph->setTickLabelPosition(TickLabelPosition::OUTSIDE);
+                    g_graph->setXAxisTitle("TIME (5m)");
+                    g_graph->setYAxisTitle("YIELD (%)");
+                } else {
+                    layoutName = "COMPACT";
+                    g_graph->setTickLabelPosition(TickLabelPosition::INSIDE);
+                    g_graph->setXAxisTitle(nullptr);
+                    g_graph->setYAxisTitle(nullptr);
+                }
+
+                Serial.printf("\n>>> %s + %s <<<\n\n", layoutName, visualName);
+
+                // Redraw static layers with new theme and layout
+                g_graph->drawBackground();
+                g_graph->drawData();
+                g_graph->render();
+
+                drawTitle();
+                hal_display_flush();
+            }
+
+            // Update the graph with integrated live indicator animation
+            // This uses dirty-rect optimization to avoid flashing
+            g_graph->update(deltaTime);
+
+            // Flush to ensure display updates
+            hal_display_flush();
+            break;
     }
-
-    // Mode switching: 6 combinations (2 layout x 3 visual), cycling every 5s
-    g_modeTimer += deltaTime;
-    if (g_modeTimer >= MODE_SWITCH_INTERVAL) {
-        g_modeTimer = 0.0f;
-        g_currentMode = (g_currentMode + 1) % 6;
-
-        // Visual mode: 0=Gradient, 1=Solid, 2=Mixed (cycles within each layout)
-        int visualMode = g_currentMode % 3;
-        // Layout mode: 0=Scientific (first 3), 1=Compact (last 3)
-        int layoutMode = g_currentMode / 3;
-
-        // Apply visual theme
-        GraphTheme newTheme;
-        const char* visualName;
-        switch (visualMode) {
-            case 0:  newTheme = createGradientTheme(); visualName = "GRADIENT"; break;
-            case 1:  newTheme = createSolidTheme();    visualName = "SOLID";    break;
-            default: newTheme = createMixedTheme();    visualName = "MIXED";    break;
-        }
-        g_graph->setTheme(newTheme);
-
-        // Apply layout mode
-        const char* layoutName;
-        if (layoutMode == 0) {
-            layoutName = "SCIENTIFIC";
-            g_graph->setTickLabelPosition(TickLabelPosition::OUTSIDE);
-            g_graph->setXAxisTitle("TIME (5m)");
-            g_graph->setYAxisTitle("YIELD (%)");
-        } else {
-            layoutName = "COMPACT";
-            g_graph->setTickLabelPosition(TickLabelPosition::INSIDE);
-            g_graph->setXAxisTitle(nullptr);
-            g_graph->setYAxisTitle(nullptr);
-        }
-
-        Serial.printf("\n>>> %s + %s <<<\n\n", layoutName, visualName);
-
-        // Redraw static layers with new theme and layout
-        g_graph->drawBackground();
-        g_graph->drawData();
-        g_graph->render();
-
-        drawTitle();
-        hal_display_flush();
-    }
-
-    // Update the graph with integrated live indicator animation
-    // This uses dirty-rect optimization to avoid flashing
-    g_graph->update(deltaTime);
-
-    // Flush to ensure display updates
-    hal_display_flush();
 }
