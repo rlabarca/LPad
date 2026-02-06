@@ -5,6 +5,8 @@
 
 TODO: Trigger recursive validation.
 
+
+
 > Prerequisite: features/hal_contracts.md
 > Prerequisite: features/hal_timer_esp32.md
 > Prerequisite: features/hal_dma_blitting.md
