@@ -19,14 +19,7 @@
 #include <stdint.h>
 #include <cstddef>
 
-/**
- * @enum TickLabelPosition
- * @brief Position of tick labels relative to axes
- */
-enum class TickLabelPosition {
-    INSIDE,   ///< Tick labels drawn inside the graph area
-    OUTSIDE   ///< Tick labels drawn outside the graph area
-};
+enum class TickLabelPosition { INSIDE, OUTSIDE };
 
 /**
  * @struct GraphTheme
@@ -49,9 +42,8 @@ struct GraphTheme {
 
     bool useBackgroundGradient;         ///< Whether to use background gradient
     bool useLineGradient;               ///< Whether to use line gradient
-
-    // Font for axis titles (passed from caller to avoid theme_manager dependency)
-    const GFXfont* axisTitleFont;       ///< Font for axis titles (nullptr = use default)
+    const GFXfont* axisTitleFont;       ///< Font for axis titles (nullptr = default)
+    const GFXfont* tickFont;            ///< Font for tick labels (nullptr = default)
 };
 
 /**
@@ -113,28 +105,8 @@ public:
      */
     void setYTicks(float increment);
 
-    /**
-     * @brief Sets the position of tick labels
-     * @param pos INSIDE or OUTSIDE the graph axes
-     *
-     * Note: After setting position, call drawBackground() to update the layout.
-     */
     void setTickLabelPosition(TickLabelPosition pos);
-
-    /**
-     * @brief Sets the X-axis title text
-     * @param title Title text (centered horizontally below X-axis)
-     *
-     * Note: After setting title, call drawBackground() to update the layout.
-     */
     void setXAxisTitle(const char* title);
-
-    /**
-     * @brief Sets the Y-axis title text
-     * @param title Title text (centered vertically along Y-axis, rotated -90 degrees)
-     *
-     * Note: After setting title, call drawBackground() to update the layout.
-     */
     void setYAxisTitle(const char* title);
 
     /**
@@ -204,11 +176,9 @@ private:
     // Animation state
     float pulse_phase_;                   ///< Current phase of pulse animation (0 to 2*PI)
     float y_tick_increment_;              ///< Y-axis tick increment (0 = no ticks)
-
-    // Layout configuration
-    TickLabelPosition tick_label_position_;  ///< Position of tick labels (INSIDE or OUTSIDE)
-    const char* x_axis_title_;               ///< X-axis title text (nullptr = none)
-    const char* y_axis_title_;               ///< Y-axis title text (nullptr = none)
+    TickLabelPosition tick_label_position_;
+    const char* x_axis_title_;
+    const char* y_axis_title_;
 
     // Live indicator tracking for efficient redraw
     int32_t last_indicator_x_;            ///< Last drawn indicator center X (pixels)
@@ -221,11 +191,15 @@ private:
     double cached_y_max_;
     bool range_cached_;
 
-    // Graph drawing area (in percentage coordinates)
-    static constexpr float GRAPH_MARGIN_LEFT = 10.0f;
-    static constexpr float GRAPH_MARGIN_RIGHT = 5.0f;
-    static constexpr float GRAPH_MARGIN_TOP = 5.0f;
-    static constexpr float GRAPH_MARGIN_BOTTOM = 10.0f;
+    // Dynamic margin computation based on layout mode
+    struct GraphMargins {
+        float left, right, top, bottom;
+    };
+
+    /**
+     * @brief Computes graph margins based on tick label position and axis titles
+     */
+    GraphMargins getMargins() const;
 
     /**
      * @brief Draws the X and Y axes to the given RelativeDisplay
@@ -241,6 +215,11 @@ private:
      * @brief Draws X-axis tick marks and labels to the given RelativeDisplay
      */
     void drawXTicks(RelativeDisplay* target);
+
+    /**
+     * @brief Draws axis titles (X-axis horizontal centered, Y-axis vertical)
+     */
+    void drawAxisTitles(RelativeDisplay* target);
 
     /**
      * @brief Draws the data line to the given RelativeDisplay

@@ -36,9 +36,8 @@ TimeSeriesGraph* g_graph = nullptr;
 AnimationTicker* g_ticker = nullptr;
 GraphData g_graphData;  // Store data for graph
 
-// Mode switching state - Test both layout AND visual modes
-int g_currentLayoutMode = 0;  // 0=Scientific (OUTSIDE+titles), 1=Compact (INSIDE, no titles)
-int g_currentVisualMode = 0;  // 0=Gradient, 1=Solid, 2=Mixed
+// Mode switching state
+int g_currentMode = 0;       // 0-5: cycles through 6 combinations
 float g_modeTimer = 0.0f;
 const float MODE_SWITCH_INTERVAL = 5.0f;  // Switch modes every 5 seconds
 
@@ -82,8 +81,9 @@ GraphTheme createGradientTheme() {
     theme.liveIndicatorGradient.color_stops[1] = lpadTheme->colors.primary;
     theme.liveIndicatorPulseSpeed = 0.5f;  // 0.5 pulses per second (2 second cycle)
 
-    // Axis title font from ThemeManager (18pt UI font)
-    theme.axisTitleFont = lpadTheme->fonts.ui;
+    // Font assignments from ThemeManager
+    theme.tickFont = lpadTheme->fonts.smallest;       // 9pt for tick labels
+    theme.axisTitleFont = lpadTheme->fonts.ui;         // 18pt for axis titles
 
     return theme;
 }
@@ -114,9 +114,10 @@ GraphTheme createSolidTheme() {
     theme.liveIndicatorGradient.color_stops[1] = RGB565_GREEN;  // Same color = solid
     theme.liveIndicatorPulseSpeed = 0.5f;
 
-    // Axis title font - get from ThemeManager
+    // Font assignments from ThemeManager
     const LPad::Theme* lpadTheme = LPad::ThemeManager::getInstance().getTheme();
-    theme.axisTitleFont = lpadTheme ? lpadTheme->fonts.ui : nullptr;
+    theme.tickFont = lpadTheme->fonts.smallest;
+    theme.axisTitleFont = lpadTheme->fonts.ui;
 
     return theme;
 }
@@ -150,9 +151,10 @@ GraphTheme createMixedTheme() {
     theme.liveIndicatorGradient.color_stops[1] = RGB565_RED;
     theme.liveIndicatorPulseSpeed = 0.5f;
 
-    // Axis title font - get from ThemeManager
+    // Font assignments from ThemeManager
     const LPad::Theme* lpadTheme = LPad::ThemeManager::getInstance().getTheme();
-    theme.axisTitleFont = lpadTheme ? lpadTheme->fonts.ui : nullptr;
+    theme.tickFont = lpadTheme->fonts.smallest;
+    theme.axisTitleFont = lpadTheme->fonts.ui;
 
     return theme;
 }
@@ -229,7 +231,7 @@ void setup() {
     int32_t height = hal_display_get_height_pixels();
     Serial.printf("  [INFO] Display resolution: %d x %d pixels\n", width, height);
     Serial.println();
-    delay(100);
+    delay(500);
 
     // [2/6] Initialize RelativeDisplay API
     Serial.println("[2/6] Initializing RelativeDisplay abstraction...");
@@ -248,7 +250,7 @@ void setup() {
     }
     Serial.println("  [PASS] RelativeDisplay initialized");
     Serial.println();
-    delay(100);
+    delay(500);
 
     // [3/6] Create AnimationTicker
     Serial.println("[3/6] Creating 30fps AnimationTicker...");
@@ -262,7 +264,7 @@ void setup() {
     Serial.flush();
     Serial.println("  [PASS] AnimationTicker created (30fps)");
     Serial.println();
-    delay(100);
+    delay(500);
 
     // [4/6] Parse test data
     Serial.println("[4/6] Parsing test data from embedded JSON...");
@@ -283,7 +285,7 @@ void setup() {
     g_graphData.y_values = parser.getClosePrices();
     Serial.printf("  [PASS] Parsed %d data points\n", g_graphData.y_values.size());
     Serial.println();
-    delay(100);
+    delay(500);
 
     // [5/6] Create UI components
     Serial.println("[5/6] Creating UI components...");
@@ -313,16 +315,12 @@ void setup() {
 
     graph.setData(g_graphData);
     graph.setYTicks(0.002f);
-
-    // Set initial mode: Scientific + Gradient (mode 0)
     graph.setTickLabelPosition(TickLabelPosition::OUTSIDE);
     graph.setXAxisTitle("TIME (5m)");
     graph.setYAxisTitle("YIELD (%)");
-
     Serial.println("  [PASS] TimeSeriesGraph created with integrated indicator");
-    Serial.println("  [INFO] Initial mode: SCIENTIFIC + GRADIENT");
     Serial.println();
-    delay(100);
+    delay(500);
 
     // [6/6] Initial render
     Serial.println("[6/6] Performing initial render...");
@@ -356,18 +354,13 @@ void setup() {
     Serial.println("  [x] Live Indicator: Pulsing at 30fps (accent->primary)");
     Serial.println("  [x] Y-Axis Labels: ThemeFonts.smallest");
     Serial.println();
-    Serial.println("Comprehensive Mode Switching Demo:");
+    Serial.println("Mode Switching Demo - Tests gradient and solid rendering:");
     Serial.println();
-    Serial.println("LAYOUT MODES:");
-    Serial.println("  - Scientific: OUTSIDE tick labels + Axis Titles");
-    Serial.println("  - Compact: INSIDE tick labels + No Titles");
+    Serial.println("Mode 0 (ThemeManager colors with gradients)");
+    Serial.println("Mode 1 (Solid colors)");
+    Serial.println("Mode 2 (Mixed mode)");
     Serial.println();
-    Serial.println("VISUAL MODES:");
-    Serial.println("  - Gradient: Background, line, and indicator gradients");
-    Serial.println("  - Solid: Solid colors for all elements");
-    Serial.println("  - Mixed: Solid background + gradient line/indicator");
-    Serial.println();
-    Serial.printf("Cycles through all combinations every %.0f seconds...\n", MODE_SWITCH_INTERVAL);
+    Serial.printf("Switching modes every %.0f seconds...\n", MODE_SWITCH_INTERVAL);
     Serial.println("Starting 30fps animation loop...");
     Serial.println();
 }
@@ -380,67 +373,49 @@ void loop() {
         return;
     }
 
-    // Mode switching logic - cycle through layout AND visual mode combinations
+    // Mode switching: 6 combinations (2 layout x 3 visual), cycling every 5s
     g_modeTimer += deltaTime;
     if (g_modeTimer >= MODE_SWITCH_INTERVAL) {
         g_modeTimer = 0.0f;
+        g_currentMode = (g_currentMode + 1) % 6;
 
-        // Advance to next mode combination
-        g_currentVisualMode = (g_currentVisualMode + 1) % 3;
-        if (g_currentVisualMode == 0) {
-            // Wrapped around, advance layout mode
-            g_currentLayoutMode = (g_currentLayoutMode + 1) % 2;
+        // Visual mode: 0=Gradient, 1=Solid, 2=Mixed (cycles within each layout)
+        int visualMode = g_currentMode % 3;
+        // Layout mode: 0=Scientific (first 3), 1=Compact (last 3)
+        int layoutMode = g_currentMode / 3;
+
+        // Apply visual theme
+        GraphTheme newTheme;
+        const char* visualName;
+        switch (visualMode) {
+            case 0:  newTheme = createGradientTheme(); visualName = "GRADIENT"; break;
+            case 1:  newTheme = createSolidTheme();    visualName = "SOLID";    break;
+            default: newTheme = createMixedTheme();    visualName = "MIXED";    break;
         }
+        g_graph->setTheme(newTheme);
 
-        // Apply visual theme based on current visual mode
-        GraphTheme theme;
-        const char* visualModeName;
-        switch (g_currentVisualMode) {
-            case 0:
-                theme = createGradientTheme();
-                visualModeName = "GRADIENT";
-                break;
-            case 1:
-                theme = createSolidTheme();
-                visualModeName = "SOLID";
-                break;
-            case 2:
-                theme = createMixedTheme();
-                visualModeName = "MIXED";
-                break;
-            default:
-                theme = createGradientTheme();
-                visualModeName = "DEFAULT";
-                break;
-        }
-        g_graph->setTheme(theme);
-
-        // Apply layout configuration based on current layout mode
-        const char* layoutModeName;
-        if (g_currentLayoutMode == 0) {
-            // Scientific Mode (OUTSIDE labels + Titles)
-            layoutModeName = "SCIENTIFIC";
+        // Apply layout mode
+        const char* layoutName;
+        if (layoutMode == 0) {
+            layoutName = "SCIENTIFIC";
             g_graph->setTickLabelPosition(TickLabelPosition::OUTSIDE);
             g_graph->setXAxisTitle("TIME (5m)");
             g_graph->setYAxisTitle("YIELD (%)");
         } else {
-            // Compact Mode (INSIDE labels + No Titles)
-            layoutModeName = "COMPACT";
+            layoutName = "COMPACT";
             g_graph->setTickLabelPosition(TickLabelPosition::INSIDE);
             g_graph->setXAxisTitle(nullptr);
             g_graph->setYAxisTitle(nullptr);
         }
 
-        Serial.printf("\n>>> %s + %s <<<\n\n", layoutModeName, visualModeName);
+        Serial.printf("\n>>> %s + %s <<<\n\n", layoutName, visualName);
 
-        // Redraw all static layers with new theme and layout
+        // Redraw static layers with new theme and layout
         g_graph->drawBackground();
         g_graph->drawData();
         g_graph->render();
 
-        // Redraw title on top
         drawTitle();
-
         hal_display_flush();
     }
 

@@ -168,3 +168,32 @@ This approach required adding a `setTheme()` method to the `TimeSeriesGraph` cla
 1. **Automated cycling is better than manual switching** for HIL testing - the user can simply watch the display and verify all modes work correctly without manual intervention
 2. **Runtime theme switching requires careful layer management** - static layers (background, data) must be explicitly redrawn when the theme changes, while dynamic layers (live indicator) continue updating normally
 3. **Demo comprehensiveness directly impacts feature validation quality** - testing both code paths (gradient vs solid) in a single demo run reduces the risk of undiscovered bugs in less-exercised rendering modes
+
+---
+
+## [2026-02-05] Tick Label Positioning (INSIDE/OUTSIDE) and Axis Titles
+
+### Problem
+The demo_release_0.5.md spec requires two layout modes: "Scientific" (OUTSIDE tick labels + axis titles) and "Compact" (INSIDE tick labels, no titles). Previous attempts to modify the graph draw methods caused watchdog reset (TG1WDT_SYS_RST) crashes.
+
+### Root Cause of Previous Crashes
+Including `theme_manager.h` directly in `ui_time_series_graph.cpp` pulled in all 5 font data arrays (~100KB+ of static data). Combined with the draw method modifications, this likely caused memory pressure or stack overflow during the pixel-intensive background rendering.
+
+### Solution: Font Injection via GraphTheme Struct
+Instead of the graph code accessing `ThemeManager::getInstance()` directly, fonts are passed through the `GraphTheme` struct:
+- `tickFont`: For tick labels (9pt smallest)
+- `axisTitleFont`: For axis titles (18pt UI)
+
+The demo code (which already includes `theme_manager.h`) sets these when creating themes.
+
+### Key Design Decisions
+1. **Dynamic margins via `getMargins()`** replace static `constexpr` values. Returns wider margins for OUTSIDE mode (room for external labels + titles) and narrow margins for INSIDE mode (labels overlay plot area).
+2. **Y-tick labels skip first tick** (at y_min) to avoid overlap with X-axis.
+3. **X-tick labels skip first tick** (at index 0) to avoid overlap with Y-axis.
+4. **Y-axis title rendered vertically** using character-by-character drawing (centered in graph area).
+5. **Demo cycles 6 combinations**: 2 layout modes × 3 visual styles every 5 seconds.
+
+### Key Lessons
+1. **Never include font headers in draw code** - pass font pointers through configuration structs instead
+2. **Watchdog crashes on ESP32-S3** are often caused by memory pressure during pixel-intensive operations, not necessarily by timing
+3. **Incremental modification of draw methods** after full revert is safer than trying to fix crashes in-place
