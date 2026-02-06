@@ -365,6 +365,9 @@ void LogoScreen::renderLogo() {
                           static_cast<int16_t>(box_width), static_cast<int16_t>(box_height),
                           region_buffer);
 
+    // Ensure blit completes to prevent scan line artifacts
+    hal_display_flush();
+
     free(region_buffer);
 
     // Track logo position for next frame
