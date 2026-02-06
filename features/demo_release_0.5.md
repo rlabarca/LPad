@@ -84,10 +84,10 @@ The `V05DemoApp` class manages the lifecycle and orchestration of the v0.5 visua
     -   Draws a 45-degree angled gradient.
     -   **Colors:** Transitions from `ThemeColors.background` (Top-Left) to `ThemeColors.secondary` (Bottom-Right).
 2.  **Title:**
-    -   Text: "V0.5 DEMO"
-    -   **Font:** `ThemeFonts.heading` (24pt).
+    -   Text: "DEMO v0.5"
+    -   **Font:** `ThemeFonts.normal` (12pt).
     -   **Color:** `ThemeColors.text_main`.
-    -   Position: Top-center of the screen, z-index above all other elements.
+    -   Position: Top-left of the screen (approx 5% padding from edges), left-justified, z-index above all other elements.
 3.  **Time Series Graph:**
     -   **Plot Line:** Draws a gradient line.
         -   **Colors:** `ThemeColors.primary` (Oldest data/Left) -> `ThemeColors.accent` (Newest data/Right).

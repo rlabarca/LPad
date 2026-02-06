@@ -21,6 +21,7 @@ The `V055DemoApp` class coordinates the transition between connectivity validati
 1.  **`begin(RelativeDisplay* display)`**: 
     -   Initializes the `ConnectivityStatusScreen`.
     -   Initializes the `V05DemoApp` (but does not start its animation yet).
+    -   Configures the `V05DemoApp` to display the title "**DEMO v0.55**".
     -   Starts the Wi-Fi connection process via the HAL.
 2.  **`update(float deltaTime)`**: 
     -   **Phase 1 (Connectivity):** Updates `ConnectivityStatusScreen` with current network status and ping results.

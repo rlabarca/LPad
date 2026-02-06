@@ -29,6 +29,6 @@ To validate this release, the system must successfully run the demo application 
 
 ### Success Metrics
 1.  **Compilation:** The project compiles without errors for both target environments.
-2.  **Visual Verification:** The device displays the "V0.5 DEMO" screen with all elements (Gradient Background, Graph, Live Indicator) rendered correctly according to the scenarios in `features/demo_release_0.5.md`.
+2.  **Visual Verification:** The device displays the "**DEMO v0.5**" title in the top-left corner with all elements (Gradient Background, Graph, Live Indicator) rendered correctly according to the scenarios in `features/demo_release_0.5.md`.
 3.  **Theme Adherence:** The visual elements utilize the colors and fonts defined in the Default Theme.
 4.  **Performance:** The animation (Live Indicator) is smooth (approx 30fps) and flicker-free.
