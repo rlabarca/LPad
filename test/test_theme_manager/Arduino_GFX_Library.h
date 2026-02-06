@@ -10,6 +10,11 @@
 
 #include <stdint.h>
 
+// Define PROGMEM for native environment (no-op)
+#ifndef PROGMEM
+#define PROGMEM
+#endif
+
 // GFX font structures (from Adafruit_GFX)
 typedef struct {
     uint16_t bitmapOffset;  ///< Pointer into GFXfont->bitmap
