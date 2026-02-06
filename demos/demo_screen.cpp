@@ -187,7 +187,7 @@ void displayError(const char* message) {
     Serial.println("=============");
 }
 
-// Draw the "V0.5 DEMO" title using ThemeManager
+// Draw the "DEMO v0.5" title using ThemeManager
 void drawTitle() {
     const LPad::Theme* theme = LPad::ThemeManager::getInstance().getTheme();
     Arduino_GFX* gfx = static_cast<Arduino_GFX*>(hal_display_get_gfx());
@@ -196,21 +196,24 @@ void drawTitle() {
 
     // Get display dimensions
     int32_t width = hal_display_get_width_pixels();
+    int32_t height = hal_display_get_height_pixels();
 
-    // Set font and color from theme
-    gfx->setFont(theme->fonts.heading);
+    // Set font and color from theme (using normal 12pt font, not heading 24pt)
+    gfx->setFont(theme->fonts.normal);
     gfx->setTextColor(theme->colors.text_main);
 
-    // Calculate text position (centered at top)
-    const char* title = "V0.5 DEMO";
+    // Calculate text position (top-left with 5% padding)
+    const char* title = "DEMO v0.5";
     int16_t x1, y1;
     uint16_t w, h;
     gfx->getTextBounds(title, 0, 0, &x1, &y1, &w, &h);
 
-    int16_t text_x = (width - w) / 2;
-    int16_t text_y = 10 + h;  // 10px from top + text height
+    int16_t padding_x = width * 0.05f;
+    int16_t padding_y = height * 0.05f;
+    int16_t text_x = padding_x;
+    int16_t text_y = padding_y + h;  // 5% from top + text height
 
-    // Draw title
+    // Draw title (left-justified)
     gfx->setCursor(text_x, text_y);
     gfx->print(title);
 }
