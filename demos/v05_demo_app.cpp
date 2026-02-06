@@ -128,12 +128,9 @@ void V05DemoApp::render() {
 
         case STAGE_SCIENTIFIC:
         case STAGE_COMPACT:
-            // Render graph and title
-            if (m_graph != nullptr) {
-                m_graph->render();
-                drawTitle();
-                hal_display_flush();
-            }
+            // Graph stages: only flush display (update() already drew live indicator)
+            // Full render + title are done once during stage transitions
+            hal_display_flush();
             break;
 
         case STAGE_FINISHED:
@@ -187,6 +184,9 @@ void V05DemoApp::transitionToStage(Stage newStage) {
                 m_graph->setYAxisTitle("YIELD (%)");
                 m_graph->drawBackground();
                 m_graph->drawData();
+                m_graph->render();  // Full render once during transition
+                drawTitle();         // Draw title once during transition
+                hal_display_flush();
             }
             break;
 
@@ -198,6 +198,9 @@ void V05DemoApp::transitionToStage(Stage newStage) {
                 m_graph->setYAxisTitle(nullptr);
                 m_graph->drawBackground();
                 m_graph->drawData();
+                m_graph->render();  // Full render once during transition
+                drawTitle();         // Draw title once during transition
+                hal_display_flush();
             }
             break;
 

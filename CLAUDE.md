@@ -75,5 +75,18 @@ build_src_filter =
 
 **Check these environments:** `esp32s3`, `tdisplay_s3_plus`, and any other hardware targets.
 
+## Hardware Upload Protocol
+**DO NOT automatically upload to devices.** The user controls which device is connected via USB.
+
+**Your role:**
+1. Build the firmware: `pio run -e <env>`
+2. **STOP and inform the user** that the build is ready
+3. Tell the user: "Ready to upload. Run: `pio run -e <env> -t upload`"
+4. Let the user execute the upload command when they're ready
+
+**Only upload automatically if:**
+- The user explicitly asks you to upload
+- The user provides a specific environment to upload to
+
 ## Status Reset Logic
 Any edit to `features/X.md` resets its status to `[TODO]`. You MUST re-verify it and create a new status-marking commit (following the Tag Selection Rule) to clear it. Even if no code changed, if it has a HIL section, you MUST use `[Ready for HIL Test]`.
