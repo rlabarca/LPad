@@ -351,8 +351,8 @@ void TimeSeriesGraph::drawYTicks(RelativeDisplay* target) {
     Arduino_GFX* canvas = target->getGfx();
     if (!canvas) return;
 
-    // Draw tick marks and labels
-    for (double tick_value = y_min; tick_value <= y_max; tick_value += y_tick_increment_) {
+    // Draw tick marks and labels (skip first tick at y_min to avoid X-axis overlap)
+    for (double tick_value = y_min + y_tick_increment_; tick_value <= y_max; tick_value += y_tick_increment_) {
         float y_screen = mapYToScreen(tick_value, y_min, y_max);
 
         // Draw tick mark
@@ -398,7 +398,8 @@ void TimeSeriesGraph::drawXTicks(RelativeDisplay* target) {
     // Calculate tick interval (aim for ~5 ticks)
     size_t tick_interval = (num_points > 5) ? (num_points / 5) : 1;
 
-    for (size_t i = 0; i < num_points; i += tick_interval) {
+    // Skip first tick near Y-axis
+    for (size_t i = tick_interval; i < num_points; i += tick_interval) {
         float x_screen = mapXToScreen(i, num_points);
 
         // Draw tick mark (vertical line below X-axis)
