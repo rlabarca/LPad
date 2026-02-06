@@ -57,10 +57,8 @@ def generate_mermaid(features):
     print("    classDef graphics fill:#e0f7fa,stroke:#006064,stroke-width:1px,color:black;")
     print("")
 
-    # Add subgraph styling (Large Headers)
-    unique_categories = set(data["category"] for data in features.values())
-    for cat in sorted(unique_categories):
-        print(f"    style {cat.replace(' ', '_')} font-size:18px,font-weight:bold")
+    # Subgraph styling is now handled by CSS in the viewer and HTML labels
+    # We still keep the IDs for category-based logic if needed
 
     # Group by Category
     grouped_categories = defaultdict(list)
@@ -69,7 +67,8 @@ def generate_mermaid(features):
     
     # Render Subgraphs
     for category, node_ids in sorted(grouped_categories.items()):
-        print(f"\n    subgraph {category.replace(' ', '_')} [\"      {category}            \"]")
+        # Use HTML span with class for robust rendering and padding
+        print(f"\n    subgraph {category.replace(' ', '_')} [\"<span class='subgraph-title'>{category}</span>\"]")
         print(f"        direction TB")
         for node_id in sorted(node_ids):
             data = features[node_id]

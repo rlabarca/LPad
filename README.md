@@ -74,35 +74,28 @@ graph TD
     classDef app fill:#fff3e0,stroke:#e65100,stroke-width:1px,color:black;
     classDef graphics fill:#e0f7fa,stroke:#006064,stroke-width:1px,color:black;
 
-    style Application_Layer font-size:18px,font-weight:bold
-    style Board_Drivers font-size:18px,font-weight:bold
-    style Graphics_Engine font-size:18px,font-weight:bold
-    style Hardware_Layer font-size:18px,font-weight:bold
-    style Release_Demos font-size:18px,font-weight:bold
-    style Releases font-size:18px,font-weight:bold
-    style UI_Framework font-size:18px,font-weight:bold
 
-    subgraph Application_Layer ["      Application Layer            "]
+    subgraph Application_Layer ["<span class='subgraph-title'>Application Layer</span>"]
         direction TB
         app_animation_ticker("**Animation Ticker Engine**<br/><small>app_animation_ticker.md</small>"):::app
         app_config_system("**Config Injection System**<br/><small>app_config_system.md</small>"):::app
         ui_logo_screen("**Logo Splash Screen**<br/><small>ui_logo_screen.md</small>"):::app
     end
 
-    subgraph Board_Drivers ["      Board Drivers            "]
+    subgraph Board_Drivers ["<span class='subgraph-title'>Board Drivers</span>"]
         direction TB
         display_esp32s3_amoled("**ESP32-S3 AMOLED Driver**<br/><small>display_esp32s3_amoled.md</small>")
         display_tdisplay_s3_plus("**T-Display S3+ Driver**<br/><small>display_tdisplay_s3_plus.md</small>")
     end
 
-    subgraph Graphics_Engine ["      Graphics Engine            "]
+    subgraph Graphics_Engine ["<span class='subgraph-title'>Graphics Engine</span>"]
         direction TB
         display_canvas_drawing("**Layered Canvas Drawing**<br/><small>display_canvas_drawing.md</small>"):::graphics
         display_relative_drawing("**Relative Drawing**<br/><small>display_relative_drawing.md</small>"):::graphics
         ui_vector_assets("**Vector Asset Pipeline**<br/><small>ui_vector_assets.md</small>"):::graphics
     end
 
-    subgraph Hardware_Layer ["      Hardware Layer            "]
+    subgraph Hardware_Layer ["<span class='subgraph-title'>Hardware Layer</span>"]
         direction TB
         display_rotation_contract("**Rotation Contract**<br/><small>display_rotation_contract.md</small>"):::hardware
         display_target_rotation("**Target Rotation**<br/><small>display_target_rotation.md</small>"):::hardware
@@ -114,18 +107,18 @@ graph TD
         hal_timer_esp32("**ESP32 Timer**<br/><small>hal_timer_esp32.md</small>"):::hardware
     end
 
-    subgraph Release_Demos ["      Release Demos            "]
+    subgraph Release_Demos ["<span class='subgraph-title'>Release Demos</span>"]
         direction TB
         demo_release_0_5("**Demo for Release v0.5**<br/><small>demo_release_0.5.md</small>"):::release
     end
 
-    subgraph Releases ["      Releases            "]
+    subgraph Releases ["<span class='subgraph-title'>Releases</span>"]
         direction TB
         RELEASE_v0_55_connectivity_smoke_test("**Release v0.55 - Connectivity Smoke Test**<br/><small>RELEASE_v0.55_connectivity_smoke_test.md</small>"):::release
         RELEASE_v0_5_display_drawing_ui_base("**Release v0.5 - Display, Drawing & UI Base**<br/><small>RELEASE_v0.5_display_drawing_ui_base.md</small>"):::release
     end
 
-    subgraph UI_Framework ["      UI Framework            "]
+    subgraph UI_Framework ["<span class='subgraph-title'>UI Framework</span>"]
         direction TB
         ui_base("**Base UI Elements**<br/><small>ui_base.md</small>"):::ui
         ui_connectivity_status_screen("**Connectivity Status Screen**<br/><small>ui_connectivity_status_screen.md</small>"):::ui
