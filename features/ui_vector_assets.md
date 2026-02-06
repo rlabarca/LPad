@@ -78,14 +78,20 @@ public:
 ```
 
 ### Rendering Logic:
-1.  Iterate over all paths in the `VectorShape`.
-2.  For each triangle in a path:
-    *   Transform each vertex `v` (which is 0..1):
-        *   `v_adj.x = v.x - anchor_x`
-        *   `v_adj.y = v.y - anchor_y`
-        *   `screen_x = base_x + v_adj.x * target_width`
-        *   `screen_y = base_y + v_adj.y * target_height` (where target_height is derived from aspect ratio).
-    *   Draw the triangle using `display.getGfx()->fillTriangle(...)`.
+1.  **Calculate Aspect Ratio:** `aspect_ratio = shape.original_height / shape.original_width`.
+2.  **Determine Absolute Dimensions:**
+    -   `target_width_px = display.relativeToAbsoluteWidth(width_percent)`
+    -   `target_height_px = target_width_px * aspect_ratio`
+3.  **Iterate over all paths** in the `VectorShape`.
+4.  **For each triangle** in a path:
+    -   Transform each vertex `v` (which is 0.0..1.0 relative to the shape's bounding box):
+        -   `v_adj_x = (v.x - anchor_x) * target_width_px`
+        -   `v_adj_y = (v.y - anchor_y) * target_height_px`
+        -   `screen_x_px = display.relativeToAbsoluteX(x_percent) + v_adj_x`
+        -   `screen_y_px = display.relativeToAbsoluteY(y_percent) + v_adj_y`
+    -   Draw the triangle using `display.getGfx()->fillTriangle(...)` using the calculated pixel coordinates.
+
+This logic ensures that the image maintains its original proportions regardless of the screen's aspect ratio.
 
 ## 3. Scenarios
 

@@ -101,6 +101,7 @@ To ensure resolution independence and maximize memory efficiency on memory-const
 ### C. Scaling and Animation
 1.  **Pivot-Based Transforms:** Rendering supports arbitrary anchor points (0.0 to 1.0) within the asset to facilitate complex scaling (e.g., "scale from center") and translation.
 2.  **Interpolation:** Asset properties (X, Y, Scale, Rotation) are interpolated using `deltaTime` to ensure smooth animation at the target frame rate.
+3.  **Aspect Ratio Integrity:** Vector assets MUST maintain their original proportions during rendering. The renderer must calculate the target height based on the target width and the asset's intrinsic aspect ratio, regardless of the physical screen's aspect ratio.
 
 ## 3. Implementation Patterns
 
