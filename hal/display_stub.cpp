@@ -88,3 +88,21 @@ void hal_display_canvas_fill(hal_canvas_handle_t canvas, uint16_t color) {
 void* hal_display_get_gfx(void) {
     return nullptr;  // Stub doesn't provide Arduino_GFX access
 }
+
+void hal_display_fast_blit(int16_t x, int16_t y, int16_t w, int16_t h, const uint16_t* data) {
+    (void)x;
+    (void)y;
+    (void)w;
+    (void)h;
+    (void)data;  // Stub doesn't support fast blitting
+}
+
+void hal_display_fast_blit_transparent(int16_t x, int16_t y, int16_t w, int16_t h,
+                                      const uint16_t* data, uint16_t transparent_color) {
+    (void)x;
+    (void)y;
+    (void)w;
+    (void)h;
+    (void)data;
+    (void)transparent_color;  // Stub doesn't support transparent blitting
+}

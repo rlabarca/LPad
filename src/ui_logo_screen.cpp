@@ -1,6 +1,6 @@
 #include "ui_logo_screen.h"
 #include "vector_renderer.h"
-#include "display.h"
+#include "../hal/display.h"
 #include <algorithm>
 #include <cstring>
 

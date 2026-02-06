@@ -48,6 +48,7 @@ public:
     virtual void drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color) {}
     virtual void drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color) {}
     virtual void fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color) {}
+    virtual void fillTriangle(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, uint16_t color) {}
 
     int16_t width() const { return _width; }
     int16_t height() const { return _height; }
@@ -55,4 +56,18 @@ public:
 protected:
     int16_t _width;
     int16_t _height;
+};
+
+// Minimal stub of Arduino_Canvas class for testing
+class Arduino_Canvas : public Arduino_GFX {
+public:
+    Arduino_Canvas(int16_t w, int16_t h, Arduino_GFX *output) : Arduino_GFX(w, h), _output(output) {}
+    virtual ~Arduino_Canvas() {}
+
+    bool begin(int32_t speed = 0) override { return true; }
+    void writePixelPreclipped(int16_t x, int16_t y, uint16_t color) override {}
+    void flush() {}
+
+protected:
+    Arduino_GFX *_output;
 };
