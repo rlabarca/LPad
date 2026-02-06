@@ -25,7 +25,8 @@ Before writing any code, you MUST consult the project's core documents. This is 
 
 **Step 3: Implement and Test**
 - Write the code and corresponding unit tests to satisfy the feature's scenarios.
-- Run the unit tests and ensure they pass.
+- Run the unit tests using `./scripts/test_local.sh`. This script updates the `.pio/testing/last_summary.json` file used by the CDD monitor.
+- Ensure all tests pass before proceeding.
 
 **Step 4: Document Lessons Learned**
 - **The "Lab Notebook" Rule:** If you discovered a non-obvious solution, overcame a significant technical challenge, or made a key decision (e.g., "why I chose algorithm X over Y"), you **MUST** append a concise entry to `docs/IMPLEMENTATION_LOG.md`.

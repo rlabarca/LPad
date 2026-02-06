@@ -110,7 +110,8 @@ while true; do
 
     echo -e "\n${C_MAGENTA}=== ${ICON_TEST}  TEST STATUS ===${C_RESET}"
     if [ -f ".pio/testing/last_summary.json" ]; then
-        if grep -q "\"succeeded\": false" .pio/testing/last_summary.json; then
+        # Check for errors or failures in the JSON
+        if grep -q "\"error_nums\": [1-9]" .pio/testing/last_summary.json || grep -q "\"failure_nums\": [1-9]" .pio/testing/last_summary.json; then
              echo -e "   ${C_RED}✖  FAIL${C_RESET} - Logic Broken"
         else
              echo -e "   ${C_GREEN}✔  PASS${C_RESET} - Systems Nominal"
