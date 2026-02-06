@@ -1,9 +1,10 @@
 /**
  * @file demo_screen.cpp
- * @brief Release 0.5 Demo Application
+ * @brief Release 0.55 Demo Application
  *
  * This demo demonstrates the full capabilities of the LPad UI system:
  * - HAL abstraction for hardware independence
+ * - Network connectivity with Wi-Fi
  * - Resolution-independent display via RelativeDisplay
  * - Layered rendering with off-screen canvases
  * - Smooth 30fps animation via AnimationTicker
@@ -13,15 +14,17 @@
  * - Animated live indicators
  * - Vector asset rendering (logo splash screen)
  *
- * See features/demo_release_0.5.md for specification.
+ * See features/RELEASE_v0.55_connectivity_smoke_test.md for specification.
  */
 
 #include <Arduino.h>
 #include <Arduino_GFX_Library.h>
 #include "display.h"
+#include "network.h"
 #include "relative_display.h"
 #include "ui_time_series_graph.h"
 #include "ui_logo_screen.h"
+#include "ui_connectivity_status_screen.h"
 #include "yahoo_chart_parser.h"
 #include "animation_ticker.h"
 #include "theme_manager.h"
@@ -39,13 +42,16 @@ AnimationTicker* g_ticker = nullptr;
 GraphData g_graphData;  // Store data for graph
 RelativeDisplay* g_relativeDisplay = nullptr;
 LogoScreen* g_logoScreen = nullptr;
+ConnectivityStatusScreen* g_connectivityScreen = nullptr;
 
-// Demo state machine - shows logo, then cycles through all graph modes
+// Demo state machine - shows connectivity, logo, then cycles through all graph modes
 enum DemoPhase {
+    PHASE_CONNECTIVITY,    // Wi-Fi connection and ping test
     PHASE_LOGO_ANIMATION,  // Animated LPad logo (wait + animate + hold)
     PHASE_GRAPH_CYCLE      // Cycle through all 6 graph modes
 };
-DemoPhase g_currentPhase = PHASE_LOGO_ANIMATION;
+DemoPhase g_currentPhase = PHASE_CONNECTIVITY;
+bool g_pingResult = false;
 float g_logoHoldTimer = 0.0f;
 const float LOGO_HOLD_DURATION = 2.0f;  // Hold final logo position for 2 seconds
 const float MODE_SWITCH_INTERVAL = 5.0f;  // Show each graph mode for 5 seconds
@@ -214,12 +220,29 @@ void setup() {
     delay(500);  // Brief delay for ESP32-S3 USB CDC
     yield();
 
-    Serial.println("\n\n\n=== LPad Base UI Demo Application ===");
+    Serial.println("\n\n\n=== LPad Release 0.55 Demo Application ===");
     Serial.println("DEBUG: Entered setup()");
     Serial.flush();
     yield();
 
-    // [1/6] Initialize display HAL
+    // [1/7] Initialize Network HAL
+    Serial.println("[1/7] Initializing network...");
+    Serial.flush();
+    yield();
+
+    #ifdef LPAD_WIFI_SSID
+    if (hal_network_init(LPAD_WIFI_SSID, LPAD_WIFI_PASSWORD)) {
+        Serial.printf("  [INFO] Connecting to Wi-Fi: %s\n", LPAD_WIFI_SSID);
+    } else {
+        Serial.println("  [WARN] Network initialization failed");
+    }
+    #else
+    Serial.println("  [INFO] No Wi-Fi credentials configured (DEMO_MODE)");
+    #endif
+    Serial.println();
+    yield();
+
+    // [2/7] Initialize display HAL
     Serial.println("[1/6] Initializing display HAL...");
     Serial.flush();
     yield();
@@ -248,7 +271,7 @@ void setup() {
     Serial.println();
     yield();
 
-    // [2/6] Initialize RelativeDisplay API
+    // [3/7] Initialize RelativeDisplay API
     Serial.println("[2/6] Initializing RelativeDisplay abstraction...");
     Serial.flush();
 
@@ -273,7 +296,21 @@ void setup() {
     Serial.println();
     yield();
 
-    // [3/6] Create AnimationTicker
+    // [4/7] Create ConnectivityStatusScreen
+    Serial.println("[4/7] Creating ConnectivityStatusScreen...");
+    Serial.flush();
+
+    static ConnectivityStatusScreen connectivityScreen;
+    g_connectivityScreen = &connectivityScreen;
+    if (!g_connectivityScreen->begin(g_relativeDisplay)) {
+        displayError("ConnectivityStatusScreen initialization failed");
+        while (1) delay(1000);
+    }
+    Serial.println("  [PASS] ConnectivityStatusScreen created");
+    Serial.println();
+    yield();
+
+    // [5/7] Create AnimationTicker
     Serial.println("[3/6] Creating 30fps AnimationTicker...");
     Serial.flush();
 
@@ -287,7 +324,7 @@ void setup() {
     Serial.println();
     yield();
 
-    // [4/6] Parse test data
+    // [6/7] Parse test data
     Serial.println("[4/6] Parsing test data from embedded JSON...");
     Serial.flush();
 
@@ -308,7 +345,7 @@ void setup() {
     Serial.println();
     yield();
 
-    // [5/6] Create UI components
+    // [7/7] Create UI components
     Serial.println("[5/6] Creating UI components...");
     Serial.flush();
 
@@ -343,7 +380,7 @@ void setup() {
     Serial.println();
     yield();
 
-    // [6/6] Create LogoScreen and render initial frame
+    // Create LogoScreen and render initial frame
     Serial.println("[6/6] Creating LogoScreen animation...");
 
     // Get theme colors
@@ -362,10 +399,10 @@ void setup() {
     Serial.println("  [PASS] LogoScreen initialized with dirty-rect optimization");
     Serial.println();
 
-    Serial.println("=== Release 0.5 Demo Application Ready ===");
+    Serial.println("=== Release 0.55 Demo Application Ready ===");
     Serial.println();
     Serial.println("Demo Cycle (repeats indefinitely):");
-    Serial.println("  Logo Animation → All 6 Graph Modes → Logo Again → Repeat");
+    Serial.println("  Connectivity Check → Logo Animation → All 6 Graph Modes → Repeat");
     Serial.println();
     Serial.println("Sequence:");
     Serial.println("  1. Logo: Wait 2s + Animate 1.5s + Hold 2s (5.5s total)");
@@ -400,8 +437,41 @@ void loop() {
     // Wait for next frame and get deltaTime
     float deltaTime = g_ticker->waitForNextFrame();
 
-    // Phase state machine - logo animation, then cycle through all 6 graph modes
+    // Phase state machine - connectivity, logo animation, then cycle through all 6 graph modes
     switch (g_currentPhase) {
+        case PHASE_CONNECTIVITY: {
+            // Check network status
+            hal_network_status_t status = hal_network_get_status();
+
+            // Once connected, perform ping test
+            if (status == HAL_NETWORK_STATUS_CONNECTED && !g_pingResult) {
+                Serial.println("[INFO] Wi-Fi connected, performing ping test...");
+                g_pingResult = hal_network_ping("8.8.8.8");
+                if (g_pingResult) {
+                    Serial.println("[PASS] Ping test successful!");
+                } else {
+                    Serial.println("[WARN] Ping test failed");
+                }
+            }
+
+            // Update connectivity screen
+            g_connectivityScreen->update(g_pingResult);
+
+            // Transition to logo animation after successful ping
+            if (status == HAL_NETWORK_STATUS_CONNECTED && g_pingResult) {
+                static float connectionHoldTimer = 0.0f;
+                connectionHoldTimer += deltaTime;
+
+                // Hold "PING OK" for 2 seconds before transitioning
+                if (connectionHoldTimer >= 2.0f) {
+                    Serial.println("\n=== Connectivity established, starting logo animation ===\n");
+                    g_currentPhase = PHASE_LOGO_ANIMATION;
+                    connectionHoldTimer = 0.0f;
+                }
+            }
+            break;
+        }
+
         case PHASE_LOGO_ANIMATION: {
             // Update logo animation (handles rendering internally with dirty-rect)
             LogoScreen::State logoState = g_logoScreen->update(deltaTime);
@@ -452,11 +522,11 @@ void loop() {
 
                 // Check if we've shown all 6 modes
                 if (g_modesShown >= 6) {
-                    // Return to logo animation
-                    Serial.println("\n=== All 6 modes shown, returning to Logo Animation ===\n");
-                    g_logoScreen->reset();
-                    g_currentPhase = PHASE_LOGO_ANIMATION;
+                    // Return to connectivity screen
+                    Serial.println("\n=== All 6 modes shown, returning to Connectivity Screen ===\n");
+                    g_currentPhase = PHASE_CONNECTIVITY;
                     g_modesShown = 0;
+                    g_pingResult = false;  // Reset for next cycle
                 } else {
                     // Advance to next mode
                     g_currentMode = (g_currentMode + 1) % 6;
