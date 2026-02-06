@@ -37,5 +37,6 @@ class GraphHandler(http.server.SimpleHTTPRequestHandler):
 if __name__ == "__main__":
     print(f"Starting Graph Server at http://localhost:{PORT}")
     print(f"Watching {MMD_FILE} for changes...")
+    socketserver.TCPServer.allow_reuse_address = True
     with socketserver.TCPServer(("", PORT), GraphHandler) as httpd:
         httpd.serve_forever()
