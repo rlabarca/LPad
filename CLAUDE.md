@@ -43,22 +43,47 @@ This is the **most critical step**. The monitoring script (`cdd.sh`) is a **DUMB
     ```
 
 2.  **Create the status-marking commit:**
-    *   **If the feature has a `## Hardware (HIL) Test` section:** Use this EXACT format. Do not change the text inside the brackets:
+
+    **CRITICAL: You MUST check the feature file to determine the correct commit status tag.**
+
+    *   **If the feature requires hardware validation, use `[Ready for HIL Test features/FILENAME.md]`:**
+
+        A feature requires hardware validation if it has ANY of these:
+        - A `## Hardware (HIL) Test` section
+        - An `## Integration Test Criteria` section that mentions "target hardware" or "on the device"
+        - Is a demo/app feature (in Category: "Release Demos" or "Applications")
+        - Explicitly states it must be "validated on hardware" anywhere in the spec
+
+        **Format:**
         ```shell
         git commit -m "feat(WIP): <Brief Description> [Ready for HIL Test features/FILENAME.md]"
         ```
         *(Example: `git commit -m "feat(WIP): Implemented bonding logic [Ready for HIL Test features/app_bond_tracker.md]"}`)*
 
-    *   **If the feature does NOT have a HIL test section:** Use this EXACT format. Do not change the text inside the brackets:
+    *   **If the feature does NOT require hardware validation, use `[Complete features/FILENAME.md]`:**
+
+        Use this ONLY for pure software features that can be fully validated with unit tests:
+        - Library/utility code (Category: "Core", "Utilities", "HAL Contracts")
+        - Features with only software unit test scenarios
+        - No hardware dependencies mentioned in the spec
+
+        **Format:**
         ```shell
         git commit -m "feat(done): <Brief Description> [Complete features/FILENAME.md]"
         ```
         *(Example: `git commit -m "feat(done): Added helper functions [Complete features/hal_contracts.md]"}`)*
 
-    *   **CRITICAL EXCEPTION (Verification Only):** If the `git commit` command fails because there are "no changes to commit" (clean working tree), it means the code already matched the spec. In this specific case, **you MUST retry the commit using the `--allow-empty` flag**. The system relies on the commit *timestamp*, so the commit must exist even if no files changed.
+    *   **SPECIAL CASE - Verification-only commits (no code changes):**
+
+        If you are re-validating an existing feature and `git commit` fails with "nothing to commit", use `--allow-empty`:
+        ```shell
+        git commit --allow-empty -m "feat(verify): <Brief Description> [Ready for HIL Test features/FILENAME.md]"
+        ```
+        OR
         ```shell
         git commit --allow-empty -m "feat(verify): <Brief Description> [Complete features/FILENAME.md]"
         ```
+        The choice between `[Ready for HIL Test]` vs `[Complete]` follows the same rules above.
 
 ### Special Case: Re-Validation & Status Reset
 
