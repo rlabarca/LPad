@@ -32,6 +32,7 @@ bool V05DemoApp::begin(RelativeDisplay* display) {
         return false;
     }
 
+    Serial.println("[V05DemoApp] begin() called");
     m_display = display;
 
     // Get theme colors
@@ -49,11 +50,14 @@ bool V05DemoApp::begin(RelativeDisplay* display) {
     Serial.printf("[V05DemoApp] Parsed %d data points\n", m_graphData.y_values.size());
 
     // Create LogoScreen with 2s wait, 1.5s animation
+    Serial.println("[V05DemoApp] Creating LogoScreen...");
     m_logoScreen = new LogoScreen(2.0f, 1.5f);
+    Serial.printf("[V05DemoApp] Calling logoScreen->begin() with background color 0x%04X\n", theme->colors.background);
     if (!m_logoScreen->begin(m_display, theme->colors.background)) {
         Serial.println("[V05DemoApp] ERROR: LogoScreen initialization failed");
         return false;
     }
+    Serial.println("[V05DemoApp] LogoScreen initialized successfully");
 
     // Create TimeSeriesGraph
     Arduino_GFX* gfx = static_cast<Arduino_GFX*>(hal_display_get_gfx());

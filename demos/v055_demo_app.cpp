@@ -38,12 +38,9 @@ bool V055DemoApp::begin(RelativeDisplay* display) {
         return false;
     }
 
-    // Create V05DemoApp (but don't start it yet)
-    m_v05Demo = new V05DemoApp();
-    if (!m_v05Demo->begin(m_display)) {
-        Serial.println("[V055DemoApp] ERROR: V05DemoApp initialization failed");
-        return false;
-    }
+    // DO NOT create V05DemoApp here - it will draw the logo immediately!
+    // We'll create it later when transitioning to PHASE_VISUAL_DEMO
+    m_v05Demo = nullptr;
 
     // Start Wi-Fi connection process
     #ifdef LPAD_WIFI_SSID
@@ -156,16 +153,26 @@ void V055DemoApp::transitionToPhase(Phase newPhase) {
             if (m_display != nullptr) {
                 Arduino_GFX* gfx = m_display->getGfx();
                 if (gfx != nullptr) {
+                    Serial.println("[V055DemoApp] Clearing screen with fillScreen(0x0000)...");
                     gfx->fillScreen(0x0000);  // Clear to black
+                    Serial.println("[V055DemoApp] Flushing display...");
                     hal_display_flush();
+                    Serial.println("[V055DemoApp] Screen cleared and flushed");
+                } else {
+                    Serial.println("[V055DemoApp] ERROR: gfx is nullptr!");
                 }
+            } else {
+                Serial.println("[V055DemoApp] ERROR: m_display is nullptr!");
             }
 
             // Reset V05DemoApp by recreating it
+            Serial.println("[V055DemoApp] Creating V05DemoApp...");
             delete m_v05Demo;
             m_v05Demo = new V05DemoApp();
             if (!m_v05Demo->begin(m_display)) {
                 Serial.println("[V055DemoApp] ERROR: V05DemoApp re-initialization failed");
+            } else {
+                Serial.println("[V055DemoApp] V05DemoApp initialized successfully");
             }
             break;
     }
