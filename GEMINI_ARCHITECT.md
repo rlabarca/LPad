@@ -155,9 +155,9 @@ This dependency-driven prompting ensures the project is built layer by layer, in
 
 **CURRENT CONTEXT:**
 - **HAL Architecture:** Fully refactored into a domain-segmented structure (`hal_core_contract.md`, `hal_spec_display.md`, `hal_spec_timer.md`, `hal_spec_network.md`).
-- **Build & Test Policy:** Centralized mocking established in `test/mocks/`. Native tests require `-Ihal` and `-Itest/mocks`.
-- **Visualization:** Interactive live-reloading graph viewer implemented (`scripts/serve_graph.py`). Accessible via `scripts/start_viewer.sh`.
+- **Demo Title Policy:** All release demos MUST display a version title ("DEMO v<version>") using `ThemeFonts.normal` (12pt) positioned in the top-left corner (approx 5% padding).
 - **Milestone v0.55 [DONE]:** Connectivity Smoke Test, `config.json` injection system, and Network HAL are fully implemented and verified.
+- **Milestone v0.5 [DONE]:** Core visual engine and UI base verified with the new top-left version title requirements.
 - **Build Management:** Milestone demo naming convention established (`demo_<version>_<board>`). Base hardware targets always link to the latest demo via `main.cpp`.
 - **System State:** Clean state. All feature files in `features/` are currently synchronized with their implementations.
 - **Project Readiness:** The system is ready for the next phase of development or further architectural refinements.
