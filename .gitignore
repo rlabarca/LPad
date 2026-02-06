@@ -12,6 +12,7 @@ lib/
 *.bin
 
 # IDE
+.cache/
 .DS_Store
 *.swp
 *.swo

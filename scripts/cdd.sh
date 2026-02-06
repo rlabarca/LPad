@@ -34,12 +34,12 @@ while true; do
 
     # --- Workspace Context ---
     echo -e "\n${C_MAGENTA}=== ${ICON_BRAIN}  WORKSPACE CONTEXT (Git Status) ===${C_RESET}"
-    git_status_porcelain=$(git status --porcelain | grep -v "\.DS_Store")
+    git_status_porcelain=$(git status --porcelain | grep -v "\.DS_Store" | grep -v "\.cache/")
     if [ -z "$git_status_porcelain" ]; then
         echo -e "   ${C_GREEN}${ICON_CHECK} Clean State${C_RESET} ${C_DIM}(Ready for next task)${C_RESET}"
     else
         echo -e "   ${C_YELLOW}${ICON_WORK}  Work in Progress:${C_RESET}"
-        git status --short | grep -v "\.DS_Store" | sed 's/^/      /'
+        git status --short | grep -v "\.DS_Store" | grep -v "\.cache/" | sed 's/^/      /'
     fi
 
     # --- Feature Queue ---

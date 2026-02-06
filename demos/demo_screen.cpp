@@ -34,8 +34,13 @@ TimeSeriesGraph* g_graph = nullptr;
 AnimationTicker* g_ticker = nullptr;
 GraphData g_graphData;  // Store data for graph
 
-// Create Vaporwave theme with integrated live indicator
-GraphTheme createVaporwaveTheme() {
+// Mode switching state
+int g_currentMode = 0;
+float g_modeTimer = 0.0f;
+const float MODE_SWITCH_INTERVAL = 8.0f;  // Switch modes every 8 seconds
+
+// Create Vaporwave theme with ALL GRADIENTS (Mode 0)
+GraphTheme createGradientTheme() {
     GraphTheme theme = {};
 
     // Basic colors
@@ -64,11 +69,71 @@ GraphTheme createVaporwaveTheme() {
     theme.tickColor = RGB565_WHITE;
     theme.tickLength = 2.5f;
 
-    // Enable integrated live indicator with dirty-rect optimization
-    // Note: Using integrated indicator for flicker-free animation
+    // Enable integrated live indicator with radial gradient (Pink->Cyan)
     theme.liveIndicatorGradient.color_stops[0] = RGB565_MAGENTA;  // Pink/magenta center
     theme.liveIndicatorGradient.color_stops[1] = RGB565_CYAN;     // Cyan edge
     theme.liveIndicatorPulseSpeed = 0.5f;  // 0.5 pulses per second (2 second cycle)
+
+    return theme;
+}
+
+// Create theme with ALL SOLID COLORS (Mode 1)
+GraphTheme createSolidTheme() {
+    GraphTheme theme = {};
+
+    // Solid dark grey background
+    theme.backgroundColor = 0x2104;  // Dark grey RGB565
+    theme.useBackgroundGradient = false;
+
+    // Solid white line
+    theme.lineColor = RGB565_WHITE;
+    theme.useLineGradient = false;
+
+    // Magenta axes (keep for visibility)
+    theme.axisColor = RGB565_MAGENTA;
+
+    // Line and axis styling
+    theme.lineThickness = 2.0f;
+    theme.axisThickness = 0.8f;
+    theme.tickColor = RGB565_CYAN;
+    theme.tickLength = 2.5f;
+
+    // Solid green indicator
+    theme.liveIndicatorGradient.color_stops[0] = RGB565_GREEN;
+    theme.liveIndicatorGradient.color_stops[1] = RGB565_GREEN;  // Same color = solid
+    theme.liveIndicatorPulseSpeed = 0.5f;
+
+    return theme;
+}
+
+// Create theme with MIXED MODE (Mode 2)
+GraphTheme createMixedTheme() {
+    GraphTheme theme = {};
+
+    // Solid background
+    theme.backgroundColor = RGB565_DARK_BLUE;
+    theme.useBackgroundGradient = false;
+
+    // Gradient line
+    theme.useLineGradient = true;
+    theme.lineGradient.angle_deg = 0.0f;
+    theme.lineGradient.color_stops[0] = RGB565_YELLOW;
+    theme.lineGradient.color_stops[1] = RGB565_RED;
+    theme.lineGradient.num_stops = 2;
+
+    // Cyan axes
+    theme.axisColor = RGB565_CYAN;
+
+    // Line and axis styling
+    theme.lineThickness = 2.0f;
+    theme.axisThickness = 0.8f;
+    theme.tickColor = RGB565_WHITE;
+    theme.tickLength = 2.5f;
+
+    // Gradient indicator
+    theme.liveIndicatorGradient.color_stops[0] = RGB565_YELLOW;
+    theme.liveIndicatorGradient.color_stops[1] = RGB565_RED;
+    theme.liveIndicatorPulseSpeed = 0.5f;
 
     return theme;
 }
@@ -178,12 +243,12 @@ void setup() {
     Serial.flush();
 
     // TimeSeriesGraph with layered rendering and integrated live indicator
-    Serial.println("  Creating TimeSeriesGraph with Vaporwave theme...");
+    Serial.println("  Creating TimeSeriesGraph with mode-switching demo...");
     Serial.flush();
 
-    Serial.println("DEBUG: About to create theme");
+    Serial.println("DEBUG: About to create initial gradient theme");
     Serial.flush();
-    GraphTheme theme = createVaporwaveTheme();
+    GraphTheme theme = createGradientTheme();
 
     Serial.println("DEBUG: About to create TimeSeriesGraph object");
     Serial.printf("DEBUG: Display dimensions: %d x %d\n", width, height);
@@ -224,12 +289,24 @@ void setup() {
     Serial.println();
 
     Serial.println("=== Demo Application Ready ===");
-    Serial.println("Visual Verification:");
-    Serial.println("  [ ] 45-degree gradient background (purple->pink->blue)");
-    Serial.println("  [ ] Time series graph with gradient line (cyan->pink)");
-    Serial.println("  [ ] Magenta axes with white tick marks");
-    Serial.println("  [ ] Pulsing live indicator at last data point (30fps)");
+    Serial.println("Mode Switching Demo - Tests both gradient and solid rendering:");
     Serial.println();
+    Serial.println("Mode 0 (ALL GRADIENTS):");
+    Serial.println("  [ ] 45-degree gradient background (purple->pink->blue)");
+    Serial.println("  [ ] Gradient plot line (cyan->pink)");
+    Serial.println("  [ ] Gradient live indicator (magenta->cyan)");
+    Serial.println();
+    Serial.println("Mode 1 (ALL SOLID COLORS):");
+    Serial.println("  [ ] Solid dark grey background");
+    Serial.println("  [ ] Solid white plot line");
+    Serial.println("  [ ] Solid green live indicator");
+    Serial.println();
+    Serial.println("Mode 2 (MIXED):");
+    Serial.println("  [ ] Solid dark blue background");
+    Serial.println("  [ ] Gradient plot line (yellow->red)");
+    Serial.println("  [ ] Gradient live indicator (yellow->red)");
+    Serial.println();
+    Serial.printf("Switching modes every %.0f seconds...\n", MODE_SWITCH_INTERVAL);
     Serial.println("Starting 30fps animation loop...");
     Serial.println();
 }
@@ -240,6 +317,46 @@ void loop() {
 
     if (g_graph == nullptr) {
         return;
+    }
+
+    // Mode switching logic - cycle through different visual styles
+    g_modeTimer += deltaTime;
+    if (g_modeTimer >= MODE_SWITCH_INTERVAL) {
+        g_modeTimer = 0.0f;
+        g_currentMode = (g_currentMode + 1) % 3;  // Cycle through 3 modes
+
+        // Create new theme based on mode
+        GraphTheme newTheme;
+        const char* modeName;
+        switch (g_currentMode) {
+            case 0:
+                newTheme = createGradientTheme();
+                modeName = "ALL GRADIENTS";
+                break;
+            case 1:
+                newTheme = createSolidTheme();
+                modeName = "ALL SOLID";
+                break;
+            case 2:
+                newTheme = createMixedTheme();
+                modeName = "MIXED";
+                break;
+            default:
+                newTheme = createGradientTheme();
+                modeName = "DEFAULT";
+                break;
+        }
+
+        Serial.printf("\n>>> Switching to Mode %d: %s <<<\n\n", g_currentMode, modeName);
+
+        // Update the graph's theme
+        g_graph->setTheme(newTheme);
+
+        // Redraw static layers with new theme
+        g_graph->drawBackground();
+        g_graph->drawData();
+        g_graph->render();
+        hal_display_flush();
     }
 
     // Update the graph with integrated live indicator animation

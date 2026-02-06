@@ -132,6 +132,12 @@ void TimeSeriesGraph::setYTicks(float increment) {
     y_tick_increment_ = increment;
 }
 
+void TimeSeriesGraph::setTheme(const GraphTheme& theme) {
+    theme_ = theme;
+    // Note: Caller should call drawBackground() and drawData() after this
+    // to update the canvases with the new theme
+}
+
 void TimeSeriesGraph::drawBackground() {
     if (!rel_bg_) return;
 

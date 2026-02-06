@@ -142,3 +142,29 @@ Use direct includes: `#include "file.h"` instead of `#include "../src/file.h"`. 
 
 ### Key Lesson
 **Trust PlatformIO's conventions.** The build system is designed for `src/` as the primary source directory. Additional directories should use direct includes, relying on `-I` flags in `platformio.ini`.
+
+---
+
+## [2026-02-05] Mode-Switching Demo for Comprehensive Visual Testing
+
+### Problem
+The demo_release_0.5.md feature spec explicitly requires testing BOTH gradient and solid rendering modes for all UI components (background, graph line, live indicator). The initial implementation only demonstrated gradient mode, leaving solid mode untested during HIL validation.
+
+### Solution
+Implemented an automatic mode-switching demo that cycles through three visual styles every 8 seconds:
+- **Mode 0 (ALL GRADIENTS)**: 45° background gradient, gradient plot line (cyan→pink), gradient indicator (magenta→cyan)
+- **Mode 1 (ALL SOLID)**: Solid dark grey background, solid white plot line, solid green indicator
+- **Mode 2 (MIXED)**: Solid dark blue background, gradient plot line (yellow→red), gradient indicator (yellow→red)
+
+This approach required adding a `setTheme()` method to the `TimeSeriesGraph` class to enable runtime theme changes without recreating the entire graph object.
+
+### Implementation Details
+1. Created three theme factory functions: `createGradientTheme()`, `createSolidTheme()`, `createMixedTheme()`
+2. Added mode-switching timer in `loop()` that triggers every 8 seconds
+3. When switching, the demo calls `setTheme()`, then redraws the background and data layers to apply the new theme
+4. The live indicator continues animating smoothly during transitions using dirty-rect optimization
+
+### Key Lessons
+1. **Automated cycling is better than manual switching** for HIL testing - the user can simply watch the display and verify all modes work correctly without manual intervention
+2. **Runtime theme switching requires careful layer management** - static layers (background, data) must be explicitly redrawn when the theme changes, while dynamic layers (live indicator) continue updating normally
+3. **Demo comprehensiveness directly impacts feature validation quality** - testing both code paths (gradient vs solid) in a single demo run reduces the risk of undiscovered bugs in less-exercised rendering modes

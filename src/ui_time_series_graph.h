@@ -102,6 +102,15 @@ public:
     void setYTicks(float increment);
 
     /**
+     * @brief Updates the graph theme
+     * @param theme New visual style configuration
+     *
+     * Note: After setting theme, call drawBackground() and drawData() to
+     * update the canvases with the new theme.
+     */
+    void setTheme(const GraphTheme& theme);
+
+    /**
      * @brief Draws the background layer (axes, gradients)
      *
      * This renders static elements to the background canvas. Call this once
