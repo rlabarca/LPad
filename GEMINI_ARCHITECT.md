@@ -109,6 +109,20 @@ This metadata is required for the automated visualization system.
     *   If tests pass without code changes, the Builder creates the `[Complete]` commit immediately (using `--allow-empty` if needed).
     *   **Recursive Validation Trigger:** When modifying a `RELEASE` feature file (e.g., to change its description or title), I MUST mark it as `[TODO]` (by ensuring the modification timestamp is newer than the last completion commit). This signals the Builder (Claude) to perform a recursive validation of the release's dependencies and integration criteria.
 
+### Milestone Demo & Build Management
+We maintain a history of functional milestone demos as separate build environments while keeping the primary hardware targets pointed at the latest development state.
+
+*   **Environment Naming:** Milestone demos follow the pattern `demo_<version>_<board>` (e.g., `demo_v05_esp32s3`).
+*   **The "Latest" Principle:** Base hardware environments (e.g., `esp32s3`, `tdisplay_s3_plus`) ALWAYS use `main.cpp` and link to the **latest** demo coordinator class.
+*   **Source Filtering:** 
+    *   Base environments MUST include `main.cpp` and all required HAL implementations, while excluding stubs.
+    *   Historical demo environments MUST exclude `main.cpp` if they use an older monolithic demo file (like `demo_screen.cpp`), or include it if they use the new `DemoApp` coordinator pattern.
+*   **Demo Migration:** When a new milestone is reached (e.g., moving from v0.5 to v0.55):
+    1.  Create the new `V0XXDemoApp` class.
+    2.  Update `main.cpp` to instantiate the new latest demo.
+    3.  Update the `build_src_filter` of all base hardware targets to include the new demo files.
+    4.  Create new `demo_v0XX_<board>` environments in `platformio.ini` for historical preservation.
+
 ---
 
 ### Project Bootstrap Protocol
@@ -138,5 +152,6 @@ This dependency-driven prompting ensures the project is built layer by layer, in
 - **Build & Test Policy:** Centralized mocking established in `test/mocks/`. Native tests require `-Ihal` and `-Itest/mocks`.
 - **Visualization:** Interactive live-reloading graph viewer implemented (`scripts/serve_graph.py`). Accessible via `scripts/start_viewer.sh`.
 - **Milestone v0.55 [DONE]:** Connectivity Smoke Test, `config.json` injection system, and Network HAL are fully implemented and verified.
+- **Build Management:** Milestone demo naming convention established (`demo_<version>_<board>`). Base hardware targets always link to the latest demo via `main.cpp`.
 - **System State:** Clean state. All feature files in `features/` are currently synchronized with their implementations.
 - **Project Readiness:** The system is ready for the next phase of development or further architectural refinements.
