@@ -271,20 +271,22 @@ void TimeSeriesGraph::drawBackground() {
             canvas->setTextColor(theme_.tickColor);
             canvas->setTextSize(1);
 
-            // Get text bounds
+            // Get text bounds in normal orientation
             int16_t x1, y1;
             uint16_t w, h;
             canvas->getTextBounds(y_axis_title_, 0, 0, &x1, &y1, &w, &h);
 
-            // Position at left center of screen, rotated -90 degrees
-            // Note: Arduino_GFX doesn't support text rotation easily, so we position it vertically
-            int32_t title_x = 5;  // 5px from left
-            int32_t title_y = (height_ + w) / 2;  // Center vertically (accounting for text width when rotated)
+            // Draw text vertically character-by-character (simpler than rotation)
+            // Position at left side, centered vertically
+            int32_t char_x = 2;  // 2px from left edge
+            int32_t start_y = (height_ - (strlen(y_axis_title_) * 8)) / 2;  // Center vertically (8px per char)
 
-            // For simplicity, draw horizontally for now
-            // TODO: Implement proper -90 degree rotation
-            canvas->setCursor(title_x, title_y);
-            canvas->print(y_axis_title_);
+            // Draw each character vertically
+            for (size_t i = 0; i < strlen(y_axis_title_); i++) {
+                char str[2] = {y_axis_title_[i], '\0'};
+                canvas->setCursor(char_x, start_y + (i * 10));  // 10px spacing between chars
+                canvas->print(str);
+            }
         }
     }
 }
@@ -399,7 +401,9 @@ void TimeSeriesGraph::drawYTicks(RelativeDisplay* target) {
     if (!canvas) return;
 
     // Draw tick marks and labels
-    for (double tick_value = y_min; tick_value <= y_max; tick_value += y_tick_increment_) {
+    // Start from first tick ABOVE the X-axis per spec requirement
+    double first_tick = y_min + y_tick_increment_;  // Skip the first tick at y_min
+    for (double tick_value = first_tick; tick_value <= y_max; tick_value += y_tick_increment_) {
         float y_screen = mapYToScreen(tick_value, y_min, y_max);
 
         // Draw tick mark
