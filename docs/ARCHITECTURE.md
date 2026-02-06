@@ -53,8 +53,8 @@ graph TD
 3.  **Delta Time:** All animations (e.g., pulsing indicator) must be calculated based on `deltaTime` provided by the ticker, never on raw frame counts.
 
 ### E. Persistent HIL Tests & Demos
-1.  **Isolate Demo Code:** To preserve valuable Hardware-in-the-Loop (HIL) test code, it MUST NOT be written in `src/main.cpp`. A dedicated `demos/` directory will house these runnable examples.
-2.  **Naming Convention:** Each demo should correspond to a feature and be named appropriately, e.g., `demos/demo_screen.cpp`.
+1.  **Isolate Demo Code:** To preserve valuable Hardware-in-the-Loop (HIL) test code and release-specific demonstrations, it MUST NOT be written in `src/main.cpp`. A dedicated `demos/` directory will house these runnable examples.
+2.  **Naming Convention:** Each demo should correspond to a feature and be named appropriately, e.g., `demos/demo_screen.cpp`. Release demos follow a `demos/demo_release_<version>.cpp` convention.
 3.  **Activation via Build Environment:** Demos are compiled and run using dedicated build environments in `platformio.ini`. These environments MUST use the `build_src_filter` option to exclude `main.cpp` (`-<main.cpp>`) and include the target demo file (`+<../demos/demo_name.cpp>`).
 4.  **Self-Contained:** Each demo file must be self-contained and provide its own `setup()` and `loop()` functions.
 5.  **Development Milestone Policy:** During active feature development, the primary build environments (`esp32s3`, `tdisplay_s3_plus`) MAY reference demo code directly. This allows `pio run -e <board>` to execute the latest working demo without requiring separate demo-specific environment names. Once the application reaches production maturity, these environments should be updated to reference the production `main.cpp` instead.
