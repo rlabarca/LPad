@@ -101,6 +101,36 @@ build_src_filter =
 
 **Check these environments:** `esp32s3`, `tdisplay_s3_plus`, and any other hardware targets.
 
+## Demo Architecture Pattern (CRITICAL)
+
+**Dispatcher Pattern for Milestones:**
+```
+src/main.cpp                    # Dispatcher (selects demo via build flags)
+  ├─ demos/demo_v05_entry.cpp   # V0.5 entry point (setup/loop)
+  ├─ demos/demo_v055_entry.cpp  # V0.55 entry point (setup/loop)
+  └─ demos/demo_v06_entry.cpp   # V0.6 entry point (future)
+
+demos/v05_demo_app.cpp          # Shared core logic (Logo + 6 Graphs)
+demos/v055_demo_app.cpp         # WiFi wrapper around V05DemoApp
+```
+
+**Adding a New Milestone Demo:**
+1. Create `demos/demo_vXX_entry.h` and `.cpp` with `demo_setup()` and `demo_loop()`
+2. Create `demos/vXX_demo_app.cpp` if new logic needed (or reuse existing)
+3. Add `-DDEMO_VXX` build flag to platformio.ini environment
+4. Update `main.cpp` conditional: `#elif defined(DEMO_VXX)`
+5. Document in `features/demo_release_X.X.md`
+
+**Build Flags:**
+- `demo_v05_esp32s3`: `-DDEMO_V05` → uses demo_v05_entry.cpp
+- `demo_v055_esp32s3`: `-DDEMO_V055` → uses demo_v055_entry.cpp
+- Base `esp32s3`: Always uses latest demo (currently `-DDEMO_V055`)
+
+**Code Sharing:**
+- Maximize reuse: V0.55 wraps V0.5, adding only WiFi phase
+- Never duplicate demo logic across entry points
+- Shared components go in `vXX_demo_app.cpp` classes
+
 ## Hardware Upload Protocol
 **DO NOT automatically upload to devices.** The user controls which device is connected via USB.
 

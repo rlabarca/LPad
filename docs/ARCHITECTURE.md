@@ -69,12 +69,47 @@ graph TD
 2.  **Frame Rate:** The system targets a stable 30fps.
 3.  **Delta Time:** All animations (e.g., pulsing indicator) must be calculated based on `deltaTime` provided by the ticker, never on raw frame counts.
 
-### G. Persistent HIL Tests & Demos
-1.  **Isolate Demo Code:** To preserve valuable Hardware-in-the-Loop (HIL) test code and release-specific demonstrations, it MUST NOT be written in `src/main.cpp`. A dedicated `demos/` directory will house these runnable examples.
-2.  **Naming Convention:** Each demo should correspond to a feature and be named appropriately, e.g., `demos/demo_screen.cpp`. Release demos follow a `demos/demo_release_<version>.cpp` convention.
-3.  **Activation via Build Environment:** Demos are compiled and run using dedicated build environments in `platformio.ini`. These environments MUST use the `build_src_filter` option to exclude `main.cpp` (`-<main.cpp>`) and include the target demo file (`+<../demos/demo_name.cpp>`).
-4.  **Self-Contained:** Each demo file must be self-contained and provide its own `setup()` and `loop()` functions.
-5.  **Development Milestone Policy:** During active feature development, the primary build environments (`esp32s3`, `tdisplay_s3_plus`) MAY reference demo code directly. This allows `pio run -e <board>` to execute the latest working demo without requiring separate demo-specific environment names. Once the application reaches production maturity, these environments should be updated to reference the production `main.cpp` instead.
+### G. Demo Architecture (Dispatcher Pattern)
+
+The system uses a **Dispatcher Pattern** for milestone demos, allowing `main.cpp` to point to the active demo while maintaining separate, clearly-labeled entry points for each milestone.
+
+#### Structure
+```
+src/main.cpp                    # Dispatcher - selects demo via build flags
+demos/
+  ├─ demo_v05_entry.cpp         # V0.5 entry point (setup/loop)
+  ├─ demo_v05_entry.h
+  ├─ demo_v055_entry.cpp        # V0.55 entry point (setup/loop)
+  ├─ demo_v055_entry.h
+  ├─ v05_demo_app.cpp           # V0.5 core logic (Logo + 6 Graph Modes)
+  ├─ v05_demo_app.h
+  ├─ v055_demo_app.cpp          # V0.55 wrapper (WiFi + V0.5 demo)
+  └─ v055_demo_app.h
+```
+
+#### Rules
+1.  **main.cpp as Dispatcher:** `main.cpp` MUST NOT contain demo logic. It selects the active entry point via conditional compilation based on build flags (`-DDEMO_V05`, `-DDEMO_V055`, etc.).
+2.  **Entry Points:** Each milestone has a dedicated `demo_vXX_entry.cpp` file that implements `demo_setup()` and `demo_loop()` functions.
+3.  **Core Logic:** Reusable demo logic lives in `vXX_demo_app.cpp` classes (e.g., `V05DemoApp`). These classes are shared across milestones to maximize code reuse.
+4.  **Code Sharing:** Later milestones SHOULD wrap earlier ones when possible. Example: `V055DemoApp` wraps `V05DemoApp`, adding only WiFi connectivity phase.
+5.  **Build Flags:** Each demo environment sets a build flag:
+    - `demo_v05_esp32s3`: `-DDEMO_V05`
+    - `demo_v055_esp32s3`: `-DDEMO_V055`
+    - Base hardware environments (`esp32s3`, `tdisplay_s3_plus`): Use latest demo (currently `-DDEMO_V055`)
+
+#### Adding a New Milestone Demo
+1.  Create `demos/demo_vXX_entry.h` and `.cpp` with `demo_setup()` and `demo_loop()`
+2.  Create `demos/vXX_demo_app.h` and `.cpp` if new core logic is needed (or reuse existing)
+3.  Add `-DDEMO_VXX` build flag to `platformio.ini` environment
+4.  Update `src/main.cpp` conditional: `#elif defined(DEMO_VXX)`
+5.  Document in `features/demo_release_X.X.md`
+
+#### Benefits
+- **Clear Labeling:** Each milestone demo is in a separate, clearly-named file
+- **Code Sharing:** V0.55 wraps V0.5, V0.6 might wrap V0.55, etc.
+- **No Duplication:** Shared logic lives in `vXX_demo_app.cpp` classes
+- **Easy Navigation:** `main.cpp` points to active milestone
+- **Maintainability:** Old demos preserved for regression testing
 
 ## 4. Design System & Theming
 
