@@ -335,26 +335,39 @@
                 
                 // Hover Highlighting
                 node.addEventListener('mouseenter', () => {
-                    const nodeId = node.id;
-                    const relatedNodes = new Set([nodeId]);
+                    // Extract the core ID (handle 'flowchart-node_id-index' format)
+                    const fullId = node.id;
+                    const idMatch = fullId.match(/flowchart-(.*?)-\d+/) || [null, fullId];
+                    const coreId = idMatch[1];
+                    
+                    const relatedNodes = new Set([fullId]);
                     const relatedEdges = new Set();
 
-                    // Find edges where this node is source or target
+                    // Find edges connected to this node
                     edges.forEach(edge => {
-                        // Mermaid edge classes often contain the source and target IDs
-                        // Format is usually: "edgePath LS-sourceId LE-targetId"
                         const classes = edge.className.baseVal;
-                        const isSource = classes.includes(`LS-${nodeId}`);
-                        const isTarget = classes.includes(`LE-${nodeId}`);
+                        // Match LS-coreId or LE-coreId followed by space or end of string
+                        const isSource = new RegExp(`LS-${coreId}(\\s|$)`).test(classes);
+                        const isTarget = new RegExp(`LE-${coreId}(\\s|$)`).test(classes);
 
                         if (isSource || isTarget) {
                             relatedEdges.add(edge);
-                            // Extract the other node ID from the class
-                            const match = classes.match(/L[SE]-(.*?)(?:\s|$)/g);
-                            if (match) {
-                                match.forEach(m => {
-                                    const otherId = m.substring(3).trim();
-                                    if (otherId) relatedNodes.add(otherId);
+                            
+                            // Find the source and target node IDs for this edge in the DOM
+                            // We do this by searching for all nodes and checking if their core ID matches
+                            // the one in the edge's classes.
+                            const edgeMatch = classes.match(/LS-(.*?)\s+LE-(.*?)(?:\s|$)/);
+                            if (edgeMatch) {
+                                const srcCoreId = edgeMatch[1];
+                                const dstCoreId = edgeMatch[2];
+                                
+                                nodes.forEach(n => {
+                                    const nFullId = n.id;
+                                    const nIdMatch = nFullId.match(/flowchart-(.*?)-\d+/) || [null, nFullId];
+                                    const nCoreId = nIdMatch[1];
+                                    if (nCoreId === srcCoreId || nCoreId === dstCoreId) {
+                                        relatedNodes.add(nFullId);
+                                    }
                                 });
                             }
                         }

@@ -72,7 +72,7 @@ def generate_mermaid_content(features):
         grouped_categories[data["category"]].append(node_id)
     
     for category, node_ids in sorted(grouped_categories.items()):
-        lines.append(f"\n    subgraph {category.replace(' ', '_')} [\"<span class='subgraph-title'>{category}</span>\"]")
+        lines.append(f"\n    subgraph {category.replace(' ', '_')} [\"<span class='subgraph-title'>{category}</span><br/><br/>\"]")
         lines.append(f"        direction TB")
         for node_id in sorted(node_ids):
             data = features[node_id]
