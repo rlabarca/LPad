@@ -1,7 +1,7 @@
-# Release v0.58: Dynamic Visuals
+# Feature: Release 0.58 Demo Application
 
-> Label: "Release v0.58: Dynamic Visuals"
-> Category: "Release"
+> Label: "Demo for Release v0.58"
+> Category: "Release Demos"
 > Prerequisite: features/data_layer_time_series.md
 > Prerequisite: features/demo_release_0.55.md
 
