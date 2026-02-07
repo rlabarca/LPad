@@ -47,10 +47,28 @@ graph TD
 2.  **State Polling:** The application monitors connection state via `hal_network_get_status()` in the main loop. Blocking loops (e.g., `while(status != CONNECTED)`) are strictly prohibited in the main thread to prevent UI freezing.
 3.  **Domain Abstraction:** HTTP operations use a dedicated `hal_http_client` contract to decouple logic from the specific networking library (Arduino WiFiClient vs ESP-IDF).
 
-### D. Data Flow
-1.  **Unidirectional:** Data flows from Source -> Parser -> Model -> View.
-    *   `YahooChartParser` (Source) -> `BondTracker` (Model) -> `TimeSeriesGraph` (View) -> `Display` (HAL).
-2.  **Immutability:** Parsed data should be treated as immutable once passed to the visualization layer.
+### D. Data Layer Architecture
+
+#### 1. Data Abstraction Hierarchy
+```
+DataItem (Abstract Base)
+  └─ DataItemTimeSeries (FIFO Ring Buffer)
+```
+
+1.  **DataItem Contract:** Abstract base class defining common metadata (name, timestamp, value, min/max tracking).
+2.  **DataItemTimeSeries:** Specialized subclass implementing a fixed-capacity FIFO ring buffer for time series data.
+    *   **Capacity:** Fixed at construction (e.g., 15 points for sliding window)
+    *   **FIFO Eviction:** When buffer is full, oldest data point is automatically removed
+    *   **Automatic Statistics:** Min/max values updated on every `addDataPoint()` call
+    *   **GraphData Export:** `getGraphData()` returns `GraphData` struct compatible with `TimeSeriesGraph`
+
+#### 2. Data Flow Patterns
+1.  **Static Data (v0.5/v0.55):**
+    *   `YahooChartParser` (Source) -> `GraphData` (Struct) -> `TimeSeriesGraph` (View) -> `Display` (HAL)
+2.  **Live Data (v0.58+):**
+    *   Embedded Test Data -> `DataItemTimeSeries` (Model) -> `getGraphData()` -> `TimeSeriesGraph` (View) -> `Display` (HAL)
+    *   Random Data Injection -> `addDataPoint()` -> FIFO Update -> Graph Refresh
+3.  **Immutability:** Parsed data should be treated as immutable once passed to the visualization layer.
 
 ### E. Display Architecture
 1.  **Relative Coordinates:** The Application Layer operates exclusively in a **0.0 to 1.0** float coordinate space.
@@ -81,10 +99,14 @@ demos/
   ├─ demo_v05_entry.h
   ├─ demo_v055_entry.cpp        # V0.55 entry point (setup/loop)
   ├─ demo_v055_entry.h
+  ├─ demo_v058_entry.cpp        # V0.58 entry point (setup/loop)
+  ├─ demo_v058_entry.h
   ├─ v05_demo_app.cpp           # V0.5 core logic (Logo + 6 Graph Modes)
   ├─ v05_demo_app.h
   ├─ v055_demo_app.cpp          # V0.55 wrapper (WiFi + V0.5 demo)
-  └─ v055_demo_app.h
+  ├─ v055_demo_app.h
+  ├─ v058_demo_app.cpp          # V0.58 wrapper (V0.55 + Live Data)
+  └─ v058_demo_app.h
 ```
 
 #### Rules
@@ -95,7 +117,33 @@ demos/
 5.  **Build Flags:** Each demo environment sets a build flag:
     - `demo_v05_esp32s3`: `-DDEMO_V05`
     - `demo_v055_esp32s3`: `-DDEMO_V055`
-    - Base hardware environments (`esp32s3`, `tdisplay_s3_plus`): Use latest demo (currently `-DDEMO_V055`)
+    - `demo_v058_esp32s3`: `-DDEMO_V058`
+    - Base hardware environments (`esp32s3`, `tdisplay_s3_plus`): Use latest demo (currently `-DDEMO_V058`)
+
+#### V0.58 Specific Architecture (Live Data Updates)
+
+**Wrapper Pattern:** V058DemoApp wraps V055DemoApp, which wraps V05DemoApp.
+
+**Data Source:** Embedded test data header (`test_data/test_data_tnx_5m.h`) instead of filesystem, avoiding LittleFS dependency.
+
+**Live Data Injection:**
+1. `DataItemTimeSeries` initialized with 15-point capacity (matches test data size)
+2. Initial Y-bounds captured from test data (prevents drift over time)
+3. New random data point injected every 3 seconds
+4. FIFO buffer automatically evicts oldest point, maintaining sliding 15-point window
+5. Graph updated via `setData()` + `drawData()` + `render()`
+
+**Phase/Stage Gating:**
+To prevent graph from overwriting logo or connectivity screens, updates require:
+- V055 Phase: `PHASE_VISUAL_DEMO` (not connectivity or handover)
+- V05 Stage: `STAGE_GRAPH_CYCLE` (not logo animation)
+- Check via: `v055Demo->isInVisualPhase() && v05Demo->isShowingGraph()`
+
+**Dual Rendering Paths:**
+- **Graph:** `TimeSeriesGraph::render()` → `hal_display_fast_blit()` → Direct DMA to display
+- **Title:** `V05DemoApp::drawTitle()` → Arduino_GFX framebuffer → Requires `hal_display_flush()`
+- **Synchronization:** `flush()` called immediately after `drawTitle()` to sync DMA and framebuffer
+- **Known Issue:** Title may still flicker due to async rendering paths (under investigation)
 
 #### Adding a New Milestone Demo
 1.  Create `demos/demo_vXX_entry.h` and `.cpp` with `demo_setup()` and `demo_loop()`

@@ -263,3 +263,86 @@ The demo code (which already includes `theme_manager.h`) sets these when creatin
 2. **Watchdog crashes on ESP32-S3** are often caused by memory pressure during pixel-intensive operations, not necessarily by timing
 3. **Incremental modification of draw methods** after full revert is safer than trying to fix crashes in-place
 4. **CRITICAL: Custom GFX fonts crash on PSRAM Arduino_Canvas** - calling `canvas->setFont(GFXfont*)` on an Arduino_Canvas allocated in PSRAM causes TG1WDT_SYS_RST watchdog resets. **Workaround:** Use built-in font with `canvas->setFont(nullptr); canvas->setTextSize(N);` instead. This limitation means axis titles use 10x14 pixel characters (size 2) and tick labels use 5x7 pixel characters (size 1), instead of the 9pt and 18pt custom fonts specified in the theme.
+
+---
+
+## [2026-02-06] V0.58 Demo: Live Data Updates & Rendering Synchronization
+
+### Overview
+Release v0.58 introduces dynamic, self-updating data using `DataItemTimeSeries` FIFO ring buffer. The demo simulates real-time data by injecting random values every 3 seconds while the graph actively displays, creating a scrolling effect as old data falls out and new data appears.
+
+### Key Architectural Decisions
+
+#### 1. Embedded Test Data Instead of Filesystem
+**Problem:** Initial implementation used LittleFS filesystem to store test data, requiring separate filesystem upload.
+**Solution:** Created `test_data/test_data_tnx_5m.h` with embedded C++ arrays (15 timestamps + 15 prices).
+**Benefit:** Simpler deployment (single firmware upload), no filesystem dependencies, data baked into binary.
+
+#### 2. DataItemTimeSeries Sizing for Sliding Window
+**Problem:** Initial max_length was 50, causing graph to compress horizontally as it accumulated 16, 17... 50 points before FIFO kicked in.
+**Solution:** Set max_length to `TestData::TNX_5M_COUNT` (15), matching initial test data size.
+**Result:** Graph maintains constant 15-point window, oldest data evicted as new data arrives (true FIFO behavior).
+
+#### 3. Fixed Y-Bounds to Prevent Data Drift
+**Problem:** Random data generated from current min/max created feedback loop - if random values trended low, next iteration's range was lower, eventually drifting toward zero.
+**Solution:** Capture initial Y-bounds (4.269 - 4.279 from test data) in `m_initialYMin/m_initialYMax`, use these fixed bounds for all random generation.
+**Result:** Data oscillates within stable range indefinitely, Y-axis labels remain consistent.
+
+### Rendering Challenges & Solutions
+
+#### Challenge 1: Graph Overwriting Logo Screen
+**Problem:** Graph updates happened during logo animation phase, overwriting the logo.
+**Root Cause:** Phase check `isInVisualPhase()` returned true during logo animation because V055's `PHASE_VISUAL_DEMO` includes both logo and graph stages.
+**Solution:** Added granular stage checking:
+- V055 Phase check: `isInVisualPhase()` (not connectivity/handover)
+- V05 Stage check: `isShowingGraph()` (STAGE_GRAPH_CYCLE, not STAGE_LOGO)
+- Combined: `v055Demo->isInVisualPhase() && v05Demo->isShowingGraph()`
+**Result:** Graph updates only during active graph display, logo completes uninterrupted.
+
+#### Challenge 2: Live Indicator Misalignment
+**Problem:** After data updates, live indicator didn't track the last data point on the graph.
+**Root Cause:** Graph data canvas was updated (`setData()` + `drawData()`) but not composited to display. V05DemoApp's render flow only calls `graph->render()` during mode switches (every 5s), not on every frame.
+**Solution:** Call `graph->render()` in `updateGraphWithLiveData()` after `drawData()` to composite and blit updated data canvas.
+**Result:** Live indicator now tracks rightmost data point accurately.
+
+#### Challenge 3: Title Text Flickering (PARTIALLY RESOLVED)
+**Problem:** "DEMO v0.58" title flashes when graph updates every 3 seconds.
+**Root Cause:** Dual rendering paths with async synchronization:
+- `graph->render()` → `hal_display_fast_blit()` → Direct DMA to display hardware (immediate)
+- `drawTitle()` → Arduino_GFX framebuffer → Requires `hal_display_flush()` to send to display
+
+**Attempted Solutions:**
+1. **Initial:** Redraw title after `graph->render()`, rely on normal flush in V05DemoApp::render()
+   - **Result:** Visible flicker due to timing gap between DMA blit and framebuffer flush
+2. **Current:** Call `hal_display_flush()` immediately after `drawTitle()` to force sync
+   - **Result:** Reduced flicker but still visible artifact
+
+**Status:** Under investigation. The fundamental issue is that graph uses DMA (bypasses framebuffer) while title uses GFX framebuffer (async path). Potential solutions:
+- Draw title to a buffer before final composite (requires graph architecture changes)
+- Use double-buffering for entire display (memory intensive)
+- Accept minor flicker as trade-off for live updates
+
+### Implementation Pattern: Wrapper Composition
+
+V058DemoApp follows the established wrapper pattern:
+```
+V058DemoApp (Live Data)
+  └─ wraps V055DemoApp (WiFi + Connectivity)
+      └─ wraps V05DemoApp (Logo + 6 Graph Modes)
+```
+
+**Data Flow:**
+1. V058 creates `DataItemTimeSeries` with embedded test data
+2. Timer triggers `injectNewDataPoint()` every 3 seconds
+3. Random data added to FIFO buffer (oldest evicted)
+4. `updateGraphWithLiveData()` checks phase/stage gates
+5. If in graph display: `setData()` → `drawData()` → `render()` → `drawTitle()` → `flush()`
+
+### Key Lessons
+1. **Embedded data > Filesystem for demos** - Simpler deployment, no upload dependencies
+2. **FIFO sizing must match use case** - Set max_length to match expected window size, not arbitrary buffer
+3. **Fixed bounds prevent drift** - Store initial data range for random generation, don't use dynamic min/max
+4. **Granular phase checking required** - Single-level phase checks insufficient when phases have sub-stages
+5. **DMA vs Framebuffer sync is hard** - Direct hardware blitting (DMA) and framebuffer rendering are fundamentally async, perfect sync may not be achievable without architectural changes
+6. **Title redraw frequency matters** - Redrawing on every graph update (3s) instead of mode switch (5s) increases flicker opportunity
+7. **Data update interval trade-off** - Increased from 1s to 3s to reduce rendering pressure and flicker frequency
