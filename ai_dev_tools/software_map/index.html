@@ -157,6 +157,22 @@
         #modal-body table { border-collapse: collapse; width: 100%; margin: 16px 0; }
         #modal-body table th, #modal-body table td { padding: 6px 13px; border: 1px solid #dfe2e5; }
         #modal-body table tr:nth-child(2n) { background-color: #f6f8fa; }
+
+        /* Highlight Styles */
+        .node.highlighted {
+            filter: brightness(0.9);
+            stroke-width: 3px !important;
+        }
+        .edgePath.highlighted path {
+            stroke-width: 3px !important;
+            stroke: #007bff !important;
+        }
+        .edgePath.dimmed {
+            opacity: 0.1;
+        }
+        .node.dimmed {
+            opacity: 0.2;
+        }
     </style>
 </head>
 <body>
@@ -164,7 +180,7 @@
     
     <div id="controls">
         <button onclick="resetZoom()">Fit to Screen</button>
-        <span style="margin-left: 10px; font-size: 14px; color: #555;">Scroll to Zoom • Drag to Pan • Click Node for Details</span>
+        <span style="margin-left: 10px; font-size: 14px; color: #555;">Scroll to Zoom - Drag to Pan - Click Node for Details</span>
     </div>
 
     <div id="container">
@@ -254,22 +270,61 @@
 
         function addNodeClickListeners() {
             const nodes = document.querySelectorAll('.node');
+            const edges = document.querySelectorAll('.edgePath');
+            
             nodes.forEach(node => {
                 node.style.cursor = 'pointer';
-                node.addEventListener('click', (e) => {
-                    // Mermaid sets the ID of the g element to "flowchart-{id}-{index}" or just "{id}" depending on config
-                    // In the MMD file, we used IDs like `display_canvas_drawing`.
-                    // The SVG node id attribute usually matches.
+                
+                // Hover Highlighting
+                node.addEventListener('mouseenter', () => {
                     const nodeId = node.id;
-                    // Usually mermaid prefixes the id. Let's try to extract the core ID.
-                    // Or we can rely on the data-id attribute if available, or just use the ID from MMD.
-                    
-                    // In recent Mermaid versions, the ID in the SVG might be `flowchart-display_canvas_drawing-123`.
-                    // We need to parse the real feature filename.
-                    // BUT, the text inside the node often contains the filename too: <small>filename.md</small>
-                    
-                    // Let's try to find the filename in the text content first, it's more reliable given our MMD structure
-                    // format: "**Friendly Name**<br/><small>filename.md</small>"
+                    const relatedNodes = new Set([nodeId]);
+                    const relatedEdges = new Set();
+
+                    // Find edges where this node is source or target
+                    edges.forEach(edge => {
+                        // Mermaid edge classes often contain the source and target IDs
+                        // Format is usually: "edgePath LS-sourceId LE-targetId"
+                        const classes = edge.className.baseVal;
+                        const isSource = classes.includes(`LS-${nodeId}`);
+                        const isTarget = classes.includes(`LE-${nodeId}`);
+
+                        if (isSource || isTarget) {
+                            relatedEdges.add(edge);
+                            // Extract the other node ID from the class
+                            const match = classes.match(/L[SE]-(.*?)(?:\s|$)/g);
+                            if (match) {
+                                match.forEach(m => {
+                                    const otherId = m.substring(3).trim();
+                                    if (otherId) relatedNodes.add(otherId);
+                                });
+                            }
+                        }
+                    });
+
+                    // Apply styles
+                    nodes.forEach(n => {
+                        if (relatedNodes.has(n.id)) {
+                            n.classList.add('highlighted');
+                        } else {
+                            n.classList.add('dimmed');
+                        }
+                    });
+                    edges.forEach(e => {
+                        if (relatedEdges.has(e)) {
+                            e.classList.add('highlighted');
+                        } else {
+                            e.classList.add('dimmed');
+                        }
+                    });
+                });
+
+                node.addEventListener('mouseleave', () => {
+                    nodes.forEach(n => n.classList.remove('highlighted', 'dimmed'));
+                    edges.forEach(e => e.classList.remove('highlighted', 'dimmed'));
+                });
+
+                node.addEventListener('click', (e) => {
                     const textContainer = node.querySelector('.nodeLabel');
                     if (textContainer) {
                         const html = textContainer.innerHTML;
@@ -279,9 +334,6 @@
                             return;
                         }
                     }
-                    
-                    // Fallback: try to deduce from ID
-                    console.log("Clicked node ID:", nodeId);
                 });
             });
         }
