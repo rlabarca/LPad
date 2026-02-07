@@ -76,6 +76,14 @@ public:
      */
     void drawTitle();
 
+    /**
+     * @brief Fast-blits pre-rendered title buffer to display.
+     *
+     * Uses DMA blit instead of font rendering for minimal latency.
+     * Useful when title needs to be redrawn frequently (e.g., after graph updates).
+     */
+    void blitTitle();
+
 private:
     enum Stage {
         STAGE_LOGO,         // Logo animation (wait + animate + hold)
@@ -91,6 +99,14 @@ private:
 
     // Title configuration
     const char* m_titleText;
+
+    // Title buffer for fast blitting (eliminates font rendering latency)
+    uint16_t* m_titleBuffer;
+    int16_t m_titleBufferX;
+    int16_t m_titleBufferY;
+    int16_t m_titleBufferWidth;
+    int16_t m_titleBufferHeight;
+    bool m_titleBufferValid;
 
     // Mode cycling (6 combinations: 2 layouts x 3 visual styles)
     int m_currentMode;       // 0-5: cycles through 6 combinations
@@ -109,6 +125,7 @@ private:
     GraphTheme createGradientTheme();
     GraphTheme createSolidTheme();
     GraphTheme createMixedTheme();
+    void renderTitleToBuffer();
 };
 
 #endif // V05_DEMO_APP_H

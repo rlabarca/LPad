@@ -92,13 +92,14 @@ void V058DemoApp::render() {
         m_v055Demo->render();
     }
 
-    // CRITICAL: Ensure title is drawn every frame to prevent disappearance
+    // CRITICAL: Blit title every frame to prevent disappearance
     // The graph's live indicator uses partial DMA blits every frame, which could
-    // potentially overlap/overwrite the title area. Redrawing every frame ensures
+    // potentially overlap/overwrite the title area. Blitting every frame ensures
     // the title remains visible even if something accidentally overwrites it.
+    // Using blitTitle() instead of drawTitle() for minimal latency (DMA vs font rendering).
     V05DemoApp* v05Demo = m_v055Demo->getV05DemoApp();
     if (v05Demo != nullptr && v05Demo->isShowingGraph()) {
-        v05Demo->drawTitle();
+        v05Demo->blitTitle();
     }
 }
 
@@ -174,10 +175,9 @@ void V058DemoApp::updateGraphWithLiveData() {
     // Composite and blit to display via DMA (full screen, overwrites everything)
     graph->render();
 
-    // IMMEDIATELY redraw title on top
-    // Note: hal_display_flush() is a no-op on ESP32-S3 (direct write mode)
-    // so drawTitle() writes directly to display hardware
-    v05Demo->drawTitle();
+    // IMMEDIATELY blit pre-rendered title on top using DMA
+    // This is much faster than font rendering (drawTitle), eliminating visible flicker
+    v05Demo->blitTitle();
 
     Serial.printf("[V058DemoApp] Graph updated with live data (%zu points)\n", liveGraphData.x_values.size());
 }

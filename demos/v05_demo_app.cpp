@@ -17,6 +17,12 @@ V05DemoApp::V05DemoApp()
     , m_graph(nullptr)
     , m_logoScreen(nullptr)
     , m_titleText("DEMO v0.5")
+    , m_titleBuffer(nullptr)
+    , m_titleBufferX(0)
+    , m_titleBufferY(0)
+    , m_titleBufferWidth(0)
+    , m_titleBufferHeight(0)
+    , m_titleBufferValid(false)
     , m_currentMode(0)
     , m_modesShown(0)
     , m_logoHoldTimer(0.0f)
@@ -27,6 +33,10 @@ V05DemoApp::V05DemoApp()
 V05DemoApp::~V05DemoApp() {
     delete m_graph;
     delete m_logoScreen;
+    if (m_titleBuffer != nullptr) {
+        free(m_titleBuffer);
+        m_titleBuffer = nullptr;
+    }
 }
 
 bool V05DemoApp::begin(RelativeDisplay* display) {
@@ -142,6 +152,7 @@ bool V05DemoApp::isFinished() const {
 
 void V05DemoApp::setTitle(const char* title) {
     m_titleText = title;
+    m_titleBufferValid = false;  // Invalidate buffer when title changes
 }
 
 void V05DemoApp::drawTitle() {
@@ -373,4 +384,89 @@ void V05DemoApp::switchToNextMode() {
     m_graph->render();
     drawTitle();
     hal_display_flush();
+}
+
+void V05DemoApp::renderTitleToBuffer() {
+    const LPad::Theme* theme = LPad::ThemeManager::getInstance().getTheme();
+    Arduino_GFX* gfx = static_cast<Arduino_GFX*>(hal_display_get_gfx());
+
+    if (gfx == nullptr) return;
+
+    // Get display dimensions
+    int32_t width = hal_display_get_width_pixels();
+    int32_t height = hal_display_get_height_pixels();
+
+    // Set font and get text bounds
+    gfx->setFont(theme->fonts.normal);
+    int16_t x1, y1;
+    uint16_t w, h;
+    gfx->getTextBounds(m_titleText, 0, 0, &x1, &y1, &w, &h);
+
+    // Calculate text position (5% padding from top-left)
+    int16_t padding_x = width * 0.05f;
+    int16_t padding_y = height * 0.05f;
+
+    // Allocate buffer with some extra margin for safety (add 4 pixels margin on all sides)
+    int16_t margin = 4;
+    m_titleBufferWidth = w + (margin * 2);
+    m_titleBufferHeight = h + (margin * 2);
+    m_titleBufferX = padding_x - margin;
+    m_titleBufferY = padding_y - margin;
+
+    // Reallocate buffer if size changed
+    if (m_titleBuffer != nullptr) {
+        free(m_titleBuffer);
+    }
+    m_titleBuffer = static_cast<uint16_t*>(malloc(m_titleBufferWidth * m_titleBufferHeight * sizeof(uint16_t)));
+
+    if (m_titleBuffer == nullptr) {
+        Serial.println("[V05DemoApp] ERROR: Failed to allocate title buffer");
+        return;
+    }
+
+    // Create a temporary canvas to render the title
+    Arduino_Canvas* titleCanvas = new Arduino_Canvas(m_titleBufferWidth, m_titleBufferHeight, gfx);
+    if (titleCanvas == nullptr) {
+        Serial.println("[V05DemoApp] ERROR: Failed to create title canvas");
+        free(m_titleBuffer);
+        m_titleBuffer = nullptr;
+        return;
+    }
+
+    titleCanvas->begin();
+
+    // Fill with background color (transparent-ish, will be overwritten by text)
+    titleCanvas->fillScreen(theme->colors.background);
+
+    // Draw title text
+    titleCanvas->setFont(theme->fonts.normal);
+    titleCanvas->setTextColor(theme->colors.text_main);
+    titleCanvas->setCursor(margin, margin + h);  // Position within canvas (accounting for margin)
+    titleCanvas->print(m_titleText);
+
+    // Copy rendered content to buffer
+    uint16_t* canvasBuffer = titleCanvas->getFramebuffer();
+    if (canvasBuffer != nullptr) {
+        memcpy(m_titleBuffer, canvasBuffer, m_titleBufferWidth * m_titleBufferHeight * sizeof(uint16_t));
+        m_titleBufferValid = true;
+    } else {
+        Serial.println("[V05DemoApp] ERROR: Failed to get canvas framebuffer");
+        m_titleBufferValid = false;
+    }
+
+    delete titleCanvas;
+}
+
+void V05DemoApp::blitTitle() {
+    // Render title to buffer if not already done
+    if (!m_titleBufferValid) {
+        renderTitleToBuffer();
+    }
+
+    // Blit buffer to display using fast DMA
+    if (m_titleBuffer != nullptr && m_titleBufferValid) {
+        hal_display_fast_blit(m_titleBufferX, m_titleBufferY,
+                              m_titleBufferWidth, m_titleBufferHeight,
+                              m_titleBuffer);
+    }
 }
