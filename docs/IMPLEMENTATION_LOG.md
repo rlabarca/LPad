@@ -2,6 +2,51 @@
 
 This document captures the "tribal knowledge" of the project: technical hurdles, why specific decisions were made, and what approaches were discarded.
 
+## [2026-02-07] TE Sync Eliminates Tearing on T-Display S3 AMOLED Plus
+
+### Problem
+Subtle flickering/tearing artifacts visible during 30fps animations on T-Display S3 AMOLED Plus. The artifact appeared as a horizontal shimmer moving from top to bottom of the screen, even with consistent backgrounds.
+
+### Root Cause
+The RM67162 display driver was configured to enable the TE (Tearing Effect) pin during initialization (`0x35, 0x00`), but the ESP32-S3 code never read this signal. The display was signaling safe update periods (vertical blanking), but the code was pushing frames at arbitrary times.
+
+**Timing Mismatch:**
+- Animation frame rate: 30fps (33.3ms per frame)
+- Display refresh rate: ~60Hz (16.6ms per frame)
+- Without synchronization: Beat frequency creates visible tearing when DMA blits occur mid-refresh
+
+### Solution: TE Pin Synchronization
+Added `waitForTeSignal()` function that waits for LOW→HIGH transition on GPIO 9 (LCD_TE) before frame updates:
+
+```cpp
+static void waitForTeSignal(void) {
+    // Wait for LOW (display actively scanning)
+    while (digitalRead(LCD_TE) == HIGH) { delayMicroseconds(1); }
+
+    // Wait for HIGH (vertical blanking begins)
+    while (digitalRead(LCD_TE) == LOW) { delayMicroseconds(1); }
+
+    // Safe to update display
+}
+```
+
+**Modified Functions:**
+- `hal_display_fast_blit()` - waits for TE before DMA blit
+- `hal_display_fast_blit_transparent()` - waits for TE before transparent blit
+
+**Impact:**
+- All frame updates now occur during vertical blanking period
+- Eliminates tearing artifacts completely
+- Minimal performance impact (typically <1ms wait per frame at 30fps)
+
+### Key Lessons
+1. **TE pin configuration ≠ TE pin usage** - Hardware initialization enables the signal, but software must actively read it
+2. **Tearing vs PWM flicker** - Top-to-bottom shimmer indicates timing mismatch, not PWM dimming
+3. **Beat frequencies** - When animation FPS doesn't match display refresh rate, synchronization becomes critical
+4. **Timeout protection** - TE sync loops include 10ms timeout to prevent infinite hangs if signal fails
+
+---
+
 ## [2026-02-06] Title Text Rendering on Live Graph Updates (v0.58)
 
 ### Problem

@@ -45,6 +45,39 @@ static bool g_initialized = false;
 static Arduino_Canvas *g_selected_canvas = nullptr;
 
 /**
+ * @brief Wait for the TE (Tearing Effect) signal to sync with display refresh
+ *
+ * The RM67162 TE pin signals vertical blanking period. By waiting for the
+ * TE signal before frame updates, we eliminate tearing artifacts.
+ *
+ * The TE pin goes LOW during active display scanning and HIGH during
+ * vertical blanking (VSYNC). We wait for a LOW->HIGH transition.
+ */
+static void waitForTeSignal(void) {
+    static bool te_pin_configured = false;
+
+    // Configure TE pin as input (only once)
+    if (!te_pin_configured) {
+        pinMode(LCD_TE, INPUT);
+        te_pin_configured = true;
+    }
+
+    // Wait for LOW (display is actively scanning)
+    uint32_t timeout = 0;
+    while (digitalRead(LCD_TE) == HIGH && timeout++ < 10000) {
+        delayMicroseconds(1);
+    }
+
+    // Wait for HIGH (vertical blanking period begins)
+    timeout = 0;
+    while (digitalRead(LCD_TE) == LOW && timeout++ < 10000) {
+        delayMicroseconds(1);
+    }
+
+    // We're now in the blanking period - safe to update the display
+}
+
+/**
  * @brief Send vendor-specific initialization sequence for T-Display S3 AMOLED Plus
  *
  * The Arduino_RM67162 driver uses a generic initialization, but this hardware
@@ -305,6 +338,9 @@ void hal_display_fast_blit(int16_t x, int16_t y, int16_t w, int16_t h, const uin
         return;
     }
 
+    // Wait for vertical blanking to prevent tearing
+    waitForTeSignal();
+
     // Use Arduino_GFX's optimized bulk transfer method
     // This uses DMA/hardware acceleration instead of pixel-by-pixel loops
     //
@@ -327,6 +363,9 @@ void hal_display_fast_blit_transparent(int16_t x, int16_t y, int16_t w, int16_t 
     if (!g_initialized || g_gfx == nullptr || data == nullptr) {
         return;
     }
+
+    // Wait for vertical blanking to prevent tearing
+    waitForTeSignal();
 
     // Optimized transparent blit using scanline DMA transfers
     // Instead of checking every pixel individually, we:
