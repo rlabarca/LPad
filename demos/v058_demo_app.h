@@ -56,6 +56,7 @@ private:
     // Helper methods
     bool loadInitialData();
     void injectNewDataPoint();
+    void updateGraphWithLiveData();
 };
 
 #endif // V058_DEMO_APP_H

@@ -47,7 +47,7 @@ bool V058DemoApp::begin(RelativeDisplay* display) {
     // Yahoo chart has 15 data points, allocate 50 for growth
     m_liveData = new DataItemTimeSeries("TNX_5m_live", 50);
 
-    // Load initial data from test file
+    // Load initial data
     if (!loadInitialData()) {
         Serial.println("[V058DemoApp] ERROR: Failed to load initial data");
         return false;
@@ -56,6 +56,9 @@ bool V058DemoApp::begin(RelativeDisplay* display) {
     Serial.println("[V058DemoApp] Initialized successfully");
     Serial.printf("[V058DemoApp] Live data initialized with %zu points\n", m_liveData->getLength());
     Serial.printf("[V058DemoApp] Y-range: [%.4f, %.4f]\n", m_liveData->getMinVal(), m_liveData->getMaxVal());
+
+    // Initialize graph with live data (will update when graph is created by V05DemoApp)
+    updateGraphWithLiveData();
 
     return true;
 }
@@ -119,7 +122,28 @@ void V058DemoApp::injectNewDataPoint() {
     Serial.printf("[V058DemoApp] Data series now has %zu points (min=%.4f, max=%.4f)\n",
                   m_liveData->getLength(), m_liveData->getMinVal(), m_liveData->getMaxVal());
 
-    // TODO: Update TimeSeriesGraph with new data
-    // This will be connected in a future iteration when we modify V05DemoApp
-    // to accept external data sources instead of loading from file
+    // Update TimeSeriesGraph with new live data
+    updateGraphWithLiveData();
+}
+
+void V058DemoApp::updateGraphWithLiveData() {
+    // Get the graph from V05DemoApp (via V055DemoApp)
+    V05DemoApp* v05Demo = m_v055Demo->getV05DemoApp();
+    if (v05Demo == nullptr) {
+        return;  // V05DemoApp not initialized yet
+    }
+
+    TimeSeriesGraph* graph = v05Demo->getGraph();
+    if (graph == nullptr) {
+        return;  // Graph not initialized yet
+    }
+
+    // Get current live data snapshot
+    GraphData liveGraphData = m_liveData->getGraphData();
+
+    // Update graph with live data
+    graph->setData(liveGraphData);
+    graph->drawData();  // Redraw data canvas with new data
+
+    Serial.printf("[V058DemoApp] Graph updated with live data (%zu points)\n", liveGraphData.x_values.size());
 }

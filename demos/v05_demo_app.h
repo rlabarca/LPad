@@ -59,6 +59,12 @@ public:
      */
     void setTitle(const char* title);
 
+    /**
+     * @brief Gets the internal TimeSeriesGraph instance.
+     * @return Pointer to TimeSeriesGraph (nullptr if not initialized)
+     */
+    TimeSeriesGraph* getGraph() { return m_graph; }
+
 private:
     enum Stage {
         STAGE_LOGO,         // Logo animation (wait + animate + hold)
