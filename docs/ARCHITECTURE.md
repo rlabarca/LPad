@@ -81,6 +81,16 @@ DataItem (Abstract Base)
     *   **Data Layer:** Dynamic elements (graphs) are drawn to a separate canvas.
     *   **Composition:** The HAL is responsible for blitting these canvases to the physical display using `hal_display_fast_blit`.
 3.  **Partial Updates:** Full screen clears (`hal_display_clear`) are prohibited in the `loop()`. Updates must use dirty-rect logic or optimized blitting of small regions (e.g., the pulsing indicator).
+4.  **Overlay Pattern (Text/UI on Dynamic Content):**
+    *   **Problem:** Overlaying static elements (e.g., title text) on frequently-updating dynamic content (e.g., live graphs) can cause flashing if not handled correctly.
+    *   **Solution:** Pre-render overlays to buffers, use transparent DMA blits.
+    *   **Pattern:**
+        1.  Pre-render overlay content (text, icons) to PSRAM buffer using `Arduino_Canvas` (standalone, `nullptr` parent to avoid SPI reinit)
+        2.  Fill canvas with chroma key `0x0001` for transparency
+        3.  Cache the rendered buffer (invalidate on content change)
+        4.  Use `hal_display_fast_blit_transparent(x, y, w, h, buffer, 0x0001)` to composite overlay
+    *   **Trade-off:** Overlay and background are separate DMA operations, creating small (~1-2ms) gap that may cause minor flash on high-refresh displays. For atomic rendering, overlays must be composited into main buffer before single blit.
+    *   **When to use:** Acceptable for infrequently-changing overlays (titles, labels). Not suitable for high-frequency animations requiring perfect synchronization.
 
 ### F. State Management
 1.  **The Ticker:** The `AnimationTicker` is the single source of truth for time.

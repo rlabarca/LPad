@@ -2,6 +2,100 @@
 
 This document captures the "tribal knowledge" of the project: technical hurdles, why specific decisions were made, and what approaches were discarded.
 
+## [2026-02-06] Title Text Rendering on Live Graph Updates (v0.58)
+
+### Problem
+In v0.58 demo, the "DEMO v0.58" title text needs to persist on screen while the graph updates every 3 seconds with live data. The graph uses full-screen DMA blit (`hal_display_fast_blit`) which overwrites everything including the title. Initial attempts caused visible flashing or complete disappearance of the title.
+
+### Hardware Context
+- **ESP32-S3 AMOLED & T-Display S3 Plus**: `hal_display_flush()` is a **no-op** - all drawing operations (Arduino_GFX and DMA blits) write directly to display hardware without framebuffer buffering
+- **Graph rendering**: Uses `hal_display_fast_blit()` for direct DMA transfer from PSRAM composite buffer to display
+- **Live indicator**: Uses partial DMA blits every frame to animate the pulsing dot
+
+### Discarded Attempts
+
+**Attempt 1: Font Rendering After Graph Blit**
+```cpp
+graph->render();        // Full-screen DMA blit (title disappears)
+drawTitle();            // Font rendering with Arduino_GFX (slow)
+hal_display_flush();    // No-op
+```
+- **Result:** Visible flash between graph blit and title appearing
+- **Root cause:** `drawTitle()` involves expensive operations (getTextBounds, font rendering, print) creating ~10-20ms gap
+
+**Attempt 2: Pre-draw Title to Framebuffer (WRONG)**
+```cpp
+drawTitle();            // Writes to display
+graph->render();        // DMA blit overwrites title
+hal_display_flush();    // No-op
+```
+- **Result:** Title immediately overwritten, never restored
+- **Root cause:** Misunderstanding of flush behavior - since flush is no-op, title drawn before graph render is immediately lost
+
+**Attempt 3: Title Buffer with Parent GFX (CRASH)**
+```cpp
+Arduino_Canvas* canvas = new Arduino_Canvas(width, height, gfx);  // gfx = Arduino_ESP32QSPI
+```
+- **Result:** `ESP_ERR_INVALID_STATE: SPI bus already initialized` crash
+- **Root cause:** Passing hardware GFX object as canvas parent triggers SPI bus reinitialization
+
+### Final Solution: Pre-rendered Buffer + Transparent DMA Blit
+
+**Architecture:**
+1. **One-time rendering**: `V05DemoApp::renderTitleToBuffer()`
+   - Create standalone `Arduino_Canvas` with `nullptr` parent (avoids SPI reinit)
+   - Fill with chroma key `0x0001` for transparency
+   - Render title text using Arduino_GFX font API
+   - Copy framebuffer to cached buffer
+
+2. **Fast blit**: `V05DemoApp::blitTitle()`
+   - Uses `hal_display_fast_blit_transparent()` with chroma key
+   - DMA operation (~1-2ms) instead of font rendering (~10-20ms)
+   - Pixels matching chroma key are skipped, creating transparent effect
+
+3. **Dual blit strategy**:
+   - Immediately after `graph->render()` in data updates (minimize gap)
+   - Every frame in `V058DemoApp::render()` (prevent disappearance from live indicator overlaps)
+
+**Code Pattern:**
+```cpp
+// V05DemoApp - Non-breaking addition
+void blitTitle() {
+    if (!m_titleBufferValid) renderTitleToBuffer();
+    hal_display_fast_blit_transparent(x, y, w, h, m_titleBuffer, 0x0001);
+}
+
+// V058DemoApp - Data update
+graph->render();         // Full-screen DMA
+v05Demo->blitTitle();    // Fast DMA (1-2ms)
+
+// V058DemoApp - Every frame
+v05Demo->blitTitle();    // Restore if overwritten by live indicator
+```
+
+### Known Limitation: Slight Flash Still Visible
+Despite optimization, a **minor flash is still perceptible** during graph updates due to fundamental architectural constraint:
+- Graph render and title blit are **two separate DMA operations**
+- Gap between operations (~1-2ms) is small but visible on high-refresh displays
+- True atomic rendering would require compositing title into graph buffer before single DMA blit
+
+**Accepted Trade-off:** Slight flash is tolerable for v0.58. Future solution would require deeper integration:
+```cpp
+// Hypothetical future approach
+graph->setOverlay(titleBuffer, x, y, w, h);  // Composite before blit
+graph->render();  // Single DMA with title included
+```
+
+### Key Lessons
+1. **hal_display_flush() behavior varies by hardware** - Always check HAL implementation, never assume buffering exists
+2. **Arduino_Canvas parent parameter** - Use `nullptr` for standalone canvases to avoid hardware reinitialization
+3. **Chroma key transparency** - Use `0x0001` matching graph's approach for consistent transparency
+4. **Buffer caching eliminates font rendering overhead** - One-time render + fast blit beats per-frame font rendering
+5. **Architectural separation has cost** - Graph and overlay as separate components requires two DMA operations, creating inherent gap
+6. **Perfect is enemy of good** - Slight flash is acceptable if alternative requires major architectural changes
+
+---
+
 ## [2026-02-04] The "Flicker-Free" Graph Rendering Struggle
 
 ### Problem
