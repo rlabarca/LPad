@@ -2,11 +2,15 @@
 
 ## Visualization & Development
 
-### `serve_graph.py` & `graph_viewer.html`
-Starts a local live-reloading HTTP server to view the feature dependency graph.
-- **Run:** `python3 scripts/serve_graph.py`
-- **View:** `http://localhost:8000`
-- **Features:** Zoom, pan, and automatic refresh when `feature_graph.mmd` changes.
+### `scripts/software_map/`
+Interactive Software Map for visualizing and navigating feature specifications.
+- **Start:** `./scripts/software_map/start.sh`
+- **Stop:** `./scripts/software_map/stop.sh`
+- **View:** `http://localhost:8085`
+- **Features:** 
+    - Live-reloading Mermaid graph.
+    - Zoom/Pan support (Fit to screen default).
+    - **Clickable Nodes:** Click any feature to view its full Markdown specification in a modal.
 
 ### `generate_graph.sh`
 Orchestrates the regeneration of the Mermaid graph from `features/*.md`.

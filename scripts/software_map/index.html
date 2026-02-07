@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>LPad Software Map</title>
+    <!-- Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f8f9fa;
+        }
+        #container {
+            width: 100vw;
+            height: 100vh;
+            cursor: grab;
+        }
+        #container:active {
+            cursor: grabbing;
+        }
+        #status {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 4px;
+            font-size: 12px;
+            color: #666;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            pointer-events: none;
+            z-index: 10;
+        }
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 10;
+        }
+        button {
+            padding: 8px 16px;
+            cursor: pointer;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        button:hover { background: #0056b3; }
+        
+        .subgraph-title {
+            font-size: 18px !important;
+            font-weight: bold !important;
+            white-space: nowrap !important;
+            display: inline-block !important;
+            padding-right: 40px !important;
+            color: #333;
+        }
+
+        /* Modal Styles */
+        #modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 100;
+            backdrop-filter: blur(2px);
+            align-items: center;
+            justify-content: center;
+        }
+        #modal-content {
+            background: white;
+            width: 80%;
+            height: 85%;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+            animation: modalFadeIn 0.2s ease-out;
+        }
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        #modal-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #fcfcfc;
+        }
+        #modal-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            flex-grow: 1;
+            text-align: center;
+        }
+        #modal-close {
+            position: absolute;
+            right: 20px;
+            top: 15px;
+            background: none;
+            border: none;
+            color: #999;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+        #modal-close:hover { color: #333; background: none; }
+        
+        #modal-body {
+            padding: 30px;
+            overflow-y: auto;
+            flex-grow: 1;
+            line-height: 1.6;
+            color: #24292e;
+        }
+
+        /* Markdown Styles within Modal */
+        #modal-body h1, #modal-body h2, #modal-body h3 { border-bottom: 1px solid #eaecef; padding-bottom: 0.3em; margin-top: 24px; }
+        #modal-body h1 { font-size: 2em; margin-top: 0; }
+        #modal-body pre { background: #f6f8fa; padding: 16px; border-radius: 6px; overflow: auto; }
+        #modal-body code { font-family: SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace; font-size: 85%; }
+        #modal-body blockquote { color: #6a737d; border-left: 0.25em solid #dfe2e5; padding: 0 1em; margin: 0; }
+        #modal-body table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+        #modal-body table th, #modal-body table td { padding: 6px 13px; border: 1px solid #dfe2e5; }
+        #modal-body table tr:nth-child(2n) { background-color: #f6f8fa; }
+    </style>
+</head>
+<body>
+    <div id="status">Connecting...</div>
+    
+    <div id="controls">
+        <button onclick="resetZoom()">Fit to Screen</button>
+        <span style="margin-left: 10px; font-size: 14px; color: #555;">Scroll to Zoom • Drag to Pan • Click Node for Details</span>
+    </div>
+
+    <div id="container">
+        <div id="graph-output" class="mermaid"></div>
+    </div>
+
+    <!-- Feature Detail Modal -->
+    <div id="modal-overlay" onclick="closeModal(event)">
+        <div id="modal-content" onclick="event.stopPropagation()">
+            <div id="modal-header">
+                <div id="modal-title">Feature Details</div>
+                <button id="modal-close" onclick="closeModal()">×</button>
+            </div>
+            <div id="modal-body">
+                <!-- Content will be injected here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        mermaid.initialize({ 
+            startOnLoad: false,
+            securityLevel: 'loose',
+            theme: 'neutral',
+            flowchart: { useMaxWidth: false, htmlLabels: true }
+        });
+
+        let lastMtime = 0;
+        let panZoom = null;
+        let isInitialLoad = true;
+
+        function resetZoom() {
+            if (panZoom) {
+                panZoom.fit();
+                panZoom.center();
+            }
+        }
+
+        async function updateGraph() {
+            try {
+                const response = await fetch('/api/graph');
+                const data = await response.json();
+                
+                if (data.mtime !== lastMtime) {
+                    const output = document.getElementById('graph-output');
+                    
+                    // Render new graph
+                    const { svg } = await mermaid.render('mermaid-svg', data.content);
+                    output.innerHTML = svg;
+                    
+                    // Add Click Listeners to Nodes
+                    addNodeClickListeners();
+
+                    // Re-initialize pan-zoom
+                    if (panZoom) panZoom.destroy();
+                    panZoom = svgPanZoom('#mermaid-svg', {
+                        zoomEnabled: true,
+                        controlIconsEnabled: false,
+                        fit: true,
+                        center: true,
+                        minZoom: 0.1,
+                        maxZoom: 10,
+                        dblClickZoomEnabled: false // Prevent interference
+                    });
+
+                    // Force fit on first load
+                    if (isInitialLoad) {
+                        panZoom.fit();
+                        panZoom.center();
+                        // Zoom in slightly if needed, or leave as fit. 
+                        // User said: "not at 100%.. I want to start by zooming in" 
+                        // which likely means they want to see the whole thing (fit) 
+                        // and then zoom in themselves.
+                        isInitialLoad = false;
+                    }
+
+                    lastMtime = data.mtime;
+                    document.getElementById('status').innerText = 'Live: ' + new Date().toLocaleTimeString();
+                } else {
+                    document.getElementById('status').innerText = 'Live: ' + new Date().toLocaleTimeString();
+                }
+            } catch (err) {
+                console.error('Failed to update graph:', err);
+                document.getElementById('status').innerText = 'Connection Lost';
+            }
+        }
+
+        function addNodeClickListeners() {
+            const nodes = document.querySelectorAll('.node');
+            nodes.forEach(node => {
+                node.style.cursor = 'pointer';
+                node.addEventListener('click', (e) => {
+                    // Mermaid sets the ID of the g element to "flowchart-{id}-{index}" or just "{id}" depending on config
+                    // In the MMD file, we used IDs like `display_canvas_drawing`.
+                    // The SVG node id attribute usually matches.
+                    const nodeId = node.id;
+                    // Usually mermaid prefixes the id. Let's try to extract the core ID.
+                    // Or we can rely on the data-id attribute if available, or just use the ID from MMD.
+                    
+                    // In recent Mermaid versions, the ID in the SVG might be `flowchart-display_canvas_drawing-123`.
+                    // We need to parse the real feature filename.
+                    // BUT, the text inside the node often contains the filename too: <small>filename.md</small>
+                    
+                    // Let's try to find the filename in the text content first, it's more reliable given our MMD structure
+                    // format: "**Friendly Name**<br/><small>filename.md</small>"
+                    const textContainer = node.querySelector('.nodeLabel');
+                    if (textContainer) {
+                        const html = textContainer.innerHTML;
+                        const match = html.match(/<small>(.*?)<\/small>/);
+                        if (match && match[1]) {
+                            openFeatureModal(match[1]);
+                            return;
+                        }
+                    }
+                    
+                    // Fallback: try to deduce from ID
+                    console.log("Clicked node ID:", nodeId);
+                });
+            });
+        }
+
+        async function openFeatureModal(filename) {
+            const modal = document.getElementById('modal-overlay');
+            const body = document.getElementById('modal-body');
+            const title = document.getElementById('modal-title');
+            
+            body.innerHTML = '<div style="text-align:center; padding: 20px;">Loading...</div>';
+            title.innerText = filename;
+            modal.style.display = 'flex';
+
+            try {
+                // Fetch content
+                // Remove .md if present for the API call, or keep it, the API handles both
+                const response = await fetch(`/api/feature/${filename}`);
+                if (!response.ok) throw new Error("File not found");
+                const text = await response.text();
+
+                // Extract Friendly Title from Metadata (> Label: "Title")
+                const labelMatch = text.match(/> Label: "(.*?)"/);
+                const friendlyTitle = labelMatch ? labelMatch[1] : filename;
+                title.innerText = friendlyTitle;
+
+                // Parse Markdown
+                const htmlContent = marked.parse(text);
+                body.innerHTML = htmlContent;
+
+                // Highlight Code Blocks
+                body.querySelectorAll('pre code').forEach((block) => {
+                    hljs.highlightElement(block);
+                });
+
+                // Focus modal for keyboard events
+                document.getElementById('modal-content').focus();
+
+            } catch (e) {
+                body.innerHTML = `<div style="color:red; text-align:center;">Error loading file: ${e.message}</div>`;
+            }
+        }
+
+        function closeModal(event) {
+            // If event is provided (click), close only if clicked on overlay (not content)
+            if (event && event.target.id !== 'modal-overlay' && event.target.id !== 'modal-close') return;
+            
+            document.getElementById('modal-overlay').style.display = 'none';
+        }
+
+        // Keyboard navigation for modal
+        document.addEventListener('keydown', (e) => {
+            if (document.getElementById('modal-overlay').style.display === 'flex') {
+                if (e.key === 'Escape') closeModal();
+            }
+        });
+
+        // Poll
+        setInterval(updateGraph, 2000);
+        updateGraph();
+    </script>
+</body>
+</html>

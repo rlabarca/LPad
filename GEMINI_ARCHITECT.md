@@ -50,7 +50,8 @@ I must validate this process is being followed and refine the instructions if th
     *   **Pruning temporary files:** Instructing the user to run `pio system prune` to remove all temporary PlatformIO files, including unused libraries and cached data, for a more thorough cleanup.
     I should be able to explain the difference and recommend the appropriate command based on the user's needs.
 14. **Maintain Dependency Visualization:** Whenever I create, modify, or delete a feature file (which changes the dependency graph), I MUST run `./scripts/generate_graph.sh` and commit the updated `feature_graph.mmd` file to git.
-15. **Design System & Asset Integrity:** When modifying or adding themes, I MUST ensure semantic color mappings are updated in `theme_colors.h` and documented in `ARCHITECTURE.md`. If new fonts are required, I MUST update `scripts/generate_theme_fonts.sh` to include the new conversion parameters and ensure the generated headers are committed.
+15. **Maintain Software Map:** I am responsible for maintaining the interactive Software Map tool in `scripts/software_map/`. This includes ensuring the server (`serve.py`) correctly handles feature file navigation and the UI (`index.html`) provides a clear, responsive view of the project's specifications.
+16. **Design System & Asset Integrity:** When modifying or adding themes, I MUST ensure semantic color mappings are updated in `theme_colors.h` and documented in `ARCHITECTURE.md`. If new fonts are required, I MUST update `scripts/generate_theme_fonts.sh` to include the new conversion parameters and ensure the generated headers are committed.
 
 ## Knowledge Management
 We maintain a strict separation of concerns in our documentation to ensure consistency and avoid duplication.
@@ -103,6 +104,7 @@ This metadata is required for the automated visualization system.
     2.  **Execute:** Run `./scripts/generate_graph.sh` to update `feature_graph.mmd` and inject it into the README.
     3.  **Read:** Read the content of `feature_graph.mmd` to ensure correctness.
     4.  **Commit:** Commit both `feature_graph.mmd` and `README.md` together.
+    5.  **Verify Map:** Ensure the interactive Software Map (`scripts/software_map/start.sh`) correctly reflects the updated feature graph and content.
 
 ### Spec-Code Audit & Verification
 *   **The Audit:** I will read the actual implementation of key features and ensure the Feature File's scenarios match reality.

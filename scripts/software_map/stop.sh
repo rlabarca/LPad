@@ -1,14 +1,14 @@
 #!/bin/bash
 
-# Stop the interactive graph viewer
-# Usage: ./scripts/stop_viewer.sh
+# Stop the interactive software map
+# Usage: ./scripts/software_map/stop.sh
 
-PORT=8000
+PORT=8085
 
 PID=$(lsof -Pi :$PORT -sTCP:LISTEN -t)
 
 if [ -n "$PID" ]; then
-    echo "Stopping Graph Viewer (PID: $PID)..."
+    echo "Stopping Software Map (PID: $PID)..."
     kill $PID
     
     # Wait for the process to actually terminate and release the port
@@ -26,5 +26,5 @@ if [ -n "$PID" ]; then
     fi
     echo "Stopped."
 else
-    echo "Graph Viewer is not running."
+    echo "Software Map is not running."
 fi
