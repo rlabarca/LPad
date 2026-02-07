@@ -75,33 +75,33 @@ graph TD
     classDef graphics fill:#e0f7fa,stroke:#006064,stroke-width:1px,color:black;
 
 
-    subgraph Application_Layer ["<span class='subgraph-title'>Application Layer</span>"]
+    subgraph Application_Layer ["<span class='subgraph-title'>Application Layer</span><br/><br/>"]
         direction TB
         app_animation_ticker("**Animation Ticker Engine**<br/><small>app_animation_ticker.md</small>"):::app
         app_config_system("**Config Injection System**<br/><small>app_config_system.md</small>"):::app
         ui_logo_screen("**Logo Splash Screen**<br/><small>ui_logo_screen.md</small>"):::app
     end
 
-    subgraph Board_Drivers ["<span class='subgraph-title'>Board Drivers</span>"]
+    subgraph Board_Drivers ["<span class='subgraph-title'>Board Drivers</span><br/><br/>"]
         direction TB
         display_esp32s3_amoled("**ESP32-S3 AMOLED Driver**<br/><small>display_esp32s3_amoled.md</small>")
         display_tdisplay_s3_plus("**T-Display S3+ Driver**<br/><small>display_tdisplay_s3_plus.md</small>")
     end
 
-    subgraph Data_Layer ["<span class='subgraph-title'>Data Layer</span>"]
+    subgraph Data_Layer ["<span class='subgraph-title'>Data Layer</span><br/><br/>"]
         direction TB
         data_layer_core("**Base Data Model**<br/><small>data_layer_core.md</small>")
         data_layer_time_series("**Time Series Data Item**<br/><small>data_layer_time_series.md</small>")
     end
 
-    subgraph Graphics_Engine ["<span class='subgraph-title'>Graphics Engine</span>"]
+    subgraph Graphics_Engine ["<span class='subgraph-title'>Graphics Engine</span><br/><br/>"]
         direction TB
         display_canvas_drawing("**Layered Canvas Drawing**<br/><small>display_canvas_drawing.md</small>"):::graphics
         display_relative_drawing("**Relative Drawing**<br/><small>display_relative_drawing.md</small>"):::graphics
         ui_vector_assets("**Vector Asset Pipeline**<br/><small>ui_vector_assets.md</small>"):::graphics
     end
 
-    subgraph Hardware_Layer ["<span class='subgraph-title'>Hardware Layer</span>"]
+    subgraph Hardware_Layer ["<span class='subgraph-title'>Hardware Layer</span><br/><br/>"]
         direction TB
         display_rotation_contract("**Rotation Contract**<br/><small>display_rotation_contract.md</small>"):::hardware
         display_target_rotation("**Target Rotation**<br/><small>display_target_rotation.md</small>"):::hardware
@@ -113,21 +113,21 @@ graph TD
         hal_timer_esp32("**ESP32 Timer**<br/><small>hal_timer_esp32.md</small>"):::hardware
     end
 
-    subgraph Release_Demos ["<span class='subgraph-title'>Release Demos</span>"]
+    subgraph Release_Demos ["<span class='subgraph-title'>Release Demos</span><br/><br/>"]
         direction TB
         demo_release_0_5("**Demo for Release v0.5**<br/><small>demo_release_0.5.md</small>"):::release
         demo_release_0_55("**Demo for Release v0.55**<br/><small>demo_release_0.55.md</small>"):::release
         demo_release_0_58("**Demo for Release v0.58**<br/><small>demo_release_0.58.md</small>"):::release
     end
 
-    subgraph Releases ["<span class='subgraph-title'>Releases</span>"]
+    subgraph Releases ["<span class='subgraph-title'>Releases</span><br/><br/>"]
         direction TB
         RELEASE_v0_55_connectivity_smoke_test("**Release v0.55 - Connectivity Smoke Test**<br/><small>RELEASE_v0.55_connectivity_smoke_test.md</small>"):::release
         RELEASE_v0_58_dynamic_visuals("**Release v0.58 - Dynamic Visuals**<br/><small>RELEASE_v0.58_dynamic_visuals.md</small>"):::release
         RELEASE_v0_5_display_drawing_ui_base("**Release v0.5 - Display, Drawing & UI Base**<br/><small>RELEASE_v0.5_display_drawing_ui_base.md</small>"):::release
     end
 
-    subgraph UI_Framework ["<span class='subgraph-title'>UI Framework</span>"]
+    subgraph UI_Framework ["<span class='subgraph-title'>UI Framework</span><br/><br/>"]
         direction TB
         ui_base("**Base UI Elements**<br/><small>ui_base.md</small>"):::ui
         ui_connectivity_status_screen("**Connectivity Status Screen**<br/><small>ui_connectivity_status_screen.md</small>"):::ui
