@@ -43,9 +43,9 @@ bool V058DemoApp::begin(RelativeDisplay* display) {
 
     Serial.println("[V058DemoApp] V055DemoApp configured with title 'DEMO v0.58'");
 
-    // Create DataItemTimeSeries with capacity for initial dataset
-    // Yahoo chart has 15 data points, allocate 50 for growth
-    m_liveData = new DataItemTimeSeries("TNX_5m_live", 50);
+    // Create DataItemTimeSeries with capacity matching initial dataset
+    // This creates a sliding window: as new data comes in, oldest data falls out
+    m_liveData = new DataItemTimeSeries("TNX_5m_live", TestData::TNX_5M_COUNT);
 
     // Load initial data
     if (!loadInitialData()) {
@@ -143,7 +143,8 @@ void V058DemoApp::updateGraphWithLiveData() {
 
     // Update graph with live data
     graph->setData(liveGraphData);
-    graph->drawData();  // Redraw data canvas with new data
+    graph->drawData();   // Redraw data canvas with new data
+    graph->render();     // Composite and blit to display (critical for live updates!)
 
     Serial.printf("[V058DemoApp] Graph updated with live data (%zu points)\n", liveGraphData.x_values.size());
 }
