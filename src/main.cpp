@@ -8,10 +8,12 @@
  * Build flags:
  * - DEMO_V05: Release 0.5 Demo (Logo + 6 Graph Modes)
  * - DEMO_V055: Release 0.55 Demo (WiFi + Logo + 6 Graph Modes)
+ * - DEMO_V058: Release 0.58 Demo (WiFi + Logo + 6 Graph Modes + Live Data)
  *
  * The actual setup() and loop() implementations live in:
  * - demos/demo_v05_entry.cpp  (for v0.5)
  * - demos/demo_v055_entry.cpp (for v0.55)
+ * - demos/demo_v058_entry.cpp (for v0.58)
  */
 
 // Conditional compilation: select the demo entry point
@@ -21,8 +23,11 @@
 #elif defined(DEMO_V055)
     #include "../demos/demo_v055_entry.h"
     #define DEMO_NAME "v0.55"
+#elif defined(DEMO_V058)
+    #include "../demos/demo_v058_entry.h"
+    #define DEMO_NAME "v0.58"
 #else
-    #error "No demo entry point defined. Set -DDEMO_V05 or -DDEMO_V055 in platformio.ini"
+    #error "No demo entry point defined. Set -DDEMO_V05, -DDEMO_V055, or -DDEMO_V058 in platformio.ini"
 #endif
 
 /**
