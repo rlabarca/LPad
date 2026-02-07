@@ -18,14 +18,51 @@
             background-color: #f8f9fa;
             width: 100vw;
             height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
+        
+        /* Tab Navigation */
+        #tab-bar {
+            background: #e9ecef;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            padding: 0 10px;
+            align-items: flex-end;
+            height: 40px;
+            flex-shrink: 0;
+        }
+        .tab {
+            padding: 8px 20px;
+            background: #dee2e6;
+            border: 1px solid #ced4da;
+            border-bottom: none;
+            border-radius: 6px 6px 0 0;
+            margin-right: 5px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #495057;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .tab.active {
+            background: #f8f9fa;
+            color: #000;
+            height: 32px;
+            margin-bottom: -1px;
+            border-color: #dee2e6;
+            position: relative;
+            z-index: 2;
+        }
+
         #container {
             width: 100%;
-            height: 100%;
+            flex-grow: 1;
             cursor: grab;
             display: flex;
             align-items: center;
             justify-content: center;
+            position: relative;
         }
         #graph-output {
             width: 100%;
@@ -39,34 +76,37 @@
             position: absolute;
             top: 10px;
             right: 10px;
-            padding: 8px 12px;
+            padding: 6px 10px;
             background: rgba(255, 255, 255, 0.9);
             border-radius: 4px;
-            font-size: 12px;
-            color: #666;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            font-size: 11px;
+            color: #888;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             pointer-events: none;
             z-index: 10;
         }
         #controls {
             position: absolute;
-            bottom: 20px;
-            left: 20px;
+            top: 50px;
+            right: 10px;
             background: white;
-            padding: 10px;
+            padding: 8px;
             border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             z-index: 10;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
         }
         button {
-            padding: 8px 16px;
+            padding: 6px 12px;
             cursor: pointer;
             background: #007bff;
             color: white;
             border: none;
             border-radius: 4px;
             font-weight: bold;
-            font-size: 14px;
+            font-size: 13px;
         }
         button:hover { background: #0056b3; }
         
@@ -77,6 +117,16 @@
             display: inline-block !important;
             padding-right: 40px !important;
             color: #333;
+        }
+        
+        /* Subgraph styling overrides */
+        .subgraph {
+            fill: #cccccc !important; /* 20% grey (from black) is roughly light grey */
+            stroke: #999999 !important;
+        }
+        .cluster rect {
+            fill: #cccccc !important;
+            stroke: #999999 !important;
         }
 
         /* Modal Styles */
@@ -176,14 +226,20 @@
     </style>
 </head>
 <body>
-    <div id="status">Connecting...</div>
-    
-    <div id="controls">
-        <button onclick="resetZoom()">Fit to Screen</button>
-        <span style="margin-left: 10px; font-size: 14px; color: #555;">Scroll to Zoom - Drag to Pan - Click Node for Details</span>
+    <div id="tab-bar">
+        <div class="tab active">Feature Map</div>
     </div>
 
     <div id="container">
+        <div id="status">Connecting...</div>
+        
+        <div id="controls">
+            <button onclick="resetZoom()">Fit to Screen</button>
+            <div style="font-size: 11px; color: #666; text-align: center;">
+                Scroll: Zoom<br>Drag: Pan
+            </div>
+        </div>
+
         <div id="graph-output" class="mermaid"></div>
     </div>
 
