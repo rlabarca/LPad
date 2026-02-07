@@ -37,6 +37,13 @@ bool V058DemoApp::begin(RelativeDisplay* display) {
         return false;
     }
 
+    // Override title to show "DEMO v0.58"
+    V05DemoApp* v05Demo = m_v055Demo->getV05DemoApp();
+    if (v05Demo != nullptr) {
+        v05Demo->setTitle("DEMO v0.58");
+        Serial.println("[V058DemoApp] Title set to 'DEMO v0.58'");
+    }
+
     // Create DataItemTimeSeries with capacity for initial dataset
     // Yahoo chart has 15 data points, allocate 50 for growth
     m_liveData = new DataItemTimeSeries("TNX_5m_live", 50);

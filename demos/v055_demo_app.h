@@ -46,6 +46,12 @@ public:
      */
     void render();
 
+    /**
+     * @brief Gets the internal V05DemoApp instance.
+     * @return Pointer to V05DemoApp (nullptr if not initialized)
+     */
+    V05DemoApp* getV05DemoApp() { return m_v05Demo; }
+
 private:
     enum Phase {
         PHASE_CONNECTIVITY,    // Wi-Fi connection and ping test
