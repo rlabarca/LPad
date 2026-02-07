@@ -34,7 +34,8 @@
 #define LCD_SPI_FREQ    40000000  // 40 MHz for RM67162 SPI mode
 
 // Default brightness level (from vendor initSequence.h)
-#define AMOLED_DEFAULT_BRIGHTNESS  175
+// 175 = vendor default, 255 = max (eliminates PWM flicker)
+#define AMOLED_DEFAULT_BRIGHTNESS  255
 
 // Global hardware objects
 static Arduino_DataBus *g_bus = nullptr;
@@ -51,7 +52,8 @@ static Arduino_Canvas *g_selected_canvas = nullptr;
  * TE signal before frame updates, we eliminate tearing artifacts.
  *
  * The TE pin goes LOW during active display scanning and HIGH during
- * vertical blanking (VSYNC). We wait for a LOW->HIGH transition.
+ * vertical blanking (VSYNC). We wait for a complete LOW->HIGH transition
+ * to ensure we're at the start of a fresh blanking period.
  */
 static void waitForTeSignal(void) {
     static bool te_pin_configured = false;
@@ -62,19 +64,23 @@ static void waitForTeSignal(void) {
         te_pin_configured = true;
     }
 
-    // Wait for LOW (display is actively scanning)
+    // Ensure we start from a known state by waiting for the current signal to complete
+    // This prevents catching the TE signal mid-cycle
+
+    // First, wait for any current HIGH to finish (if we're in blanking period)
     uint32_t timeout = 0;
     while (digitalRead(LCD_TE) == HIGH && timeout++ < 10000) {
-        delayMicroseconds(1);
+        // Fast polling for precise timing
     }
 
-    // Wait for HIGH (vertical blanking period begins)
+    // Now wait for the scan period to complete (LOW state)
     timeout = 0;
     while (digitalRead(LCD_TE) == LOW && timeout++ < 10000) {
-        delayMicroseconds(1);
+        // Fast polling for precise timing
     }
 
-    // We're now in the blanking period - safe to update the display
+    // TE just went HIGH - we're now at the START of vertical blanking period
+    // This is the optimal moment to begin DMA transfer
 }
 
 /**
