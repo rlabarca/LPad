@@ -29,17 +29,17 @@
             display: flex;
             padding: 0 10px;
             align-items: flex-end;
-            height: 40px;
+            height: 70px;
             flex-shrink: 0;
         }
         .tab {
-            padding: 8px 20px;
+            padding: 8px 30px;
             background: #dee2e6;
             border: 1px solid #ced4da;
             border-bottom: none;
             border-radius: 6px 6px 0 0;
             margin-right: 5px;
-            font-size: 14px;
+            font-size: 42px;
             font-weight: bold;
             color: #495057;
             cursor: pointer;
@@ -48,11 +48,13 @@
         .tab.active {
             background: #f8f9fa;
             color: #000;
-            height: 32px;
+            height: 60px;
             margin-bottom: -1px;
             border-color: #dee2e6;
             position: relative;
             z-index: 2;
+            display: flex;
+            align-items: center;
         }
 
         #container {
@@ -87,10 +89,10 @@
         }
         #controls {
             position: absolute;
-            top: 50px;
-            right: 10px;
+            bottom: 20px;
+            right: 20px;
             background: white;
-            padding: 8px;
+            padding: 12px;
             border-radius: 8px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             z-index: 10;
@@ -99,34 +101,34 @@
             gap: 8px;
         }
         button {
-            padding: 6px 12px;
+            padding: 8px 16px;
             cursor: pointer;
             background: #007bff;
             color: white;
             border: none;
             border-radius: 4px;
             font-weight: bold;
-            font-size: 13px;
+            font-size: 14px;
         }
         button:hover { background: #0056b3; }
         
         .subgraph-title {
-            font-size: 18px !important;
+            font-size: 54px !important;
             font-weight: bold !important;
             white-space: nowrap !important;
             display: inline-block !important;
-            padding-right: 40px !important;
-            color: #333;
+            padding-right: 60px !important;
+            color: #111;
         }
         
         /* Subgraph styling overrides */
         .subgraph {
-            fill: #cccccc !important; /* 20% grey (from black) is roughly light grey */
-            stroke: #999999 !important;
+            fill: #e6e6e6 !important; /* 10% grey */
+            stroke: #cccccc !important;
         }
         .cluster rect {
-            fill: #cccccc !important;
-            stroke: #999999 !important;
+            fill: #e6e6e6 !important;
+            stroke: #cccccc !important;
         }
 
         /* Modal Styles */
