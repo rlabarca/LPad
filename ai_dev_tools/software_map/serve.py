@@ -12,6 +12,85 @@ ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'))
 MMD_FILE = os.path.join(ROOT_DIR, "ai_dev_tools/feature_graph.mmd")
 FEATURES_DIR = os.path.join(ROOT_DIR, "features")
 README_FILE = os.path.join(ROOT_DIR, "README.md")
+SRC_DIR = os.path.join(ROOT_DIR, "src")
+INCLUDE_DIR = os.path.join(ROOT_DIR, "include")
+HAL_DIR = os.path.join(ROOT_DIR, "hal")
+
+def generate_class_graph_content():
+    # Regex to find includes: #include "path/to/file.h"
+    include_pattern = re.compile(r'^\s*#include\s*[<"]([^>"]+)[>"]')
+    
+    # Map file_path -> { classes: [], includes: [], filename: "" }
+    file_map = {}
+    
+    dirs_to_scan = [SRC_DIR, INCLUDE_DIR, HAL_DIR]
+    
+    for d in dirs_to_scan:
+        if not os.path.exists(d): continue
+        for root, dirs, files in os.walk(d):
+            for file in files:
+                if file.endswith(('.h', '.hpp', '.cpp')):
+                    filepath = os.path.join(root, file)
+                    
+                    file_info = {
+                        "classes": [],
+                        "includes": [],
+                        "filename": file
+                    }
+                    
+                    try:
+                        with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+                            content = f.read()
+                            
+                            # Remove comments (simple C-style)
+                            content = re.sub(r'//.*', '', content)
+                            content = re.sub(r'/\*.*?\*/', '', content, flags=re.DOTALL)
+                            
+                            # Find includes
+                            for line in content.split('\n'):
+                                inc_match = include_pattern.match(line)
+                                if inc_match:
+                                    included_file = inc_match.group(1)
+                                    if not included_file.startswith("Arduino") and "." in included_file:
+                                        file_info["includes"].append(os.path.basename(included_file))
+
+                            # Find class definitions
+                            matches = re.finditer(r'\bclass\s+(\w+)\s*(?::[^\{]*)?\{', content, re.DOTALL)
+                            for m in matches:
+                                class_name = m.group(1)
+                                file_info["classes"].append(class_name)
+                                
+                        file_map[file] = file_info
+                    except Exception as e:
+                        print(f"Error processing {filepath}: {e}")
+
+    # Build Class Graph
+    mermaid_lines = ["classDiagram"]
+    mermaid_lines.append("    direction TB")
+    
+    # Add classes
+    for filename, info in file_map.items():
+        for cls in info["classes"]:
+            mermaid_lines.append(f"    class {cls}")
+            
+    # Add relationships
+    seen_edges = set()
+    
+    for filename, info in file_map.items():
+        for cls in info["classes"]:
+            for inc in info["includes"]:
+                # 'inc' is the filename included, e.g., "display.h"
+                if inc in file_map:
+                    target_info = file_map[inc]
+                    for target_cls in target_info["classes"]:
+                        if cls != target_cls:
+                            # Dependency relationship
+                            edge = f"    {cls} ..> {target_cls}"
+                            if edge not in seen_edges:
+                                mermaid_lines.append(edge)
+                                seen_edges.add(edge)
+
+    return "\n".join(mermaid_lines)
 
 def parse_features():
     features = {}
@@ -154,6 +233,26 @@ class GraphHandler(http.server.SimpleHTTPRequestHandler):
                 response = {
                     "content": content,
                     "mtime": mtime
+                }
+                self.wfile.write(json.dumps(response).encode())
+            except Exception as e:
+                self.wfile.write(json.dumps({"error": str(e)}).encode())
+        
+        elif self.path == '/api/class-graph':
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            
+            try:
+                content = generate_class_graph_content()
+                # Use a dummy mtime or just current time since we regenerate on fly
+                # For simplicity, we can reuse mtime of a key file or just use 0 to force refresh if logic changes?
+                # The frontend checks mtime != lastMtime.
+                # Let's use a hash of content as "mtime" or simply time.time()
+                import time
+                response = {
+                    "content": content,
+                    "mtime": time.time()
                 }
                 self.wfile.write(json.dumps(response).encode())
             except Exception as e:

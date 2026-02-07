@@ -22,6 +22,18 @@
             flex-direction: column;
         }
         
+        /* Title Bar */
+        #title-bar {
+            background: #343a40;
+            color: white;
+            padding: 10px 20px;
+            font-size: 18px;
+            font-weight: bold;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+        }
+
         /* Tab Navigation */
         #tab-bar {
             background: #e9ecef;
@@ -29,17 +41,17 @@
             display: flex;
             padding: 0 10px;
             align-items: flex-end;
-            height: 70px;
+            height: 50px;
             flex-shrink: 0;
         }
         .tab {
-            padding: 8px 30px;
+            padding: 8px 20px;
             background: #dee2e6;
             border: 1px solid #ced4da;
             border-bottom: none;
             border-radius: 6px 6px 0 0;
             margin-right: 5px;
-            font-size: 34px;
+            font-size: 25px; /* Reduced by ~25% from 34px */
             font-weight: bold;
             color: #495057;
             cursor: pointer;
@@ -48,7 +60,7 @@
         .tab.active {
             background: #f8f9fa;
             color: #000;
-            height: 60px;
+            height: 40px;
             margin-bottom: -1px;
             border-color: #dee2e6;
             position: relative;
@@ -129,6 +141,19 @@
         .cluster rect {
             fill: #e6e6e6 !important;
             stroke: #cccccc !important;
+        }
+        
+        /* Class Diagram Styles */
+        /* Mermaid class diagram styling */
+        g.classGroup rect {
+            fill: #fff3e0 !important;
+            stroke: #e65100 !important;
+        }
+        g.classGroup line {
+            stroke: #e65100 !important;
+        }
+        g.classGroup text {
+            fill: #333 !important;
         }
 
         /* Modal Styles */
@@ -228,8 +253,12 @@
     </style>
 </head>
 <body>
+    <div id="title-bar">
+        Project: LPad
+    </div>
     <div id="tab-bar">
-        <div class="tab active">Feature Map</div>
+        <div class="tab active" onclick="switchTab('feature')">Feature Map</div>
+        <div class="tab" onclick="switchTab('class')">Class Map</div>
     </div>
 
     <div id="container">
@@ -268,6 +297,24 @@
 
         let lastMtime = 0;
         let panZoom = null;
+        let currentMode = 'feature'; // 'feature' or 'class'
+
+        function switchTab(mode) {
+            if (currentMode === mode) return;
+            currentMode = mode;
+            
+            // Update UI
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            if (mode === 'feature') {
+                document.querySelectorAll('.tab')[0].classList.add('active');
+            } else {
+                document.querySelectorAll('.tab')[1].classList.add('active');
+            }
+            
+            // Reset state and fetch immediately
+            lastMtime = 0;
+            updateGraph();
+        }
 
         function resetZoom() {
             if (panZoom) {
@@ -281,7 +328,8 @@
 
         async function updateGraph() {
             try {
-                const response = await fetch('/api/graph');
+                const endpoint = currentMode === 'feature' ? '/api/graph' : '/api/class-graph';
+                const response = await fetch(endpoint);
                 const data = await response.json();
                 
                 if (data.mtime !== lastMtime) {
@@ -300,8 +348,13 @@
                     svgElement.removeAttribute('height');
                     svgElement.style.maxWidth = 'none';
 
-                    // Add Click Listeners to Nodes
-                    addNodeClickListeners();
+                    // Add Click Listeners to Nodes (only for Feature Map mostly, but maybe Class map too?)
+                    if (currentMode === 'feature') {
+                        addNodeClickListeners();
+                    } else {
+                        // Basic highlighting for class map
+                        addClassNodeClickListeners();
+                    }
 
                     // Re-initialize pan-zoom
                     if (panZoom) panZoom.destroy();
@@ -327,6 +380,15 @@
                 console.error('Failed to update graph:', err);
                 document.getElementById('status').innerText = 'Connection Lost';
             }
+        }
+
+        function addClassNodeClickListeners() {
+             // Similar logic for class map if needed, for now just highlight
+             // Class diagram nodes are usually <g class="node"> or <g class="classGroup">?
+             // Mermaid class diagrams render differently.
+             // Typically <g class="classGroup" id="classid-Name-...">
+             
+             // For now, let's keep it simple.
         }
 
         function addNodeClickListeners() {
