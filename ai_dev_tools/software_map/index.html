@@ -120,13 +120,15 @@
             top: 15px;
             background: none;
             border: none;
-            color: #999;
-            font-size: 24px;
+            color: #666;
+            font-size: 20px;
+            font-weight: bold;
             cursor: pointer;
-            padding: 0;
+            padding: 5px 10px;
             line-height: 1;
+            transition: color 0.2s;
         }
-        #modal-close:hover { color: #333; background: none; }
+        #modal-close:hover { color: #000; background: none; }
         
         #modal-body {
             padding: 30px;
@@ -164,7 +166,7 @@
         <div id="modal-content" onclick="event.stopPropagation()">
             <div id="modal-header">
                 <div id="modal-title">Feature Details</div>
-                <button id="modal-close" onclick="closeModal()">×</button>
+                <button id="modal-close" onclick="closeModal()">X</button>
             </div>
             <div id="modal-body">
                 <!-- Content will be injected here -->
@@ -186,10 +188,13 @@
 
         function resetZoom() {
             if (panZoom) {
+                panZoom.resize();
                 panZoom.fit();
                 panZoom.center();
             }
         }
+
+        window.addEventListener('resize', resetZoom);
 
         async function updateGraph() {
             try {
@@ -215,19 +220,17 @@
                         center: true,
                         minZoom: 0.1,
                         maxZoom: 10,
-                        dblClickZoomEnabled: false // Prevent interference
+                        dblClickZoomEnabled: false
                     });
 
-                    // Force fit on first load
-                    if (isInitialLoad) {
-                        panZoom.fit();
-                        panZoom.center();
-                        // Zoom in slightly if needed, or leave as fit. 
-                        // User said: "not at 100%.. I want to start by zooming in" 
-                        // which likely means they want to see the whole thing (fit) 
-                        // and then zoom in themselves.
-                        isInitialLoad = false;
-                    }
+                    // Explicitly fit and center on load and when content changes
+                    setTimeout(() => {
+                        if (panZoom) {
+                            panZoom.resize();
+                            panZoom.fit();
+                            panZoom.center();
+                        }
+                    }, 50);
 
                     lastMtime = data.mtime;
                     document.getElementById('status').innerText = 'Live: ' + new Date().toLocaleTimeString();
