@@ -21,15 +21,16 @@ GIVEN the application starts in the Visual Phase
 WHEN the `V058DemoApp` initializes
 THEN it should create a `DataItemTimeSeries` instance
 AND seed it with the initial dataset loaded from `test_data/yahoo_chart_tnx_5m_1d.json`
-AND the graph should display this initial history immediately
+AND the `TimeSeriesGraph` should be initialized with this data immediately
 
-### Scenario 2: Live Data Injection
+### Scenario 2: Live Data Injection & Scrolling
 GIVEN the graph is being displayed
 WHEN 1 second of wall-clock time passes
 THEN a new random data point (within current Y-axis bounds) should be generated
 AND this point should be added to the `DataItemTimeSeries` model
-AND the `TimeSeriesGraph` should be updated to reflect this new point
-AND the graph line should visually shift left (scrolling effect)
+AND the `V058DemoApp` MUST update the `TimeSeriesGraph` with the new data snapshot
+AND the `TimeSeriesGraph` MUST redraw its data canvas
+THEN the graph line should visually shift left (the new point appearing at the rightmost edge)
 
 ### Scenario 3: Mode Cycling with Live Data
 GIVEN the demo is running
@@ -41,3 +42,10 @@ AND the current data state (history + new points) should be preserved across mod
 GIVEN the application starts
 THEN it should first execute the Connectivity Phase (WiFi -> Ping) exactly as in v0.55
 AND only proceed to the Dynamic Visual Phase after "PING OK" is displayed
+
+### Scenario 5: Live Indicator Synchronization
+GIVEN a new data point has been added and the graph has scrolled
+WHEN the next frame is rendered
+THEN the pulsing live indicator MUST automatically appear at the new rightmost data point
+AND it MUST NOT leave "ghost" artifacts at the previous data point's position
+AND the pulse animation MUST remain smooth and continuous during the data shift
