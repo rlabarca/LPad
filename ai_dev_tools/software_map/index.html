@@ -341,7 +341,8 @@
                 lines.forEach(line => {
                     // Match "A --> B" or "A -.-> B" or "A ==> B"
                     // Group 1: Source, Group 2: Target
-                    const match = line.match(/\s+([a-zA-Z0-9_]+)\s*[-=.]{2,}>+.*?\s*([a-zA-Z0-9_]+)/);
+                    // Using permissive capture [^ \t\r\n\-\>\=\.<]+ to capture any non-separator ID characters
+                    const match = line.match(/\s+([^\s\-\>\=\.<]+)\s*[-=.]{2,}>+.*?\s*([^\s\-\>\=\.<]+)/);
                     if (match) {
                         const src = match[1];
                         const dst = match[2];

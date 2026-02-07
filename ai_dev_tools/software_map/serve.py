@@ -102,29 +102,39 @@ def generate_mermaid_content(features):
     return "\n".join(lines)
 
 def update_readme_and_mmd():
-    print("Regenerating graph from features...")
     features = parse_features()
     content = generate_mermaid_content(features)
     
-    # Save MMD file
-    with open(MMD_FILE, 'w', encoding='utf-8') as f:
-        f.write(content)
-    
-    # Update README
-    if os.path.exists(README_FILE):
-        with open(README_FILE, 'r', encoding='utf-8') as f:
-            readme_content = f.read()
+    # Read existing MMD to check for changes
+    existing_content = ""
+    if os.path.exists(MMD_FILE):
+        with open(MMD_FILE, 'r', encoding='utf-8') as f:
+            existing_content = f.read()
             
-        start_marker = "<!-- MERMAID_START -->"
-        end_marker = "<!-- MERMAID_END -->"
-        new_block = f"{start_marker}\n```mermaid\n{content}\n```\n{end_marker}"
-        pattern = re.compile(f"{re.escape(start_marker)}.*?{re.escape(end_marker)}", re.DOTALL)
+    if content != existing_content:
+        print("Graph changed. Updating MMD and README...")
+        # Save MMD file
+        with open(MMD_FILE, 'w', encoding='utf-8') as f:
+            f.write(content)
         
-        if pattern.search(readme_content):
-            new_readme_content = pattern.sub(new_block, readme_content)
-            with open(README_FILE, 'w', encoding='utf-8') as f:
-                f.write(new_readme_content)
-            print("README.md updated.")
+        # Update README
+        if os.path.exists(README_FILE):
+            with open(README_FILE, 'r', encoding='utf-8') as f:
+                readme_content = f.read()
+                
+            start_marker = "<!-- MERMAID_START -->"
+            end_marker = "<!-- MERMAID_END -->"
+            new_block = f"{start_marker}\n```mermaid\n{content}\n```\n{end_marker}"
+            pattern = re.compile(f"{re.escape(start_marker)}.*?{re.escape(end_marker)}", re.DOTALL)
+            
+            if pattern.search(readme_content):
+                new_readme_content = pattern.sub(new_block, readme_content)
+                with open(README_FILE, 'w', encoding='utf-8') as f:
+                    f.write(new_readme_content)
+                print("README.md updated.")
+    else:
+        # Content hasn't changed, do nothing
+        pass
 
 class GraphHandler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
