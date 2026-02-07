@@ -353,24 +353,27 @@
 
             // Map edges to nodes
             edges.forEach(edge => {
-                const classes = edge.className.baseVal;
-                // Regex to find source and target core IDs in edge classes
-                // Mermaid adds classes like "LS-node1 LE-node2"
-                const match = classes.match(/LS-([^\s]+)\s+LE-([^\s]+)/);
+                const classes = edge.className.baseVal.split(/\s+/);
+                let srcId = null;
+                let dstId = null;
                 
-                if (match) {
-                    const srcId = match[1];
-                    const dstId = match[2];
+                classes.forEach(cls => {
+                    if (cls.startsWith('LS-')) srcId = cls.substring(3);
+                    if (cls.startsWith('LE-')) dstId = cls.substring(3);
+                });
 
-                    if (graphMap[srcId] && graphMap[dstId]) {
-                        // Link source to edge and dest
-                        graphMap[srcId].edges.push(edge);
-                        graphMap[srcId].neighbors.add(dstId);
-                        
-                        // Link dest to edge and source
-                        graphMap[dstId].edges.push(edge);
-                        graphMap[dstId].neighbors.add(srcId);
-                    }
+                if (srcId && dstId) {
+                    // Ensure entries exist (sometimes edges reference nodes not fully rendered yet or different IDs)
+                    if (!graphMap[srcId]) graphMap[srcId] = { domId: null, element: null, edges: [], neighbors: new Set() };
+                    if (!graphMap[dstId]) graphMap[dstId] = { domId: null, element: null, edges: [], neighbors: new Set() };
+
+                    // Link source
+                    graphMap[srcId].edges.push(edge);
+                    graphMap[srcId].neighbors.add(dstId);
+                    
+                    // Link dest
+                    graphMap[dstId].edges.push(edge);
+                    graphMap[dstId].neighbors.add(srcId);
                 }
             });
             
