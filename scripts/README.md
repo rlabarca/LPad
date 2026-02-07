@@ -1,26 +1,5 @@
 # Build & Utility Scripts
 
-## Visualization & Development
-
-### `scripts/software_map/`
-Interactive Software Map for visualizing and navigating feature specifications.
-- **Start:** `./scripts/software_map/start.sh`
-- **Stop:** `./scripts/software_map/stop.sh`
-- **View:** `http://localhost:8085`
-- **Features:** 
-    - Live-reloading Mermaid graph.
-    - Zoom/Pan support (Fit to screen default).
-    - **Clickable Nodes:** Click any feature to view its full Markdown specification in a modal.
-
-### `generate_graph.sh`
-Orchestrates the regeneration of the Mermaid graph from `features/*.md`.
-- **Run:** `./scripts/generate_graph.sh`
-- **Result:** Updates `feature_graph.mmd` and injects it into `README.md`.
-
-### `test_local.sh`
-Runs the native unit tests using PlatformIO.
-- **Run:** `./scripts/test_local.sh`
-
 ## Vector Asset Pipeline
 
 ### `process_svgs.py`
@@ -52,3 +31,24 @@ python3 scripts/process_svgs.py
 **When to Run:**
 - After adding/modifying any SVG files in `assets/`
 - Generated files are checked into git, so this only needs to run when assets change
+
+## Theme Font Generation
+
+### `generate_theme_fonts.sh`
+
+Converts TTF/OTF fonts into C headers for the UI.
+
+**Usage:**
+```bash
+./scripts/generate_theme_fonts.sh
+```
+
+**Input:** `assets/fonts/*.ttf` (configurable in script)
+
+**Output:** `src/generated/fonts/`
+
+## Configuration Injection
+
+### `inject_config.py`
+
+PlatformIO extra script used during the build process to inject `config.json` values (like WiFi credentials) into the firmware as build flags.

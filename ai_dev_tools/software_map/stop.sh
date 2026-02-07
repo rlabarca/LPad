@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Stop the interactive software map
-# Usage: ./scripts/software_map/stop.sh
+# Usage: ./ai_dev_tools/software_map/stop.sh
 
 PORT=8085
 

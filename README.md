@@ -39,7 +39,7 @@ This project is not built by humans writing C++. It is constructed using a rigor
 
 1.  **The Architect (User/Gemini):** Defines *what* the system does using Gherkin-style Feature Files (`features/*.md`) and maintains the System Constitution (`docs/ARCHITECTURE.md`).
 2.  **The Builder (Claude):** Reads the specs and writes the code to satisfy them, committing strictly when tests pass.
-3.  **The Process (Scripts):** Automated scripts (`cdd.sh`) monitor file timestamps to enforce a "Stale Spec = Broken Build" philosophy.
+3.  **The Process (Scripts):** Automated scripts (`ai_dev_tools/cdd.sh`) monitor file timestamps to enforce a "Stale Spec = Broken Build" philosophy.
 
 ### Core Principles
 *   **Feature-First:** The `features/` directory is the Source of Truth.
@@ -192,14 +192,15 @@ graph TD
 | `src/` | **Application Logic.** High-level code (e.g., Graph drawing, Data parsing). |
 | `hal/` | **Hardware Abstraction.** Drivers for Display, Timer, etc. |
 | `docs/` | **Knowledge Base.** Architecture rules (`ARCHITECTURE.md`) and Implementation Log (`IMPLEMENTATION_LOG.md`). |
-| `scripts/` | **Tooling.** `cdd.sh` (Status Monitor) and `generate_graph.sh` (Visualization). |
+| `ai_dev_tools/` | **Agentic Tooling.** `cdd.sh` (Status Monitor) and `software_map/` (Visualization). |
+| `scripts/` | **Build Utility.** Helper scripts for firmware generation (Fonts, SVGs). |
 
 ---
 
 ## 🚀 Getting Started
 
 1.  **Environment:** PlatformIO + VS Code.
-2.  **Monitor Status:** Run `./scripts/cdd.sh` to see the current development status.
+2.  **Monitor Status:** Run `./ai_dev_tools/cdd.sh` to see the current development status.
 3.  **Build:** `pio run` to compile.
 4.  **Upload:** `pio run -t upload` to flash the target.
 

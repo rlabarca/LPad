@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # Start the interactive software map in the background
-# Usage: ./scripts/software_map/start.sh
+# Usage: ./ai_dev_tools/software_map/start.sh
 
 PORT=8085
 # Script path relative to project root (assuming we run from project root)
-SCRIPT_PATH="scripts/software_map/serve.py"
+SCRIPT_PATH="ai_dev_tools/software_map/serve.py"
 LOG_FILE=".pio/software_map.log"
 
 mkdir -p .pio
