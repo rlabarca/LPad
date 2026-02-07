@@ -134,7 +134,13 @@ void V058DemoApp::injectNewDataPoint() {
 }
 
 void V058DemoApp::updateGraphWithLiveData() {
-    // Get the graph and V05DemoApp (via V055DemoApp)
+    // Only update graph when in visual demo phase
+    // This prevents graph from overwriting logo or connectivity screens
+    if (m_v055Demo == nullptr || !m_v055Demo->isInVisualPhase()) {
+        return;  // Not in visual demo phase yet
+    }
+
+    // Get the V05DemoApp
     V05DemoApp* v05Demo = m_v055Demo->getV05DemoApp();
     if (v05Demo == nullptr) {
         return;  // V05DemoApp not initialized yet
@@ -148,34 +154,15 @@ void V058DemoApp::updateGraphWithLiveData() {
     // Get current live data snapshot
     GraphData liveGraphData = m_liveData->getGraphData();
 
-    // Update graph with live data
+    // Update graph data canvas
     graph->setData(liveGraphData);
     graph->drawData();   // Redraw data canvas with new data
-    graph->render();     // Composite and blit to display
 
-    // Redraw title on top of graph (graph render overwrites it)
-    Arduino_GFX* gfx = static_cast<Arduino_GFX*>(hal_display_get_gfx());
-    if (gfx != nullptr && m_display != nullptr) {
-        const LPad::Theme* theme = LPad::ThemeManager::getInstance().getTheme();
-        gfx->setFont(theme->fonts.normal);
-        gfx->setTextColor(theme->colors.text_main);
+    // Composite and blit to display (this overwrites the title)
+    graph->render();
 
-        // Get dimensions and calculate position (5% padding from top-left)
-        int32_t width = hal_display_get_width_pixels();
-        int32_t height = hal_display_get_height_pixels();
-
-        int16_t x1, y1;
-        uint16_t w, h;
-        gfx->getTextBounds("DEMO v0.58", 0, 0, &x1, &y1, &w, &h);
-
-        int16_t padding_x = width * 0.05f;
-        int16_t padding_y = height * 0.05f;
-        int16_t text_x = padding_x;
-        int16_t text_y = padding_y + h;
-
-        gfx->setCursor(text_x, text_y);
-        gfx->print("DEMO v0.58");
-    }
+    // Redraw title immediately (before flush) to prevent flashing
+    v05Demo->drawTitle();
 
     Serial.printf("[V058DemoApp] Graph updated with live data (%zu points)\n", liveGraphData.x_values.size());
 }

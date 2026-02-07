@@ -65,6 +65,11 @@ public:
      */
     TimeSeriesGraph* getGraph() { return m_graph; }
 
+    /**
+     * @brief Draws the version title text on top of the display.
+     */
+    void drawTitle();
+
 private:
     enum Stage {
         STAGE_LOGO,         // Logo animation (wait + animate + hold)
@@ -93,7 +98,6 @@ private:
     static constexpr float MODE_DURATION = 5.0f;       // Each graph mode for 5s
 
     // Helper methods
-    void drawTitle();
     void transitionToStage(Stage newStage);
     void switchToNextMode();
     GraphTheme createGradientTheme();

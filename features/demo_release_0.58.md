@@ -26,7 +26,7 @@ AND the `TimeSeriesGraph` should be initialized with this data snapshot
 
 ### Scenario 2: Live Data Injection & Scrolling
 GIVEN the graph is being displayed
-WHEN 1 second of wall-clock time passes
+WHEN 3 seconds of wall-clock time pass
 THEN a new data point should be generated
 AND its X-value MUST be the last X-value in the series plus the standard interval found in the seed data (logical continuation)
 AND its Y-value should be random but within the current Y-axis bounds

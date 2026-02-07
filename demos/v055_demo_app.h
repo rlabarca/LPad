@@ -58,6 +58,12 @@ public:
      */
     void setTitle(const char* title);
 
+    /**
+     * @brief Checks if currently in the visual demo phase.
+     * @return true if showing V05DemoApp graphics, false otherwise
+     */
+    bool isInVisualPhase() const { return m_currentPhase == PHASE_VISUAL_DEMO; }
+
 private:
     enum Phase {
         PHASE_CONNECTIVITY,    // Wi-Fi connection and ping test
