@@ -424,8 +424,9 @@ void V05DemoApp::renderTitleToBuffer() {
         return;
     }
 
-    // Create a temporary canvas to render the title
-    Arduino_Canvas* titleCanvas = new Arduino_Canvas(m_titleBufferWidth, m_titleBufferHeight, gfx);
+    // Create a temporary standalone canvas (no parent to avoid SPI bus reinit)
+    // We'll manually copy the buffer, not use flush()
+    Arduino_Canvas* titleCanvas = new Arduino_Canvas(m_titleBufferWidth, m_titleBufferHeight, nullptr, 0, 0);
     if (titleCanvas == nullptr) {
         Serial.println("[V05DemoApp] ERROR: Failed to create title canvas");
         free(m_titleBuffer);
