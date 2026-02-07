@@ -4,7 +4,7 @@
  */
 
 #include "v058_demo_app.h"
-#include "yahoo_chart_parser.h"
+#include "../test_data/test_data_tnx_5m.h"
 #include "../hal/display.h"
 #include <Arduino.h>
 #include <cstdlib>
@@ -77,25 +77,12 @@ void V058DemoApp::render() {
 }
 
 bool V058DemoApp::loadInitialData() {
-    // Parse initial dataset from test file using YahooChartParser
-    YahooChartParser parser("test_data/yahoo_chart_tnx_5m_1d.json");
-
-    if (!parser.parse()) {
-        Serial.println("[V058DemoApp] ERROR: Failed to parse test data file");
-        return false;
-    }
-
-    const std::vector<long>& timestamps = parser.getTimestamps();
-    const std::vector<double>& prices = parser.getClosePrices();
-
-    if (timestamps.empty() || prices.empty()) {
-        Serial.println("[V058DemoApp] ERROR: Parsed data is empty");
-        return false;
-    }
-
-    // Seed DataItemTimeSeries with initial data
-    for (size_t i = 0; i < timestamps.size(); i++) {
-        m_liveData->addDataPoint(timestamps[i], prices[i]);
+    // Load embedded test data from header
+    for (size_t i = 0; i < TestData::TNX_5M_COUNT; i++) {
+        m_liveData->addDataPoint(
+            TestData::TNX_5M_TIMESTAMPS[i],
+            TestData::TNX_5M_CLOSE_PRICES[i]
+        );
     }
 
     return true;
