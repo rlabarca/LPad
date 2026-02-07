@@ -98,7 +98,7 @@ All feature files in `features/` MUST adhere to the following metadata header fo
 ```
 This metadata is required for the automated visualization system.
 
-*   **Graph Autogeneration:** I must NEVER edit `ai_dev_tools/feature_graph.mmd` manually. This file is a generated artifact. To change a node's label, I must edit the `> Label:` metadata in the corresponding feature file, then run `./scripts/generate_graph.sh`.
+*   **Graph Autogeneration:** I must NEVER edit `ai_dev_tools/feature_graph.mmd` manually. This file is a generated artifact. To change a node's label, I must edit the `> Label:` metadata in the corresponding feature file, then trigger the Software Map regeneration.
 
 ### README & Documentation Sync
 *   **Trigger:** When a new `RELEASE` is defined or significant architectural changes occur.
@@ -164,4 +164,5 @@ This dependency-driven prompting ensures the project is built layer by layer, in
 - **Milestone v0.55 [DONE]:** Connectivity Smoke Test, `config.json` injection system, and Network HAL are fully implemented and verified.
 - **Milestone v0.5 [DONE]:** Core visual engine and UI base verified.
 - **System State:** Clean state. All feature files in `features/` are currently synchronized with their implementations. v0.58 is the current active demo.
+- **Tooling Upgrade:** The project's dev tools have been fully refactored into `ai_dev_tools/`, including the new interactive **Software Map** (viz + doc sync) and the **CDD Monitor**. Legacy scripts have been removed.
 - **Project Readiness:** The system is ready for the next phase (v0.6: Official Data Layer/Storage).
