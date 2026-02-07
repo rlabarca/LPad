@@ -330,46 +330,66 @@
             const nodes = document.querySelectorAll('.node');
             const edges = document.querySelectorAll('.edgePath');
             
+            // 1. Build a Graph Map for fast lookups
+            // nodeCoreId -> { inputs: [edgeElement], outputs: [edgeElement], neighbors: [nodeCoreId] }
+            const graphMap = {};
+
+            // Helper to get core ID from DOM ID
+            const getCoreId = (domId) => {
+                const match = domId.match(/flowchart-(.*?)-\d+/);
+                return match ? match[1] : domId;
+            };
+
+            // Initialize map for all nodes
+            nodes.forEach(node => {
+                const coreId = getCoreId(node.id);
+                graphMap[coreId] = { 
+                    domId: node.id, 
+                    element: node,
+                    edges: [], 
+                    neighbors: new Set() 
+                };
+            });
+
+            // Map edges to nodes
+            edges.forEach(edge => {
+                const classes = edge.className.baseVal;
+                // Regex to find source and target core IDs in edge classes
+                // Mermaid adds classes like "LS-node1 LE-node2"
+                const match = classes.match(/LS-([^\s]+)\s+LE-([^\s]+)/);
+                
+                if (match) {
+                    const srcId = match[1];
+                    const dstId = match[2];
+
+                    if (graphMap[srcId] && graphMap[dstId]) {
+                        // Link source to edge and dest
+                        graphMap[srcId].edges.push(edge);
+                        graphMap[srcId].neighbors.add(dstId);
+                        
+                        // Link dest to edge and source
+                        graphMap[dstId].edges.push(edge);
+                        graphMap[dstId].neighbors.add(srcId);
+                    }
+                }
+            });
+            
+            // 2. Add Listeners
             nodes.forEach(node => {
                 node.style.cursor = 'pointer';
+                const coreId = getCoreId(node.id);
                 
-                // Hover Highlighting
                 node.addEventListener('mouseenter', () => {
-                    // Extract the core ID (handle 'flowchart-node_id-index' format)
-                    const fullId = node.id;
-                    const idMatch = fullId.match(/flowchart-(.*?)-\d+/) || [null, fullId];
-                    const coreId = idMatch[1];
-                    
-                    const relatedNodes = new Set([fullId]);
-                    const relatedEdges = new Set();
+                    const data = graphMap[coreId];
+                    if (!data) return;
 
-                    // Find edges connected to this node
-                    edges.forEach(edge => {
-                        const classes = edge.className.baseVal;
-                        // Match LS-coreId or LE-coreId followed by space or end of string
-                        const isSource = new RegExp(`LS-${coreId}(\\s|$)`).test(classes);
-                        const isTarget = new RegExp(`LE-${coreId}(\\s|$)`).test(classes);
+                    const relatedNodes = new Set([data.domId]);
+                    const relatedEdges = new Set(data.edges);
 
-                        if (isSource || isTarget) {
-                            relatedEdges.add(edge);
-                            
-                            // Find the source and target node IDs for this edge in the DOM
-                            // We do this by searching for all nodes and checking if their core ID matches
-                            // the one in the edge's classes.
-                            const edgeMatch = classes.match(/LS-(.*?)\s+LE-(.*?)(?:\s|$)/);
-                            if (edgeMatch) {
-                                const srcCoreId = edgeMatch[1];
-                                const dstCoreId = edgeMatch[2];
-                                
-                                nodes.forEach(n => {
-                                    const nFullId = n.id;
-                                    const nIdMatch = nFullId.match(/flowchart-(.*?)-\d+/) || [null, nFullId];
-                                    const nCoreId = nIdMatch[1];
-                                    if (nCoreId === srcCoreId || nCoreId === dstCoreId) {
-                                        relatedNodes.add(nFullId);
-                                    }
-                                });
-                            }
+                    // Add all neighbors to related nodes
+                    data.neighbors.forEach(neighborId => {
+                        if (graphMap[neighborId]) {
+                            relatedNodes.add(graphMap[neighborId].domId);
                         }
                     });
 
