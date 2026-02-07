@@ -21,3 +21,8 @@ lib/
 # Test artifacts
 test/output/
 config.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
