@@ -6,7 +6,9 @@
 #include "v058_demo_app.h"
 #include "../test_data/test_data_tnx_5m.h"
 #include "../hal/display.h"
+#include "../src/theme_manager.h"
 #include <Arduino.h>
+#include <Arduino_GFX_Library.h>
 #include <cstdlib>
 
 V058DemoApp::V058DemoApp()
@@ -14,6 +16,8 @@ V058DemoApp::V058DemoApp()
     , m_liveData(nullptr)
     , m_display(nullptr)
     , m_dataUpdateTimer(0.0f)
+    , m_initialYMin(0.0)
+    , m_initialYMax(0.0)
 {
 }
 
@@ -53,9 +57,13 @@ bool V058DemoApp::begin(RelativeDisplay* display) {
         return false;
     }
 
+    // Capture initial Y-axis bounds from test data (for stable random generation)
+    m_initialYMin = m_liveData->getMinVal();
+    m_initialYMax = m_liveData->getMaxVal();
+
     Serial.println("[V058DemoApp] Initialized successfully");
     Serial.printf("[V058DemoApp] Live data initialized with %zu points\n", m_liveData->getLength());
-    Serial.printf("[V058DemoApp] Y-range: [%.4f, %.4f]\n", m_liveData->getMinVal(), m_liveData->getMaxVal());
+    Serial.printf("[V058DemoApp] Fixed Y-range: [%.4f, %.4f]\n", m_initialYMin, m_initialYMax);
 
     // Initialize graph with live data (will update when graph is created by V05DemoApp)
     updateGraphWithLiveData();
@@ -102,13 +110,12 @@ void V058DemoApp::injectNewDataPoint() {
         return; // No data to base random values on
     }
 
-    // Generate random data point within current Y-axis bounds
-    double yMin = m_liveData->getMinVal();
-    double yMax = m_liveData->getMaxVal();
-    double yRange = yMax - yMin;
+    // Generate random data point within FIXED initial Y-axis bounds
+    // This prevents drift toward zero over time
+    double yRange = m_initialYMax - m_initialYMin;
 
-    // Random value within 80% of current range (to keep it interesting but bounded)
-    double yRand = yMin + (yRange * 0.1) + (static_cast<double>(rand()) / RAND_MAX) * (yRange * 0.8);
+    // Random value within 80% of initial range (centered, stable over time)
+    double yRand = m_initialYMin + (yRange * 0.1) + (static_cast<double>(rand()) / RAND_MAX) * (yRange * 0.8);
 
     // Get last X value and increment by 300 (5 minutes in seconds, matching Yahoo data granularity)
     GraphData currentData = m_liveData->getGraphData();
@@ -127,7 +134,7 @@ void V058DemoApp::injectNewDataPoint() {
 }
 
 void V058DemoApp::updateGraphWithLiveData() {
-    // Get the graph from V05DemoApp (via V055DemoApp)
+    // Get the graph and V05DemoApp (via V055DemoApp)
     V05DemoApp* v05Demo = m_v055Demo->getV05DemoApp();
     if (v05Demo == nullptr) {
         return;  // V05DemoApp not initialized yet
@@ -144,7 +151,31 @@ void V058DemoApp::updateGraphWithLiveData() {
     // Update graph with live data
     graph->setData(liveGraphData);
     graph->drawData();   // Redraw data canvas with new data
-    graph->render();     // Composite and blit to display (critical for live updates!)
+    graph->render();     // Composite and blit to display
+
+    // Redraw title on top of graph (graph render overwrites it)
+    Arduino_GFX* gfx = static_cast<Arduino_GFX*>(hal_display_get_gfx());
+    if (gfx != nullptr && m_display != nullptr) {
+        const LPad::Theme* theme = LPad::ThemeManager::getInstance().getTheme();
+        gfx->setFont(theme->fonts.normal);
+        gfx->setTextColor(theme->colors.text_main);
+
+        // Get dimensions and calculate position (5% padding from top-left)
+        int32_t width = hal_display_get_width_pixels();
+        int32_t height = hal_display_get_height_pixels();
+
+        int16_t x1, y1;
+        uint16_t w, h;
+        gfx->getTextBounds("DEMO v0.58", 0, 0, &x1, &y1, &w, &h);
+
+        int16_t padding_x = width * 0.05f;
+        int16_t padding_y = height * 0.05f;
+        int16_t text_x = padding_x;
+        int16_t text_y = padding_y + h;
+
+        gfx->setCursor(text_x, text_y);
+        gfx->print("DEMO v0.58");
+    }
 
     Serial.printf("[V058DemoApp] Graph updated with live data (%zu points)\n", liveGraphData.x_values.size());
 }

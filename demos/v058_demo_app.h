@@ -53,6 +53,10 @@ private:
     float m_dataUpdateTimer;
     static constexpr float DATA_UPDATE_INTERVAL = 1.0f;  // Inject new data every 1 second
 
+    // Fixed Y-axis bounds from initial test data (prevents drift to zero)
+    double m_initialYMin;
+    double m_initialYMax;
+
     // Helper methods
     bool loadInitialData();
     void injectNewDataPoint();
