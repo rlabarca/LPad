@@ -32,17 +32,16 @@ bool V058DemoApp::begin(RelativeDisplay* display) {
 
     // Create V055DemoApp (handles connectivity + visual demo)
     m_v055Demo = new V055DemoApp();
+
+    // Set title to "DEMO v0.58" before initialization
+    m_v055Demo->setTitle("DEMO v0.58");
+
     if (!m_v055Demo->begin(display)) {
         Serial.println("[V058DemoApp] ERROR: V055DemoApp initialization failed");
         return false;
     }
 
-    // Override title to show "DEMO v0.58"
-    V05DemoApp* v05Demo = m_v055Demo->getV05DemoApp();
-    if (v05Demo != nullptr) {
-        v05Demo->setTitle("DEMO v0.58");
-        Serial.println("[V058DemoApp] Title set to 'DEMO v0.58'");
-    }
+    Serial.println("[V058DemoApp] V055DemoApp configured with title 'DEMO v0.58'");
 
     // Create DataItemTimeSeries with capacity for initial dataset
     // Yahoo chart has 15 data points, allocate 50 for growth

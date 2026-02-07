@@ -52,6 +52,12 @@ public:
      */
     V05DemoApp* getV05DemoApp() { return m_v05Demo; }
 
+    /**
+     * @brief Sets the title to be displayed on the graph.
+     * @param title The title text (e.g., "DEMO v0.55" or "DEMO v0.58")
+     */
+    void setTitle(const char* title);
+
 private:
     enum Phase {
         PHASE_CONNECTIVITY,    // Wi-Fi connection and ping test
@@ -66,6 +72,7 @@ private:
 
     bool m_pingResult;
     float m_handoverTimer;
+    const char* m_demoTitle;  // Title to display (default: "DEMO v0.55")
 
     static constexpr float HANDOVER_DURATION = 2.0f;  // Hold "PING OK" for 2s
 

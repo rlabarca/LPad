@@ -15,6 +15,7 @@ V055DemoApp::V055DemoApp()
     , m_connectivityScreen(nullptr)
     , m_pingResult(false)
     , m_handoverTimer(0.0f)
+    , m_demoTitle("DEMO v0.55")
 {
 }
 
@@ -178,14 +179,23 @@ void V055DemoApp::transitionToPhase(Phase newPhase) {
             delete m_v05Demo;
             m_v05Demo = new V05DemoApp();
 
-            // Configure V05DemoApp to display "DEMO v0.55"
-            m_v05Demo->setTitle("DEMO v0.55");
+            // Configure V05DemoApp to display the configured title
+            m_v05Demo->setTitle(m_demoTitle);
 
             if (!m_v05Demo->begin(m_display)) {
                 Serial.println("[V055DemoApp] ERROR: V05DemoApp re-initialization failed");
             } else {
-                Serial.println("[V055DemoApp] V05DemoApp initialized successfully with title 'DEMO v0.55'");
+                Serial.printf("[V055DemoApp] V05DemoApp initialized successfully with title '%s'\n", m_demoTitle);
             }
             break;
+    }
+}
+
+void V055DemoApp::setTitle(const char* title) {
+    m_demoTitle = title;
+
+    // If V05DemoApp is already initialized, update its title immediately
+    if (m_v05Demo != nullptr) {
+        m_v05Demo->setTitle(title);
     }
 }
