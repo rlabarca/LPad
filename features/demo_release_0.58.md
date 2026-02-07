@@ -16,21 +16,25 @@ This release introduces dynamic, self-updating data to the application. It build
 
 ## Scenarios
 
-### Scenario 1: Initial Data Seeding
+### Scenario 1: Initial Data Seeding & Sizing
 GIVEN the application starts in the Visual Phase
 WHEN the `V058DemoApp` initializes
-THEN it should create a `DataItemTimeSeries` instance
-AND seed it with the initial dataset loaded from `test_data/yahoo_chart_tnx_5m_1d.json`
-AND the `TimeSeriesGraph` should be initialized with this data immediately
+THEN it should load the initial dataset from `test_data/yahoo_chart_tnx_5m_1d.json`
+AND it MUST create a `DataItemTimeSeries` with a `max_length` exactly equal to the number of points in that dataset
+AND seed the instance with those points
+AND the `TimeSeriesGraph` should be initialized with this data snapshot
 
 ### Scenario 2: Live Data Injection & Scrolling
 GIVEN the graph is being displayed
 WHEN 1 second of wall-clock time passes
-THEN a new random data point (within current Y-axis bounds) should be generated
+THEN a new data point should be generated
+AND its X-value MUST be the last X-value in the series plus the standard interval found in the seed data (logical continuation)
+AND its Y-value should be random but within the current Y-axis bounds
 AND this point should be added to the `DataItemTimeSeries` model
+THEN the model MUST automatically drop the oldest data point to maintain its fixed size
 AND the `V058DemoApp` MUST update the `TimeSeriesGraph` with the new data snapshot
 AND the `TimeSeriesGraph` MUST redraw its data canvas
-THEN the graph line should visually shift left (the new point appearing at the rightmost edge)
+THEN the graph line should visually shift left (scrolling effect)
 
 ### Scenario 3: Mode Cycling with Live Data
 GIVEN the demo is running
