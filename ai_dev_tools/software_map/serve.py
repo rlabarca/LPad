@@ -71,7 +71,7 @@ def generate_class_graph_content():
                         print(f"Error processing {filepath}: {e}")
 
     # Build Class Graph
-    mermaid_lines = ["classDiagram"]
+    mermaid_lines = ["classDiagram-v2"]
     mermaid_lines.append("    direction TB")
     mermaid_lines.append("    %% Styling")
     mermaid_lines.append("    classDef src fill:#e1f5fe,stroke:#01579b,stroke-width:1px;")
@@ -95,7 +95,8 @@ def generate_class_graph_content():
         for cls_tuple in info["classes"]:
             cls, parent = cls_tuple
             mermaid_lines.append(f"    class {cls}")
-            mermaid_lines.append(f"    class {cls}:::{style_class}")
+            # Use explicit cssClass statement for better compatibility
+            mermaid_lines.append(f"    cssClass \"{cls}\" {style_class}")
             if parent:
                  mermaid_lines.append(f"    {cls} --|> {parent}")
             
@@ -245,6 +246,12 @@ def update_readme_and_mmd():
         pass
 
 class GraphHandler(http.server.SimpleHTTPRequestHandler):
+    def end_headers(self):
+        self.send_header('Cache-Control', 'no-store, no-cache, must-revalidate')
+        self.send_header('Pragma', 'no-cache')
+        self.send_header('Expires', '0')
+        super().end_headers()
+
     def do_GET(self):
         # Trigger regeneration on every API request or handle via polling
         if self.path == '/api/graph':
