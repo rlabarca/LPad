@@ -39,7 +39,7 @@
             border-bottom: none;
             border-radius: 6px 6px 0 0;
             margin-right: 5px;
-            font-size: 42px;
+            font-size: 34px;
             font-weight: bold;
             color: #495057;
             cursor: pointer;
@@ -287,6 +287,9 @@
                 if (data.mtime !== lastMtime) {
                     const output = document.getElementById('graph-output');
                     
+                    // Store content for highlighting logic
+                    window.currentGraphContent = data.content;
+
                     // Render new graph
                     const { svg } = await mermaid.render('mermaid-svg', data.content);
                     output.innerHTML = svg;
@@ -328,11 +331,29 @@
 
         function addNodeClickListeners() {
             const nodes = document.querySelectorAll('.node');
-            const edges = document.querySelectorAll('.edgePath');
             
-            // 1. Build a Graph Map for fast lookups
-            // nodeCoreId -> { inputs: [edgeElement], outputs: [edgeElement], neighbors: [nodeCoreId] }
-            const graphMap = {};
+            // 1. Build a Graph Map from the Raw Mermaid Content
+            // We use the global 'currentGraphContent' which we'll save in updateGraph
+            const graphMap = {}; // id -> { neighbors: Set() }
+
+            if (window.currentGraphContent) {
+                const lines = window.currentGraphContent.split('\n');
+                lines.forEach(line => {
+                    // Match "A --> B" or "A -.-> B" or "A ==> B"
+                    // Group 1: Source, Group 2: Target
+                    const match = line.match(/\s+([a-zA-Z0-9_]+)\s*[-=.]{2,}>+.*?\s*([a-zA-Z0-9_]+)/);
+                    if (match) {
+                        const src = match[1];
+                        const dst = match[2];
+                        
+                        if (!graphMap[src]) graphMap[src] = { neighbors: new Set() };
+                        if (!graphMap[dst]) graphMap[dst] = { neighbors: new Set() };
+                        
+                        graphMap[src].neighbors.add(dst);
+                        graphMap[dst].neighbors.add(src);
+                    }
+                });
+            }
 
             // Helper to get core ID from DOM ID
             const getCoreId = (domId) => {
@@ -340,59 +361,22 @@
                 return match ? match[1] : domId;
             };
 
-            // Initialize map for all nodes
-            nodes.forEach(node => {
-                const coreId = getCoreId(node.id);
-                graphMap[coreId] = { 
-                    domId: node.id, 
-                    element: node,
-                    edges: [], 
-                    neighbors: new Set() 
-                };
-            });
-
-            // Map edges to nodes
-            edges.forEach(edge => {
-                const classes = edge.className.baseVal.split(/\s+/);
-                let srcId = null;
-                let dstId = null;
-                
-                classes.forEach(cls => {
-                    if (cls.startsWith('LS-')) srcId = cls.substring(3);
-                    if (cls.startsWith('LE-')) dstId = cls.substring(3);
-                });
-
-                if (srcId && dstId) {
-                    // Ensure entries exist (sometimes edges reference nodes not fully rendered yet or different IDs)
-                    if (!graphMap[srcId]) graphMap[srcId] = { domId: null, element: null, edges: [], neighbors: new Set() };
-                    if (!graphMap[dstId]) graphMap[dstId] = { domId: null, element: null, edges: [], neighbors: new Set() };
-
-                    // Link source
-                    graphMap[srcId].edges.push(edge);
-                    graphMap[srcId].neighbors.add(dstId);
-                    
-                    // Link dest
-                    graphMap[dstId].edges.push(edge);
-                    graphMap[dstId].neighbors.add(srcId);
-                }
-            });
-            
             // 2. Add Listeners
             nodes.forEach(node => {
                 node.style.cursor = 'pointer';
                 const coreId = getCoreId(node.id);
                 
                 node.addEventListener('mouseenter', () => {
-                    const data = graphMap[coreId];
-                    if (!data) return;
+                    const relatedNodes = new Set([node.id]); // Store DOM IDs
+                    
+                    // Find neighbor core IDs
+                    const coreNeighbors = graphMap[coreId]?.neighbors || new Set();
 
-                    const relatedNodes = new Set([data.domId]);
-                    const relatedEdges = new Set(data.edges);
-
-                    // Add all neighbors to related nodes
-                    data.neighbors.forEach(neighborId => {
-                        if (graphMap[neighborId]) {
-                            relatedNodes.add(graphMap[neighborId].domId);
+                    // Find DOM nodes that match core IDs
+                    nodes.forEach(n => {
+                        const nCore = getCoreId(n.id);
+                        if (coreNeighbors.has(nCore)) {
+                            relatedNodes.add(n.id);
                         }
                     });
 
@@ -404,17 +388,33 @@
                             n.classList.add('dimmed');
                         }
                     });
-                    edges.forEach(e => {
-                        if (relatedEdges.has(e)) {
-                            e.classList.add('highlighted');
-                        } else {
-                            e.classList.add('dimmed');
-                        }
+                    
+                    // Edges - simpler heuristic: if both ends are highlighted, highlight edge
+                    // This avoids complex edge mapping
+                    const edges = document.querySelectorAll('.edgePath');
+                    edges.forEach(edge => {
+                         const classes = edge.className.baseVal;
+                         // Check if this edge connects two highlighted nodes
+                         // This requires parsing the edge class again, but now we know the nodes are highlighted
+                         let isConnected = false;
+                         coreNeighbors.forEach(neighbor => {
+                             // Check if edge connects coreId and neighbor
+                             const hasSrc = new RegExp(`LS-${coreId}(\\s|$)`).test(classes) || new RegExp(`LS-${neighbor}(\\s|$)`).test(classes);
+                             const hasDst = new RegExp(`LE-${coreId}(\\s|$)`).test(classes) || new RegExp(`LE-${neighbor}(\\s|$)`).test(classes);
+                             if (hasSrc && hasDst) isConnected = true;
+                         });
+
+                         if (isConnected) {
+                             edge.classList.add('highlighted');
+                         } else {
+                             edge.classList.add('dimmed');
+                         }
                     });
                 });
 
                 node.addEventListener('mouseleave', () => {
                     nodes.forEach(n => n.classList.remove('highlighted', 'dimmed'));
+                    const edges = document.querySelectorAll('.edgePath');
                     edges.forEach(e => e.classList.remove('highlighted', 'dimmed'));
                 });
 

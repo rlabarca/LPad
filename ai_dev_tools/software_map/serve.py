@@ -72,8 +72,9 @@ def generate_mermaid_content(features):
         grouped_categories[data["category"]].append(node_id)
     
     for category, node_ids in sorted(grouped_categories.items()):
-        # Add extra line breaks for spacing due to large font size
-        lines.append(f"\n    subgraph {category.replace(' ', '_')} [\"<span class='subgraph-title'>{category}</span><br/><br/><br/><br/>\"]")
+        # Use a spacer div to force Mermaid to allocate vertical space
+        label = f"<div class='subgraph-title'>{category}</div><div style='height: 150px;'></div>"
+        lines.append(f"\n    subgraph {category.replace(' ', '_')} [\"{label}\"]")
         lines.append(f"        direction TB")
         for node_id in sorted(node_ids):
             data = features[node_id]
