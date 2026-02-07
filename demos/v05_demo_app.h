@@ -54,6 +54,12 @@ public:
     bool isFinished() const;
 
     /**
+     * @brief Checks if currently displaying graphs (not logo).
+     * @return true if in graph cycle stage, false otherwise
+     */
+    bool isShowingGraph() const { return m_currentStage == STAGE_GRAPH_CYCLE; }
+
+    /**
      * @brief Sets a custom version string for the demo title.
      * @param title The title text to display (e.g., "DEMO v0.5" or "DEMO v0.55")
      */

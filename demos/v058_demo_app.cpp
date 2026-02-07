@@ -134,16 +134,20 @@ void V058DemoApp::injectNewDataPoint() {
 }
 
 void V058DemoApp::updateGraphWithLiveData() {
-    // Only update graph when in visual demo phase
-    // This prevents graph from overwriting logo or connectivity screens
-    if (m_v055Demo == nullptr || !m_v055Demo->isInVisualPhase()) {
-        return;  // Not in visual demo phase yet
+    // Get the V05DemoApp
+    if (m_v055Demo == nullptr) {
+        return;  // Not initialized yet
     }
 
-    // Get the V05DemoApp
     V05DemoApp* v05Demo = m_v055Demo->getV05DemoApp();
     if (v05Demo == nullptr) {
         return;  // V05DemoApp not initialized yet
+    }
+
+    // Only update graph when actively showing graphs (not logo, not connectivity)
+    // This prevents graph from overwriting other screens
+    if (!m_v055Demo->isInVisualPhase() || !v05Demo->isShowingGraph()) {
+        return;  // Not showing graph yet (still in connectivity, handover, or logo phase)
     }
 
     TimeSeriesGraph* graph = v05Demo->getGraph();
@@ -158,11 +162,14 @@ void V058DemoApp::updateGraphWithLiveData() {
     graph->setData(liveGraphData);
     graph->drawData();   // Redraw data canvas with new data
 
-    // Composite and blit to display (this overwrites the title)
+    // Composite and blit to display via DMA (bypasses framebuffer, overwrites title)
     graph->render();
 
-    // Redraw title immediately (before flush) to prevent flashing
+    // Redraw title and flush immediately to ensure synchronization
+    // Note: graph->render() uses hal_display_fast_blit (DMA) while drawTitle uses GFX framebuffer
+    // We need to flush immediately to sync both rendering paths
     v05Demo->drawTitle();
+    hal_display_flush();  // Force immediate flush to prevent flicker
 
     Serial.printf("[V058DemoApp] Graph updated with live data (%zu points)\n", liveGraphData.x_values.size());
 }

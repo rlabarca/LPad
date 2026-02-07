@@ -51,7 +51,7 @@ private:
     RelativeDisplay* m_display;
 
     float m_dataUpdateTimer;
-    static constexpr float DATA_UPDATE_INTERVAL = 1.0f;  // Inject new data every 1 second
+    static constexpr float DATA_UPDATE_INTERVAL = 3.0f;  // Inject new data every 3 seconds
 
     // Fixed Y-axis bounds from initial test data (prevents drift to zero)
     double m_initialYMin;
