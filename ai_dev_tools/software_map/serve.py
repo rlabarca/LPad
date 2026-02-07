@@ -9,7 +9,7 @@ from collections import defaultdict
 PORT = 8085
 # Root is 2 levels up from this script
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'))
-MMD_FILE = os.path.join(ROOT_DIR, "feature_graph.mmd")
+MMD_FILE = os.path.join(ROOT_DIR, "ai_dev_tools/feature_graph.mmd")
 FEATURES_DIR = os.path.join(ROOT_DIR, "features")
 README_FILE = os.path.join(ROOT_DIR, "README.md")
 
