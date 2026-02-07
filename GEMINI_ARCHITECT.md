@@ -155,9 +155,9 @@ This dependency-driven prompting ensures the project is built layer by layer, in
 
 **CURRENT CONTEXT:**
 - **HAL Architecture:** Fully refactored into a domain-segmented structure (`hal_core_contract.md`, `hal_spec_display.md`, `hal_spec_timer.md`, `hal_spec_network.md`).
-- **Demo Title Policy:** All release demos MUST display a version title ("DEMO v<version>") using `ThemeFonts.normal` (12pt) positioned in the top-left corner (approx 5% padding).
+- **Data Layer Established:** Core `DataItem` and `DataItemTimeSeries` classes provide a sliding-window FIFO model for live telemetry.
+- **Milestone v0.58 [DONE]:** Dynamic Data Layer, logical X-axis sequencing, and live graph updates (3s interval) fully implemented and verified.
 - **Milestone v0.55 [DONE]:** Connectivity Smoke Test, `config.json` injection system, and Network HAL are fully implemented and verified.
-- **Milestone v0.5 [DONE]:** Core visual engine and UI base verified with the new top-left version title requirements.
-- **Build Management:** Milestone demo naming convention established (`demo_<version>_<board>`). Base hardware targets always link to the latest demo via `main.cpp`.
-- **System State:** Clean state. All feature files in `features/` are currently synchronized with their implementations.
-- **Project Readiness:** The system is ready for the next phase of development or further architectural refinements.
+- **Milestone v0.5 [DONE]:** Core visual engine and UI base verified.
+- **System State:** Clean state. All feature files in `features/` are currently synchronized with their implementations. v0.58 is the current active demo.
+- **Project Readiness:** The system is ready for the next phase (v0.6: Official Data Layer/Storage).
