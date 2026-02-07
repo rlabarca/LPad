@@ -21,6 +21,12 @@ graph TD
         display_tdisplay_s3_plus("**T-Display S3+ Driver**<br/><small>display_tdisplay_s3_plus.md</small>")
     end
 
+    subgraph Data_Layer ["<span class='subgraph-title'>Data Layer</span>"]
+        direction TB
+        data_layer_core("**Base Data Model**<br/><small>data_layer_core.md</small>")
+        data_layer_time_series("**Time Series Data Item**<br/><small>data_layer_time_series.md</small>")
+    end
+
     subgraph Graphics_Engine ["<span class='subgraph-title'>Graphics Engine</span>"]
         direction TB
         display_canvas_drawing("**Layered Canvas Drawing**<br/><small>display_canvas_drawing.md</small>"):::graphics
@@ -38,6 +44,11 @@ graph TD
         hal_spec_network("**HAL Network Specification**<br/><small>hal_spec_network.md</small>"):::hardware
         hal_spec_timer("**HAL Timer Specification**<br/><small>hal_spec_timer.md</small>"):::hardware
         hal_timer_esp32("**ESP32 Timer**<br/><small>hal_timer_esp32.md</small>"):::hardware
+    end
+
+    subgraph Release ["<span class='subgraph-title'>Release</span>"]
+        direction TB
+        demo_release_0_58("**Release v0.58: Dynamic Visuals**<br/><small>demo_release_0.58.md</small>"):::release
     end
 
     subgraph Release_Demos ["<span class='subgraph-title'>Release Demos</span>"]
@@ -85,6 +96,10 @@ graph TD
     ui_logo_screen --> RELEASE_v0_5_display_drawing_ui_base
     demo_release_0_5 --> RELEASE_v0_5_display_drawing_ui_base
     hal_spec_timer --> app_animation_ticker
+    hal_core_contract --> data_layer_core
+    data_layer_core --> data_layer_time_series
+    data_layer_time_series --> demo_release_0_58
+    demo_release_0_55 --> demo_release_0_58
     hal_spec_display --> display_canvas_drawing
     hal_spec_display --> display_esp32s3_amoled
     hal_spec_display --> display_relative_drawing
