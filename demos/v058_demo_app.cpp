@@ -91,6 +91,15 @@ void V058DemoApp::render() {
     if (m_v055Demo != nullptr) {
         m_v055Demo->render();
     }
+
+    // CRITICAL: Ensure title is drawn every frame to prevent disappearance
+    // The graph's live indicator uses partial DMA blits every frame, which could
+    // potentially overlap/overwrite the title area. Redrawing every frame ensures
+    // the title remains visible even if something accidentally overwrites it.
+    V05DemoApp* v05Demo = m_v055Demo->getV05DemoApp();
+    if (v05Demo != nullptr && v05Demo->isShowingGraph()) {
+        v05Demo->drawTitle();
+    }
 }
 
 bool V058DemoApp::loadInitialData() {
@@ -158,20 +167,17 @@ void V058DemoApp::updateGraphWithLiveData() {
     // Get current live data snapshot
     GraphData liveGraphData = m_liveData->getGraphData();
 
-    // PRE-DRAW title to framebuffer BEFORE graph render
-    // This ensures title is ready for immediate flush after DMA blit
-    v05Demo->drawTitle();
-
     // Update graph data canvas
     graph->setData(liveGraphData);
     graph->drawData();   // Redraw data canvas with new data
 
-    // Composite and blit to display via DMA (immediate to hardware, overwrites title)
+    // Composite and blit to display via DMA (full screen, overwrites everything)
     graph->render();
 
-    // IMMEDIATELY flush framebuffer to restore title (minimizes flicker window)
-    // Flicker window is now just flush time, not drawTitle() + flush time
-    hal_display_flush();
+    // IMMEDIATELY redraw title on top
+    // Note: hal_display_flush() is a no-op on ESP32-S3 (direct write mode)
+    // so drawTitle() writes directly to display hardware
+    v05Demo->drawTitle();
 
     Serial.printf("[V058DemoApp] Graph updated with live data (%zu points)\n", liveGraphData.x_values.size());
 }
