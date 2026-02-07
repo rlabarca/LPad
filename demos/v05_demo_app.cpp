@@ -436,8 +436,10 @@ void V05DemoApp::renderTitleToBuffer() {
 
     titleCanvas->begin();
 
-    // Fill with background color (transparent-ish, will be overwritten by text)
-    titleCanvas->fillScreen(theme->colors.background);
+    // Fill with chroma key color (0x0001) for transparency
+    // This matches the graph's transparency approach
+    constexpr uint16_t CHROMA_KEY = 0x0001;
+    titleCanvas->fillScreen(CHROMA_KEY);
 
     // Draw title text
     titleCanvas->setFont(theme->fonts.normal);
@@ -464,10 +466,12 @@ void V05DemoApp::blitTitle() {
         renderTitleToBuffer();
     }
 
-    // Blit buffer to display using fast DMA
+    // Blit buffer to display using fast DMA with transparency
+    // Use chroma key 0x0001 to skip background pixels (same as graph rendering)
     if (m_titleBuffer != nullptr && m_titleBufferValid) {
-        hal_display_fast_blit(m_titleBufferX, m_titleBufferY,
-                              m_titleBufferWidth, m_titleBufferHeight,
-                              m_titleBuffer);
+        constexpr uint16_t CHROMA_KEY = 0x0001;
+        hal_display_fast_blit_transparent(m_titleBufferX, m_titleBufferY,
+                                           m_titleBufferWidth, m_titleBufferHeight,
+                                           m_titleBuffer, CHROMA_KEY);
     }
 }

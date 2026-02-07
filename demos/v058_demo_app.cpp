@@ -172,11 +172,11 @@ void V058DemoApp::updateGraphWithLiveData() {
     graph->setData(liveGraphData);
     graph->drawData();   // Redraw data canvas with new data
 
-    // Composite and blit to display via DMA (full screen, overwrites everything)
+    // Composite and blit to display via DMA (full screen, overwrites everything including title)
     graph->render();
 
-    // IMMEDIATELY blit pre-rendered title on top using DMA
-    // This is much faster than font rendering (drawTitle), eliminating visible flicker
+    // IMMEDIATELY blit pre-rendered title with transparency
+    // Minimize gap between graph render and title appearing
     v05Demo->blitTitle();
 
     Serial.printf("[V058DemoApp] Graph updated with live data (%zu points)\n", liveGraphData.x_values.size());
