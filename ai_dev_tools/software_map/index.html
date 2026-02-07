@@ -144,7 +144,32 @@
         }
         
         /* Class Diagram Styles */
-        /* Removed global overrides to allow Mermaid classDefs to work */
+        /* Explicitly override Mermaid theme for class diagram categories */
+        g.src > rect, g.src > polygon, g.src > circle, g.src > path {
+            fill: #e1f5fe !important;
+            stroke: #01579b !important;
+            stroke-width: 1px !important;
+        }
+        g.hal > rect, g.hal > polygon, g.hal > circle, g.hal > path {
+            fill: #e8f5e9 !important;
+            stroke: #2e7d32 !important;
+            stroke-width: 1px !important;
+        }
+        g.ui > rect, g.ui > polygon, g.ui > circle, g.ui > path {
+            fill: #f3e5f5 !important;
+            stroke: #7b1fa2 !important;
+            stroke-width: 1px !important;
+        }
+        g.data > rect, g.data > polygon, g.data > circle, g.data > path {
+            fill: #fff3e0 !important;
+            stroke: #e65100 !important;
+            stroke-width: 1px !important;
+        }
+        g.default > rect, g.default > polygon, g.default > circle, g.default > path {
+            fill: #f5f5f5 !important;
+            stroke: #333 !important;
+            stroke-width: 1px !important;
+        }
 
         /* Modal Styles */
         #modal-overlay {
