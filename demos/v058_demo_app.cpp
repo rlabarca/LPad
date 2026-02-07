@@ -158,18 +158,20 @@ void V058DemoApp::updateGraphWithLiveData() {
     // Get current live data snapshot
     GraphData liveGraphData = m_liveData->getGraphData();
 
+    // PRE-DRAW title to framebuffer BEFORE graph render
+    // This ensures title is ready for immediate flush after DMA blit
+    v05Demo->drawTitle();
+
     // Update graph data canvas
     graph->setData(liveGraphData);
     graph->drawData();   // Redraw data canvas with new data
 
-    // Composite and blit to display via DMA (bypasses framebuffer, overwrites title)
+    // Composite and blit to display via DMA (immediate to hardware, overwrites title)
     graph->render();
 
-    // Redraw title and flush immediately to ensure synchronization
-    // Note: graph->render() uses hal_display_fast_blit (DMA) while drawTitle uses GFX framebuffer
-    // We need to flush immediately to sync both rendering paths
-    v05Demo->drawTitle();
-    hal_display_flush();  // Force immediate flush to prevent flicker
+    // IMMEDIATELY flush framebuffer to restore title (minimizes flicker window)
+    // Flicker window is now just flush time, not drawTitle() + flush time
+    hal_display_flush();
 
     Serial.printf("[V058DemoApp] Graph updated with live data (%zu points)\n", liveGraphData.x_values.size());
 }
