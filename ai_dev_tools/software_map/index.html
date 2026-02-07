@@ -16,14 +16,24 @@
             overflow: hidden;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: #f8f9fa;
-        }
-        #container {
             width: 100vw;
             height: 100vh;
-            cursor: grab;
         }
-        #container:active {
-            cursor: grabbing;
+        #container {
+            width: 100%;
+            height: 100%;
+            cursor: grab;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #graph-output {
+            width: 100%;
+            height: 100%;
+        }
+        #graph-output svg {
+            width: 100% !important;
+            height: 100% !important;
         }
         #status {
             position: absolute;
@@ -179,12 +189,11 @@
             startOnLoad: false,
             securityLevel: 'loose',
             theme: 'neutral',
-            flowchart: { useMaxWidth: false, htmlLabels: true }
+            flowchart: { useMaxWidth: true, htmlLabels: true }
         });
 
         let lastMtime = 0;
         let panZoom = null;
-        let isInitialLoad = true;
 
         function resetZoom() {
             if (panZoom) {
@@ -208,6 +217,12 @@
                     const { svg } = await mermaid.render('mermaid-svg', data.content);
                     output.innerHTML = svg;
                     
+                    const svgElement = document.getElementById('mermaid-svg');
+                    // Remove fixed dimensions to let svg-pan-zoom handle it
+                    svgElement.removeAttribute('width');
+                    svgElement.removeAttribute('height');
+                    svgElement.style.maxWidth = 'none';
+
                     // Add Click Listeners to Nodes
                     addNodeClickListeners();
 
@@ -218,19 +233,13 @@
                         controlIconsEnabled: false,
                         fit: true,
                         center: true,
-                        minZoom: 0.1,
+                        minZoom: 0.05,
                         maxZoom: 10,
                         dblClickZoomEnabled: false
                     });
 
-                    // Explicitly fit and center on load and when content changes
-                    setTimeout(() => {
-                        if (panZoom) {
-                            panZoom.resize();
-                            panZoom.fit();
-                            panZoom.center();
-                        }
-                    }, 50);
+                    // Force an immediate fit/center
+                    resetZoom();
 
                     lastMtime = data.mtime;
                     document.getElementById('status').innerText = 'Live: ' + new Date().toLocaleTimeString();
