@@ -44,6 +44,7 @@ static void waitForTeSignal(void) {
 2. **Tearing vs PWM flicker** - Top-to-bottom shimmer indicates timing mismatch, not PWM dimming
 3. **Beat frequencies** - When animation FPS doesn't match display refresh rate, synchronization becomes critical
 4. **Timeout protection** - TE sync loops include 10ms timeout to prevent infinite hangs if signal fails
+5. **Hardware limits are real** - Even with perfect TE sync, AMOLED pixel response time (~2-5ms) and SPI transfer duration (~2-3ms for full screen) create inherent artifacts. "Very slight" residual flicker is the physical limit of the display technology.
 
 ---
 

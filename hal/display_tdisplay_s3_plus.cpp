@@ -113,8 +113,6 @@ static void applyVendorInitSequence() {
     g_bus->writeC8D8(0x51, AMOLED_DEFAULT_BRIGHTNESS);  // Write Display Brightness
     g_bus->writeC8D8(0x53, 0x20);  // Write CTRL Display
     g_bus->writeC8D8(0x35, 0x00);  // Tearing Effect Line ON
-
-    Serial.printf("[T-Display HAL] Brightness set to %d, TE sync enabled\n", AMOLED_DEFAULT_BRIGHTNESS);
     g_bus->writeC8D8(0x3A, 0x75);  // Interface Pixel Format (vendor-specific)
     g_bus->writeC8D8(0xC4, 0x80);
 
@@ -344,12 +342,6 @@ void* hal_display_get_gfx(void) {
 void hal_display_fast_blit(int16_t x, int16_t y, int16_t w, int16_t h, const uint16_t* data) {
     if (!g_initialized || g_gfx == nullptr || data == nullptr) {
         return;
-    }
-
-    static bool first_blit = true;
-    if (first_blit) {
-        Serial.println("[T-Display HAL] Using TE-synced blit (v2)");
-        first_blit = false;
     }
 
     // Wait for vertical blanking to prevent tearing
