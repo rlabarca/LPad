@@ -20,7 +20,7 @@ Write code and unit tests. Run `./scripts/test_local.sh`. Pass all tests.
 If you made a key design decision or solved a non-obvious bug, add a concise entry to `docs/IMPLEMENTATION_LOG.md`.
 
 **Step 4: THE COMMIT PROTOCOL (Mandatory Final Action)**
-The `cdd.sh` monitor depends on EXACT string matches in commit messages.
+The `ai_dev_tools/cdd.sh` monitor depends on EXACT string matches in commit messages.
 
 1. `git add .`
 2. **Choose the Correct Tag (Rule):**
@@ -44,7 +44,7 @@ The `cdd.sh` monitor depends on EXACT string matches in commit messages.
 0.  **Efficiency:** If a task is ambiguous or token-heavy, STOP and ask for clarification.
 1.  **Feature-First:** Truth lives in `features/*.md`. Follow Gherkin behaviors strictly.
 2.  **HAL Barrier:** NO hardware code in `src/`. All GPIO/Display/Network must use domain-specific `hal/*.h` headers.
-3.  **Visualization:** To view the current architecture, run `./scripts/serve_graph.py` and open `http://localhost:8000`.
+3.  **Visualization:** To view the current architecture and navigate feature specs, start the Software Map: `./ai_dev_tools/software_map/start.sh` and open `http://localhost:8085`.
 4.  **No Chitchat:** After the commit, your turn is done. Do not explain the commit.
 
 ## Hardware Protocol
