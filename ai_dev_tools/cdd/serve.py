@@ -79,7 +79,8 @@ def get_test_status():
     
     with open(summary_file, 'r') as f:
         content = f.read()
-        if '"error_nums": [0]' in content and '"failure_nums": [0]' in content:
+        # Check for errors or failures in the JSON
+        if '"error_nums": 0' in content and '"failure_nums": 0' in content:
             return "PASS", "Systems Nominal"
         else:
             return "FAIL", "Logic Broken"
