@@ -1,4 +1,3 @@
-
 import http.server
 import socketserver
 import subprocess
@@ -39,8 +38,8 @@ def get_feature_status():
     for fname in feature_files:
         f_path = os.path.join('features', fname)
         
-        complete_commit_ts_str = run_command(f"git log -1 --grep='\[Complete {f_path}\]' --format=%ct")
-        test_commit_ts_str = run_command(f"git log -1 --grep='\[Ready for HIL Test {f_path}\]' --format=%ct")
+        complete_commit_ts_str = run_command(f"git log -1 --grep='\\[Complete {f_path}\\]' --format=%ct")
+        test_commit_ts_str = run_command(f"git log -1 --grep='\\[Ready for HIL Test {f_path}\\]' --format=%ct")
         file_mod_ts_str = run_command(f"git log -1 --format=%ct -- '{f_path}'")
 
         complete_timestamp = int(complete_commit_ts_str) if complete_commit_ts_str else 0
@@ -131,24 +130,36 @@ def generate_html():
                 padding: 20px;
             }}
             .container {{
-                max-width: 1200px;
+                max-width: 1400px; /* Slightly wider for two columns */
                 margin: auto;
-            }}
-            h1, h2 {{
-                color: #4A90E2;
-                border-bottom: 1px solid #4A90E2;
-                padding-bottom: 8px;
-                margin-top: 20px;
             }}
             h1 {{
                 font-size: 1.5em;
-                color: #FFA500;
-                 border-bottom: 1px solid #FFA500;
+                color: #FFFFFF; /* Changed from #FFA500 */
+            }}
+            h2 {{
+                color: #FFFFFF; /* Changed from #4A90E2 */
+                margin-top: 20px;
+                margin-bottom: 10px;
             }}
             .header {{
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
+                margin-bottom: 20px;
+            }}
+            .main-content {{
+                display: flex;
+                flex-wrap: wrap; /* Allow columns to wrap on smaller screens */
+                gap: 40px; /* Space between columns */
+            }}
+            .left-column {{
+                flex: 2; /* Takes more space */
+                min-width: 300px; /* Minimum width before wrapping */
+            }}
+            .right-column {{
+                flex: 1; /* Takes less space */
+                min-width: 250px; /* Minimum width before wrapping */
             }}
             .dim {{ color: #666; }}
             .clean {{ color: #32CD32; }}
@@ -159,21 +170,27 @@ def generate_html():
                 border-radius: 5px;
                 white-space: pre-wrap;
                 word-wrap: break-word;
+                max-height: 200px; /* Limit height for responsiveness */
+                overflow-y: auto; /* Add scroll for overflow */
             }}
             .feature-list {{
                 list-style: none;
                 padding: 0;
+                margin-top: 5px;
+                max-height: 300px; /* Limit height for responsiveness */
+                overflow-y: auto; /* Add scroll for overflow */
             }}
             .feature-list li {{
                 display: flex;
                 align-items: center;
-                margin-bottom: 5px;
+                margin-bottom: 3px;
             }}
             .square {{
                 width: 10px;
                 height: 10px;
                 margin-right: 10px;
                 flex-shrink: 0;
+                border-radius: 2px; /* Slightly rounded squares */
             }}
             .square.done {{ background-color: #32CD32; }}
             .square.testing {{ background-color: #4A90E2; }}
@@ -195,29 +212,35 @@ def generate_html():
                 <span class="dim">{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</span>
             </div>
 
-            <div class="section">
-                <h2>Workspace Context (Git Status)</h2>
-                {git_status_html}
-            </div>
+            <div class="main-content">
+                <div class="left-column">
+                    <div class="section">
+                        <h2>Workspace Context (Git Status)</h2>
+                        {git_status_html}
+                    </div>
 
-            <div class="section">
-                <h2>Feature Queue</h2>
-                <h3>TODO</h3>
-                {todo_html if todo_html else '<p class="dim">No features are pending implementation.</p>'}
-                <h3>TESTING</h3>
-                {testing_html if testing_html else '<p class="dim">No features are currently in testing.</p>'}
-                <h3>DONE</h3>
-                {done_html if done_html else '<p class="dim">No features are complete.</p>'}
-            </div>
+                    <div class="section">
+                        <h2>Feature Queue</h2>
+                        <h3>TODO</h3>
+                        {todo_html if todo_html else '<p class="dim">No features are pending implementation.</p>'}
+                        <h3>TESTING</h3>
+                        {testing_html if testing_html else '<p class="dim">No features are currently in testing.</p>'}
+                        <h3>DONE</h3>
+                        {done_html if done_html else '<p class="dim">No features are complete.</p>'}
+                    </div>
+                </div>
 
-            <div class="section">
-                <h2>Latest Save (Last Commit)</h2>
-                <pre>{last_commit}</pre>
-            </div>
+                <div class="right-column">
+                    <div class="section">
+                        <h2>Latest Save (Last Commit)</h2>
+                        <pre>{last_commit}</pre>
+                    </div>
 
-            <div class="section">
-                <h2>Test Status</h2>
-                {test_status_html}
+                    <div class="section">
+                        <h2>Test Status</h2>
+                        {test_status_html}
+                    </div>
+                </div>
             </div>
         </div>
     </body>
