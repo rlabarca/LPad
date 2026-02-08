@@ -26,3 +26,7 @@ config.json
 __pycache__/
 *.py[cod]
 *$py.class
+
+# CDD Tool
+ai_dev_tools/cdd/cdd.log
+ai_dev_tools/cdd/.pid
