@@ -174,6 +174,7 @@ This dependency-driven prompting ensures the project is built layer by layer, in
 ---
 
 **CURRENT CONTEXT:**
+- **Process Refined:** The Builder's protocol (`CLAUDE.md`) has been significantly refactored into an "Unbreakable Implementation & Commit Protocol," a step-by-step checklist to improve reliability. A full audit confirmed alignment between `CLAUDE.md`, `ARCHITECTURE.md`, and this document.
 - **HAL Architecture:** Fully refactored into a domain-segmented structure (`hal_core_contract.md`, `hal_spec_display.md`, `hal_spec_timer.md`, `hal_spec_network.md`).
 - **Data Layer Established:** Core `DataItem` and `DataItemTimeSeries` classes provide a sliding-window FIFO model for live telemetry.
 - **Milestone v0.58 [DONE]:** Dynamic Data Layer, logical X-axis sequencing, and live graph updates (3s interval) fully implemented and verified.
