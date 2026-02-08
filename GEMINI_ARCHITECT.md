@@ -37,7 +37,7 @@ Your goal is to help me design the **"Agentic Workflow"** artifacts. You do NOT 
     *   **Abstraction Layers:** Design higher-level features (e.g., `display_relative_drawing.md`) that depend on the HAL specifications and provide resolution-independent functionality for application logic.
 7.  **Architectural Precedent Analysis:** Before drafting or modifying any feature file, I MUST first search and review existing features in the `features/` directory. This is to identify established architectural patterns, abstraction layers (like `display_relative_drawing`), and data contracts to ensure new features integrate correctly and uphold the existing design principles, even if those principles are not explicitly mentioned in the current request.
 8.  **History Management:** Since the Builder uses `git log` to determine feature completion, I must guide you (the User) through any necessary history rewrites if a feature file is renamed, to maintain consistency.
-9.  **Feature Refinement and Status Reset:** When an existing feature's implementation is found to be suboptimal or incomplete, the default approach is to **refine the original feature file**. I will guide you to update the scenarios and implementation details within the existing `.md` file to reflect the improved, correct approach. Modifying the feature file (`features/X.md`) automatically resets its status to `[TODO]` in the `cdd.sh` monitoring script, ensuring it's flagged for re-implementation. Creating a new, superseding feature that makes the old one obsolete should be avoided, as it pollutes the feature set with "dead-end" specifications. The goal is to maintain a clean set of feature files that represents the reproducible *final state* of the project.
+9.  **Feature Refinement and Status Reset:** When an existing feature's implementation is found to be suboptimal or incomplete, the default approach is to **refine the original feature file**. I will guide you to update the scenarios and implementation details within the existing `.md` file to reflect the improved, correct approach. Modifying the feature file (`features/X.md`) automatically resets its status to `[TODO]` in the CDD Web Monitor, ensuring it's flagged for re-implementation. Creating a new, superseding feature that makes the old one obsolete should be avoided, as it pollutes the feature set with "dead-end" specifications. The goal is to maintain a clean set of feature files that represents the reproducible *final state* of the project.
 10. **HIL Test Specification:** For features requiring visual hardware-in-the-loop validation, I will include a dedicated `## Hardware (HIL) Test` section in the feature `.md` file. This section will provide clear, high-level instructions for the Builder to create a temporary visual demonstration in `main.cpp`, ensuring the test is reproducible and part of the feature's formal specification. I will not write the application code for the test myself.
 11. **Commit Core Artifacts and Feature Files:** The CDD web monitor (accessible via `ai_dev_tools/cdd/start.sh`) relies on git history to track project state. Therefore, I MUST NOT leave the chat turn with uncommitted changes to `features/`, `docs/`, `GEMINI_ARCHITECT.md`, `CLAUDE.md`, `scripts/`, or `ai_dev_tools/`. I MUST commit these files **immediately** after modification using a `chore(process):` or `refactor(docs):` message. I will never "batch" these process updates with code implementation commits. This ensures the "Work in Progress" section of the monitor is always clean and the "Feature Queue" status is accurate.
     *   **Special Case (Graph Regeneration):** When a metadata change requires regenerating the graph, I will commit the feature file *and* the regenerated `ai_dev_tools/feature_graph.mmd` (and `README.md` if updated) in a single commit to keep the documentation consistent.
@@ -72,6 +72,22 @@ We maintain a strict separation of concerns in our documentation to ensure consi
     *   Procedural instructions for the Builder (how to commit, how to test, how to use tools).
 
 ## Strategic Protocols
+
+### Context Clear Protocol
+When a full context clear is performed (e.g., the chat history is lost, or a fresh agent instance starts without prior context), follow these steps to re-synchronize the project and establish the correct working environment:
+
+1.  **Read `GEMINI_ARCHITECT.md`:** Start by thoroughly reading this document to re-establish your role, core mandates, and the project's architectural principles.
+2.  **Review `CLAUDE.md`:** Understand the specific instructions and protocols for the Builder agent.
+3.  **Review `features/*.md`:** Understand the current desired state of the project by reading all feature files.
+4.  **Review `docs/ARCHITECTURE.md`:** Re-familiarize yourself with the system's constraints, patterns, and invariants.
+5.  **Clean Project State:**
+    *   Run `pio run -t clean` to remove all build artifacts.
+    *   Run `pio system prune` to remove temporary PlatformIO files, libraries, and cached data.
+6.  **Regenerate Artifacts:**
+    *   Ensure the Software Map is functional by running `./ai_dev_tools/software_map/start.sh` and triggering a graph regeneration if necessary (e.g., via `http://localhost:8085/api/graph`).
+    *   Start the CDD Web Monitor: `./ai_dev_tools/cdd/start.sh`.
+7.  **Verify Git Status:** Ensure the repository is in a clean state (no uncommitted changes, all `features/*.md` are `[DONE]` or `[TESTING]` as expected).
+8.  **Initiate Recursive Validation (if needed):** If any `features/*.md` are `[TODO]` due to recent changes or context loss, use the "Verification-Only Cycle (Mass & Recursive)" protocol to bring them back to `[DONE]` or `[TESTING]` status.
 
 ### Release Management & The "Living Spec"
 We treat the `features/` directory as the **Current Desired State Configuration**. We do not archive "old" milestones; we maintain a "Stack of Capabilities".
