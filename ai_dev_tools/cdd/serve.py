@@ -122,24 +122,34 @@ def generate_html():
         <title>Project Monitor</title>
         <meta http-equiv="refresh" content="5">
         <style>
+            html, body {{
+                height: 100%;
+                margin: 0;
+            }}
             body {{
                 background-color: #14191F;
                 color: #B0B0B0;
                 font-family: 'Menlo', 'Monaco', 'Consolas', monospace;
                 font-size: 13px;
-                margin: 0;
                 padding: 20px;
+                box-sizing: border-box;
+                display: flex;
+                flex-direction: column;
             }}
             .container {{
-                max-width: 1400px; /* Slightly wider for two columns */
+                max-width: 1400px;
                 margin: auto;
+                width: 100%;
+                flex: 1;
+                display: flex;
+                flex-direction: column;
             }}
             h1 {{
                 font-size: 1.5em;
-                color: #FFFFFF; /* Changed from #FFA500 */
+                color: #FFFFFF;
             }}
             h2 {{
-                color: #FFFFFF; /* Changed from #4A90E2 */
+                color: #FFFFFF;
                 margin-top: 20px;
                 margin-bottom: 10px;
             }}
@@ -151,16 +161,21 @@ def generate_html():
             }}
             .main-content {{
                 display: flex;
-                flex-wrap: wrap; /* Allow columns to wrap on smaller screens */
-                gap: 40px; /* Space between columns */
+                flex-wrap: nowrap;
+                gap: 40px;
+                flex: 1;
+                min-height: 0;
             }}
             .left-column {{
-                flex: 2; /* Takes more space */
-                min-width: 300px; /* Minimum width before wrapping */
+                flex: 2;
+                min-width: 300px;
+                overflow-y: auto;
             }}
             .right-column {{
-                flex: 1; /* Takes less space */
-                min-width: 250px; /* Minimum width before wrapping */
+                flex: 1;
+                min-width: 250px;
+                display: flex;
+                flex-direction: column;
             }}
             .dim {{ color: #666; }}
             .clean {{ color: #32CD32; }}
@@ -171,15 +186,13 @@ def generate_html():
                 border-radius: 5px;
                 white-space: pre-wrap;
                 word-wrap: break-word;
-                max-height: 200px; /* Limit height for responsiveness */
-                overflow-y: auto; /* Add scroll for overflow */
+                max-height: 200px;
+                overflow-y: auto;
             }}
             .feature-list {{
                 list-style: none;
                 padding: 0;
                 margin-top: 5px;
-                max-height: 300px; /* Limit height for responsiveness */
-                overflow-y: auto; /* Add scroll for overflow */
             }}
             .feature-list li {{
                 display: flex;
@@ -191,7 +204,7 @@ def generate_html():
                 height: 10px;
                 margin-right: 10px;
                 flex-shrink: 0;
-                border-radius: 2px; /* Slightly rounded squares */
+                border-radius: 2px;
             }}
             .square.done {{ background-color: #32CD32; }}
             .square.testing {{ background-color: #4A90E2; }}
@@ -203,6 +216,19 @@ def generate_html():
 
             .section {{
                 margin-bottom: 20px;
+            }}
+            .iframe-section {{
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                margin-bottom: 0;
+                min-height: 300px;
+            }}
+            iframe {{
+                flex: 1;
+                border: 1px solid #1E242B;
+                border-radius: 5px;
+                background-color: white;
             }}
         </style>
     </head>
@@ -240,6 +266,10 @@ def generate_html():
                     <div class="section">
                         <h2>Test Status</h2>
                         {test_status_html}
+                    </div>
+
+                    <div class="iframe-section">
+                        <iframe src="https://claude.ai/settings/account"></iframe>
                     </div>
                 </div>
             </div>
