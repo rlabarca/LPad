@@ -122,27 +122,17 @@ def generate_html():
         <title>Project Monitor</title>
         <meta http-equiv="refresh" content="5">
         <style>
-            html, body {{
-                height: 100%;
-                margin: 0;
-            }}
             body {{
                 background-color: #14191F;
                 color: #B0B0B0;
                 font-family: 'Menlo', 'Monaco', 'Consolas', monospace;
                 font-size: 13px;
+                margin: 0;
                 padding: 20px;
-                box-sizing: border-box;
-                display: flex;
-                flex-direction: column;
             }}
             .container {{
                 max-width: 1400px;
                 margin: auto;
-                width: 100%;
-                flex: 1;
-                display: flex;
-                flex-direction: column;
             }}
             h1 {{
                 font-size: 1.5em;
@@ -161,21 +151,16 @@ def generate_html():
             }}
             .main-content {{
                 display: flex;
-                flex-wrap: nowrap;
+                flex-wrap: wrap;
                 gap: 40px;
-                flex: 1;
-                min-height: 0;
             }}
             .left-column {{
                 flex: 2;
                 min-width: 300px;
-                overflow-y: auto;
             }}
             .right-column {{
                 flex: 1;
                 min-width: 250px;
-                display: flex;
-                flex-direction: column;
             }}
             .dim {{ color: #666; }}
             .clean {{ color: #32CD32; }}
@@ -217,19 +202,6 @@ def generate_html():
             .section {{
                 margin-bottom: 20px;
             }}
-            .iframe-section {{
-                flex: 1;
-                display: flex;
-                flex-direction: column;
-                margin-bottom: 0;
-                min-height: 300px;
-            }}
-            iframe {{
-                flex: 1;
-                border: 1px solid #1E242B;
-                border-radius: 5px;
-                background-color: white;
-            }}
         </style>
     </head>
     <body>
@@ -266,10 +238,6 @@ def generate_html():
                     <div class="section">
                         <h2>Test Status</h2>
                         {test_status_html}
-                    </div>
-
-                    <div class="iframe-section">
-                        <iframe src="https://claude.ai/settings/account"></iframe>
                     </div>
                 </div>
             </div>
