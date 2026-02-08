@@ -128,31 +128,35 @@ def generate_html():
                 font-family: 'Menlo', 'Monaco', 'Consolas', monospace;
                 font-size: 13px;
                 margin: 0;
-                padding: 20px;
+                padding: 10px 20px;
             }}
             .container {{
                 max-width: 1400px;
                 margin: auto;
             }}
-            h1 {{
-                font-size: 1.5em;
-                color: #FFFFFF;
-            }}
             h2 {{
+                font-size: 1.2em;
                 color: #FFFFFF;
-                margin-top: 20px;
-                margin-bottom: 10px;
+                margin-top: 10px;
+                margin-bottom: 8px;
+            }}
+            h3 {{
+                font-size: 1em;
+                color: #888;
+                margin-top: 12px;
+                margin-bottom: 4px;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
             }}
             .header {{
                 display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 20px;
+                justify-content: flex-end;
+                margin-bottom: 5px;
             }}
             .main-content {{
                 display: flex;
                 flex-wrap: wrap;
-                gap: 40px;
+                gap: 30px;
             }}
             .left-column {{
                 flex: 2;
@@ -162,34 +166,35 @@ def generate_html():
                 flex: 1;
                 min-width: 250px;
             }}
-            .dim {{ color: #666; }}
+            .dim {{ color: #666; font-size: 0.9em; }}
             .clean {{ color: #32CD32; }}
-            .wip {{ color: #FFD700; }}
+            .wip {{ color: #FFD700; margin-bottom: 4px; }}
             pre {{
                 background-color: #1E242B;
-                padding: 10px;
+                padding: 8px;
                 border-radius: 5px;
                 white-space: pre-wrap;
                 word-wrap: break-word;
-                max-height: 200px;
+                max-height: 150px;
                 overflow-y: auto;
+                margin-top: 0;
             }}
             .feature-list {{
                 list-style: none;
                 padding: 0;
-                margin-top: 5px;
+                margin-top: 2px;
             }}
             .feature-list li {{
                 display: flex;
                 align-items: center;
-                margin-bottom: 3px;
+                margin-bottom: 2px;
             }}
             .square {{
-                width: 10px;
-                height: 10px;
-                margin-right: 10px;
+                width: 8px;
+                height: 8px;
+                margin-right: 8px;
                 flex-shrink: 0;
-                border-radius: 2px;
+                border-radius: 1px;
             }}
             .square.done {{ background-color: #32CD32; }}
             .square.testing {{ background-color: #4A90E2; }}
@@ -200,14 +205,13 @@ def generate_html():
             .status-unknown {{ color: #666; font-weight: bold;}}
 
             .section {{
-                margin-bottom: 20px;
+                margin-bottom: 15px;
             }}
         </style>
     </head>
     <body>
         <div class="container">
             <div class="header">
-                <h1>Project Monitor</h1>
                 <span class="dim">{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</span>
             </div>
 
