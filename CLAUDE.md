@@ -5,37 +5,48 @@ Your mandate is to implement `features/*.md` into code and **commit to git**. Th
 
 ---
 
-## The Workflow Contract
+## My Unbreakable Implementation & Commit Protocol
 
-**Step 0: Prime Directive**
-Consult `docs/ARCHITECTURE.md` (Rules) and `docs/IMPLEMENTATION_LOG.md` (History) before writing a single line of code.
+When tasked with implementing or verifying a feature from a `.md` file, you MUST follow this sequence precisely. This is your primary function.
 
-**Step 1: Recursive Dependency Check**
-Check `git log` for prerequisites. If a prerequisite is `[TODO]` (due to recent changes), you **MUST** verify/re-commit it *before* the target feature. Use `git commit --allow-empty` if no code changes are needed.
+**0. Pre-Flight Checks (Mandatory):**
+   - **Consult the Architecture:** Before writing any code, review `docs/ARCHITECTURE.md` to understand the established design patterns and constraints.
+   - **Consult the Lab Notebook:** Before starting a complex task or bugfix, review `docs/IMPLEMENTATION_LOG.md` to see if similar problems have been solved before.
+   - **Check for Dependencies:** Review the `> Prerequisite:` in the feature file and check its status with `git log`. If the prerequisite feature is marked `[TODO]` (meaning it was changed more recently than its last completion commit), you MUST stop and implement/verify the prerequisite first.
 
-**Step 2: Implement & Test**
-Write code and unit tests. Run `./scripts/test_local.sh`. Pass all tests.
+**1. Acknowledge and Plan:**
+   - State which feature file you are implementing (e.g., "Implementing `features/app_config_system.md`.").
+   - Briefly outline your implementation plan.
 
-**Step 3: Lab Notebook**
-If you made a key design decision or solved a non-obvious bug, add a concise entry to `docs/IMPLEMENTATION_LOG.md`.
+**2. Implement the Code & Document Discoveries:**
+   - Write the necessary code and unit tests.
+   - **Lab Notebook Rule:** If you encounter a non-obvious problem, discover a critical hardware behavior, or make a significant design decision, you MUST add a concise entry to `docs/IMPLEMENTATION_LOG.md`.
 
-**Step 4: THE COMMIT PROTOCOL (Mandatory Final Action)**
-The `ai_dev_tools/cdd.sh` monitor depends on EXACT string matches in commit messages.
+**3. Verify Locally:**
+   - Run the local test suite: `./scripts/test_local.sh`.
+   - You MUST confirm that all tests pass before proceeding. If they fail, debug and fix them.
 
-1. `git add .`
-2. **Choose the Correct Tag (Rule):**
-   - **IF** the feature has a `## Hardware (HIL) Test` section OR is a 'Demo'/'App' category:
-     **Tag:** `[Ready for HIL Test features/FILENAME.md]`
-   - **ELSE** (pure software/logic/contract):
-     **Tag:** `[Complete features/FILENAME.md]`
+**4. Commit the Work (The Final Step):**
+   - This is how you signal completion. It is not optional.
+   - **A. Stage all your changes:**
+     ```shell
+     git add .
+     ```
+   - **B. Determine the Correct Status Tag:**
+     - Read the feature file you just implemented.
+     - **IF** the file contains a section titled `## Hardware (HIL) Test` OR its `> Category:` is `Demo` or `Application`:
+       - Your tag is: `[Ready for HIL Test features/THE_FILENAME.md]`
+     - **ELSE** (it's a pure software component, HAL contract, etc.):
+       - Your tag is: `[Complete features/THE_FILENAME.md]`
+   - **C. Execute the Commit:**
+     - Use the tag from the previous step to construct the final commit message.
+     - The command MUST be in this exact format:
+     ```shell
+     git commit -m "feat(scope): your description here <THE_CORRECT_TAG_HERE>"
+     ```
+     *(If you are only re-validating a feature and no code has changed, add the `--allow-empty` flag to the `git commit` command.)*
 
-   *This rule applies to BOTH new implementations AND re-validation of existing features.*
-
-3. **Execute Commit:**
-   ```shell
-   git commit -m "feat(<scope>): <description> <CORRECT_TAG>"
-   ```
-   *(Use `--allow-empty` if no code changed but status needs reset/verification).*
+**After the commit is successfully made, your task is complete. STOP and await the next instruction.**
 
 ---
 
