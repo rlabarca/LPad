@@ -9,6 +9,8 @@
 #include <Arduino_GFX_Library.h>
 #include <algorithm>
 #include <cmath>
+#include <string>
+#include <vector>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -189,9 +191,11 @@ TimeSeriesGraph::GraphMargins TimeSeriesGraph::getMargins() const {
         if (x_axis_title_) m.bottom += 4.0f;
     } else {
         m.left = 3.0f;
-        m.bottom = 3.0f;
         m.top = 3.0f;
         m.right = 3.0f;
+        // INSIDE mode: need more bottom margin for X-axis title
+        // Text size 2 is ~14px tall, need room for title below axis line
+        m.bottom = x_axis_title_ ? 12.0f : 3.0f;
     }
     return m;
 }
@@ -482,21 +486,42 @@ void TimeSeriesGraph::drawYTicks(RelativeDisplay* target) {
     GraphMargins mx = getMargins();
     float x_axis_y = 100.0f - mx.bottom;  // X-axis position in relative coordinates
 
+    // Track seen labels to enforce unique label constraint
+    std::vector<std::string> seen_labels;
+    int precision_boost = 0;  // Extra decimal places if duplicates detected
+
     for (double tick_value = y_min + y_tick_increment_; tick_value <= y_max; tick_value += y_tick_increment_) {
         float y_screen = mapYToScreen(tick_value, y_min, y_max);
-
-        char label[16];
-        format_3_sig_digits(tick_value, label, sizeof(label));
-
-        int16_t x1, y1;
-        uint16_t w, h;
-        canvas->getTextBounds(label, 0, 0, &x1, &y1, &w, &h);
 
         // Simple origin suppression: skip if tick is within 8% of X-axis
         // This is less aggressive and prevents filtering all labels when data range is small
         if (fabsf(y_screen - x_axis_y) < 8.0f) {
             continue;
         }
+
+        // Format label with adjusted precision if needed
+        char label[16];
+        format_3_sig_digits(tick_value, label, sizeof(label));
+
+        // Check for duplicate labels (enforces unique label constraint)
+        std::string label_str(label);
+        bool is_duplicate = false;
+        for (const auto& seen : seen_labels) {
+            if (seen == label_str) {
+                is_duplicate = true;
+                break;
+            }
+        }
+
+        // Skip this tick if duplicate (tick spacing too fine for display precision)
+        if (is_duplicate) {
+            continue;
+        }
+        seen_labels.push_back(label_str);
+
+        int16_t x1, y1;
+        uint16_t w, h;
+        canvas->getTextBounds(label, 0, 0, &x1, &y1, &w, &h);
 
         if (tick_label_position_ == TickLabelPosition::OUTSIDE) {
             // Tick extends LEFT from Y-axis
@@ -507,7 +532,8 @@ void TimeSeriesGraph::drawYTicks(RelativeDisplay* target) {
             int32_t label_x = target->relativeToAbsoluteX(tick_start) - w - 2;
             int32_t label_y = target->relativeToAbsoluteY(y_screen);
             if (label_x < 0) label_x = 0;
-            canvas->setCursor(label_x, label_y + h / 2);
+            // Align text baseline with tick mark (built-in font baseline is ~3/4 down from top)
+            canvas->setCursor(label_x, label_y + 2);
             canvas->print(label);
         } else {
             // INSIDE: tick extends RIGHT into graph
@@ -517,7 +543,8 @@ void TimeSeriesGraph::drawYTicks(RelativeDisplay* target) {
             // Label to RIGHT of tick (inside graph)
             int32_t label_x = target->relativeToAbsoluteX(tick_end + 0.5f);
             int32_t label_y = target->relativeToAbsoluteY(y_screen);
-            canvas->setCursor(label_x, label_y + h / 2);
+            // Align text baseline with tick mark (built-in font baseline is ~3/4 down from top)
+            canvas->setCursor(label_x, label_y + 2);
             canvas->print(label);
         }
     }
