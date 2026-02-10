@@ -100,6 +100,5 @@ void ConnectivityStatusScreen::update(bool ping_result) {
     gfx->setCursor(text_x, text_y);
     gfx->print(message);
 
-    // Flush to display
-    hal_display_flush();
+    // Note: Do NOT flush here - caller will handle flushing after rendering overlays (e.g., mini logo)
 }

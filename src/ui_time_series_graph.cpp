@@ -452,8 +452,11 @@ void TimeSeriesGraph::drawYTicks(RelativeDisplay* target) {
     Arduino_GFX* canvas = target->getGfx();
     if (!canvas) return;
 
+    // Use built-in font at size 2 for better visibility
+    // (custom GFX fonts crash on PSRAM canvas)
+    canvas->setFont(nullptr);
     canvas->setTextColor(theme_.tickColor);
-    canvas->setTextSize(1);
+    canvas->setTextSize(2);
 
     // Draw tick marks and labels (skip first tick at y_min to avoid X-axis overlap)
     for (double tick_value = y_min + y_tick_increment_; tick_value <= y_max; tick_value += y_tick_increment_) {
@@ -500,8 +503,11 @@ void TimeSeriesGraph::drawXTicks(RelativeDisplay* target) {
     Arduino_GFX* canvas = target->getGfx();
     if (!canvas) return;
 
+    // Use built-in font at size 2 for better visibility
+    // (custom GFX fonts crash on PSRAM canvas)
+    canvas->setFont(nullptr);
     canvas->setTextColor(theme_.tickColor);
-    canvas->setTextSize(1);
+    canvas->setTextSize(2);
 
     size_t num_points = data_.x_values.size();
     if (num_points < 2) return;

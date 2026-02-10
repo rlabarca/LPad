@@ -134,6 +134,13 @@ void V060DemoApp::update(float deltaTime) {
             // Update connectivity screen
             if (m_connectivityScreen != nullptr) {
                 m_connectivityScreen->update(m_pingResult);
+
+                // Re-render mini logo on top (connectivity screen clears the screen when updating)
+                if (m_miniLogo != nullptr) {
+                    m_miniLogo->render();
+                }
+
+                hal_display_flush();
             }
             break;
         }
@@ -149,6 +156,13 @@ void V060DemoApp::update(float deltaTime) {
             // Continue updating connectivity screen to show "PING OK"
             if (m_connectivityScreen != nullptr) {
                 m_connectivityScreen->update(m_pingResult);
+
+                // Re-render mini logo on top (connectivity screen clears the screen when updating)
+                if (m_miniLogo != nullptr) {
+                    m_miniLogo->render();
+                }
+
+                hal_display_flush();
             }
             break;
         }
@@ -170,11 +184,7 @@ void V060DemoApp::render() {
         case PHASE_CONNECTIVITY:
         case PHASE_HANDOVER:
             // Connectivity screen handles its own rendering via update()
-            // Render mini logo on top
-            if (m_miniLogo != nullptr) {
-                m_miniLogo->render();
-                hal_display_flush();
-            }
+            // Mini logo is rendered by connectivity screen's update() when it clears the screen
             break;
 
         case PHASE_STOCK_GRAPH: {
@@ -336,9 +346,9 @@ GraphTheme V060DemoApp::createStockGraphTheme() {
     theme.tickColor = lpadTheme->colors.graph_ticks;
     theme.tickLength = 2.5f;
 
-    // Solid green indicator
-    theme.liveIndicatorGradient.color_stops[0] = RGB565_GREEN;
-    theme.liveIndicatorGradient.color_stops[1] = RGB565_GREEN;  // Same color = solid
+    // Live indicator: use theme accent color instead of hardcoded green
+    theme.liveIndicatorGradient.color_stops[0] = lpadTheme->colors.accent;
+    theme.liveIndicatorGradient.color_stops[1] = lpadTheme->colors.accent;  // Same color = solid
     theme.liveIndicatorPulseSpeed = 0.5f;
 
     // Font assignments from ThemeManager
