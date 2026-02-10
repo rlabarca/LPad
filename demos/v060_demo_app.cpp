@@ -188,8 +188,8 @@ void V060DemoApp::render() {
             break;
 
         case PHASE_STOCK_GRAPH: {
-            bool needsFullRender = !m_graphInitialRenderDone;
             static bool backgroundDrawn = false;
+            bool needsFullRender = false;  // Only render when we have actual graph content
 
             // Update graph data if available
             if (m_graph != nullptr && m_stockTracker != nullptr) {
@@ -214,7 +214,7 @@ void V060DemoApp::render() {
 
                         m_graph->drawData();
                         lastDataLength = currentDataLength;
-                        needsFullRender = true;
+                        needsFullRender = true;  // NOW we have content to render
 
                         Serial.printf("[V060DemoApp] Graph data updated: %zu points\n", currentDataLength);
                     }
