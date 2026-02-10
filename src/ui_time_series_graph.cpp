@@ -31,6 +31,29 @@ static uint16_t interpolate_color(uint16_t color1, uint16_t color2, float t) {
     return ((r & 0x1F) << 11) | ((g & 0x3F) << 5) | (b & 0x1F);
 }
 
+// Helper function to format a number with 3 significant digits
+static void format_3_sig_digits(double value, char* buffer, size_t buffer_size) {
+    if (value == 0.0) {
+        snprintf(buffer, buffer_size, "0.00");
+        return;
+    }
+
+    // Calculate magnitude (power of 10)
+    double abs_value = fabs(value);
+    int magnitude = static_cast<int>(floor(log10(abs_value)));
+
+    // Determine decimal places needed for 3 significant digits
+    int decimal_places = 2 - magnitude;
+    if (decimal_places < 0) {
+        decimal_places = 0;
+    } else if (decimal_places > 6) {
+        decimal_places = 6;  // Reasonable upper limit
+    }
+
+    // Format the number
+    snprintf(buffer, buffer_size, "%.*f", decimal_places, value);
+}
+
 TimeSeriesGraph::TimeSeriesGraph(const GraphTheme& theme, Arduino_GFX* main_display,
                                  int32_t width, int32_t height)
     : theme_(theme), main_display_(main_display), width_(width), height_(height),

@@ -187,15 +187,16 @@ bool StockTracker::parseYahooFinanceResponse(const char* json_response,
 
     JsonObject result = doc["chart"]["result"][0];
 
-    if (!result["timestamp"].is<JsonArray>()) {
+    // Get timestamp array
+    JsonArray timestamps_array = result["timestamp"].as<JsonArray>();
+    if (timestamps_array.isNull()) {
         Serial.println("[StockTracker] Invalid JSON structure (no timestamp array)");
         return false;
     }
 
-    JsonArray timestamps_array = result["timestamp"];
-    JsonArray close_array = result["indicators"]["quote"][0]["close"];
-
-    if (!close_array.is<JsonArray>()) {
+    // Get close price array
+    JsonArray close_array = result["indicators"]["quote"][0]["close"].as<JsonArray>();
+    if (close_array.isNull()) {
         Serial.println("[StockTracker] Invalid JSON structure (no close array)");
         return false;
     }
