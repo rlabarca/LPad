@@ -574,10 +574,11 @@ void TimeSeriesGraph::drawYTicks(RelativeDisplay* target) {
             int32_t label_x = target->relativeToAbsoluteX(tick_start) - w - 2;
             int32_t label_y = target->relativeToAbsoluteY(y_screen);
             if (label_x < 0) label_x = 0;
-            // Vertically center label on tick mark: baseline needs to be offset by ~half height
-            // For built-in fonts, text height is approximately 8 pixels per size unit (size 2 = 16px)
-            int32_t text_center_offset = h / 2;
-            canvas->setCursor(label_x, label_y + text_center_offset);
+            // Vertically center label on tick mark
+            // getTextBounds returns y1 (offset from baseline to top, usually negative)
+            // Text center is at baseline + y1 + h/2
+            // To center at label_y: baseline = label_y - y1 - h/2
+            canvas->setCursor(label_x, label_y - y1 - h / 2);
             canvas->print(label);
         } else {
             // INSIDE: tick extends RIGHT into graph
@@ -587,10 +588,11 @@ void TimeSeriesGraph::drawYTicks(RelativeDisplay* target) {
             // Label to RIGHT of tick (inside graph), leaving small gap
             int32_t label_x = target->relativeToAbsoluteX(tick_end) + 2;  // 2px gap after tick
             int32_t label_y = target->relativeToAbsoluteY(y_screen);
-            // Vertically center label on tick mark: baseline needs to be offset by ~half height
-            // For built-in fonts, text height is approximately 8 pixels per size unit (size 2 = 16px)
-            int32_t text_center_offset = h / 2;
-            canvas->setCursor(label_x, label_y + text_center_offset);
+            // Vertically center label on tick mark
+            // getTextBounds returns y1 (offset from baseline to top, usually negative)
+            // Text center is at baseline + y1 + h/2
+            // To center at label_y: baseline = label_y - y1 - h/2
+            canvas->setCursor(label_x, label_y - y1 - h / 2);
             canvas->print(label);
         }
     }
