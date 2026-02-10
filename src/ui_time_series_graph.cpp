@@ -475,13 +475,9 @@ void TimeSeriesGraph::drawYTicks(RelativeDisplay* target) {
     canvas->setTextSize(2);
 
     // Draw tick marks and labels (skip first tick at y_min to avoid X-axis overlap)
-    // Also skip any tick too close to the origin to ensure clear separation
+    // Origin suppression: skip the very first tick that's too close to X-axis
     GraphMargins mx = getMargins();
     float x_axis_y = 100.0f - mx.bottom;  // X-axis position in relative coordinates
-
-    // Track seen labels to ensure uniqueness
-    char seen_labels[10][16];  // Support up to 10 labels
-    int seen_count = 0;
 
     for (double tick_value = y_min + y_tick_increment_; tick_value <= y_max; tick_value += y_tick_increment_) {
         float y_screen = mapYToScreen(tick_value, y_min, y_max);
@@ -493,32 +489,10 @@ void TimeSeriesGraph::drawYTicks(RelativeDisplay* target) {
         uint16_t w, h;
         canvas->getTextBounds(label, 0, 0, &x1, &y1, &w, &h);
 
-        // Calculate where the bottom of the label will be
-        int32_t label_y_px = target->relativeToAbsoluteY(y_screen) + h / 2;
-        int32_t x_axis_y_px = target->relativeToAbsoluteY(x_axis_y);
-
-        // Skip ticks whose labels would overlap with the X-axis (origin suppression)
-        // Account for label height - bottom of label should be at least h pixels above X-axis
-        if (label_y_px + h >= x_axis_y_px) {
+        // Simple origin suppression: skip if tick is within 8% of X-axis
+        // This is less aggressive and prevents filtering all labels when data range is small
+        if (fabsf(y_screen - x_axis_y) < 8.0f) {
             continue;
-        }
-
-        // Skip duplicate labels (unique label constraint)
-        bool is_duplicate = false;
-        for (int i = 0; i < seen_count; i++) {
-            if (strcmp(seen_labels[i], label) == 0) {
-                is_duplicate = true;
-                break;
-            }
-        }
-        if (is_duplicate) {
-            continue;
-        }
-
-        // Record this label as seen
-        if (seen_count < 10) {
-            strncpy(seen_labels[seen_count], label, sizeof(seen_labels[0]));
-            seen_count++;
         }
 
         if (tick_label_position_ == TickLabelPosition::OUTSIDE) {
