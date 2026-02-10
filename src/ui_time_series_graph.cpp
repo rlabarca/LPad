@@ -437,7 +437,7 @@ void TimeSeriesGraph::drawYTicks(RelativeDisplay* target) {
         float y_screen = mapYToScreen(tick_value, y_min, y_max);
 
         char label[16];
-        snprintf(label, sizeof(label), "%.3f", tick_value);
+        format_3_sig_digits(tick_value, label, sizeof(label));
 
         int16_t x1, y1;
         uint16_t w, h;
@@ -483,6 +483,9 @@ void TimeSeriesGraph::drawXTicks(RelativeDisplay* target) {
     size_t num_points = data_.x_values.size();
     if (num_points < 2) return;
 
+    // Get the latest timestamp (last data point)
+    long latest_timestamp = data_.x_values[num_points - 1];
+
     size_t tick_interval = (num_points > 5) ? (num_points / 5) : 1;
 
     // Skip first tick near Y-axis
@@ -492,7 +495,10 @@ void TimeSeriesGraph::drawXTicks(RelativeDisplay* target) {
         char label[16];
         if (i < data_.x_values.size()) {
             long timestamp = data_.x_values[i];
-            snprintf(label, sizeof(label), "%ld", timestamp % 1000);
+            // Calculate minutes prior to latest data point
+            long seconds_prior = latest_timestamp - timestamp;
+            long minutes_prior = seconds_prior / 60;
+            snprintf(label, sizeof(label), "%ld", minutes_prior);
         } else {
             snprintf(label, sizeof(label), "%zu", i);
         }
