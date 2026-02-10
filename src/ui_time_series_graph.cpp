@@ -320,8 +320,11 @@ void TimeSeriesGraph::drawAxisTitles(RelativeDisplay* target) {
             int32_t x_axis_y_px = target->relativeToAbsoluteY(x_axis_y);
             title_y = x_axis_y_px + 6;  // 6 pixels below axis line
         } else {
-            // INSIDE mode: Position at bottom of screen (margin is tiny, so use screen edge)
-            title_y = height_ - h - 2;  // 2 pixels from bottom
+            // INSIDE mode: Position below axis line with proper spacing
+            // Axis is at (100% - bottom_margin), title goes below it
+            float x_axis_y = 100.0f - m.bottom;
+            int32_t x_axis_y_px = target->relativeToAbsoluteY(x_axis_y);
+            title_y = x_axis_y_px + h + 4;  // Position below axis with 4px gap
         }
 
         if (title_x < 0) title_x = 0;
@@ -543,16 +546,28 @@ void TimeSeriesGraph::drawXTicks(RelativeDisplay* target) {
 
     size_t tick_interval = (num_points > 5) ? (num_points / 5) : 1;
 
+    // Track previous label to skip duplicates (happens when data points are very close in time)
+    long prev_minutes_prior = -999;  // Initialize to impossible value
+
     // Skip first tick near Y-axis
     for (size_t i = tick_interval; i < num_points; i += tick_interval) {
         float x_screen = mapXToScreen(i, num_points);
 
         char label[16];
+        long minutes_prior = 0;
         if (i < data_.x_values.size()) {
             long timestamp = data_.x_values[i];
             // Calculate minutes prior to latest data point
             long seconds_prior = latest_timestamp - timestamp;
-            long minutes_prior = seconds_prior / 60;
+            minutes_prior = seconds_prior / 60;
+
+            // Skip this tick if it has the same minutes_prior as previous tick
+            // (happens when initial data points arrive at nearly same time)
+            if (minutes_prior == prev_minutes_prior) {
+                continue;
+            }
+            prev_minutes_prior = minutes_prior;
+
             snprintf(label, sizeof(label), "%ld", minutes_prior);
         } else {
             snprintf(label, sizeof(label), "%zu", i);
@@ -602,8 +617,13 @@ void TimeSeriesGraph::drawDataLine(RelativeDisplay* target) {
     double y_min = cached_y_min_;
     double y_max = cached_y_max_;
 
+    // If data range is very small (all values nearly identical), center them vertically
+    // instead of clamping to bottom. This handles initial data where all points may have
+    // the same value, making the line appear in the middle of the graph.
     if (y_max - y_min < 0.001) {
-        y_max = y_min + 1.0;
+        double center = y_min;
+        y_min = center - 0.5;
+        y_max = center + 0.5;
     }
 
     size_t point_count = data_.y_values.size();

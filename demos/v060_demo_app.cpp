@@ -280,6 +280,17 @@ void V060DemoApp::transitionToPhase(Phase newPhase) {
         case PHASE_STOCK_GRAPH:
             Serial.println("[V060DemoApp] Transitioning to PHASE_STOCK_GRAPH");
 
+            // Clear screen to background color immediately to avoid black screen delay
+            if (m_display != nullptr) {
+                const LPad::Theme* theme = LPad::ThemeManager::getInstance().getTheme();
+                Arduino_GFX* gfx = m_display->getGfx();
+                if (gfx != nullptr) {
+                    gfx->fillScreen(theme->colors.background);
+                    hal_display_flush();
+                    Serial.println("[V060DemoApp] Screen cleared to background color");
+                }
+            }
+
             // Create stock tracker for ^TNX (60 second refresh, 30 minute history)
             Serial.println("[V060DemoApp] Creating StockTracker for ^TNX...");
             m_stockTracker = new StockTracker("^TNX", 60, 30);
