@@ -142,14 +142,16 @@ bool StockTracker::fetchData() {
 
     // Update data series with ALL data points from Yahoo Finance API
     // API returns full day of 5-minute candles (~80-100 points during trading hours)
-    // DataItemTimeSeries will auto-manage capacity (keeps last 300 points max)
+    // CLEAR old data first to prevent appending duplicates (Yahoo API returns full day each time)
     size_t num_points = timestamps.size();
     if (num_points > 0) {
+        m_data_series.clear();  // Clear before adding new dataset
+
         for (size_t i = 0; i < num_points; i++) {
             m_data_series.addDataPoint(timestamps[i], prices[i]);
         }
 
-        Serial.printf("[StockTracker] Updated with %zu data points\n", num_points);
+        Serial.printf("[StockTracker] Updated with %zu data points (replaced previous data)\n", num_points);
         return true;
     }
 

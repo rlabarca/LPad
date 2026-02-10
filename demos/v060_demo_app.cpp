@@ -189,6 +189,7 @@ void V060DemoApp::render() {
 
         case PHASE_STOCK_GRAPH: {
             bool needsFullRender = !m_graphInitialRenderDone;
+            static bool backgroundDrawn = false;
 
             // Update graph data if available
             if (m_graph != nullptr && m_stockTracker != nullptr) {
@@ -203,6 +204,14 @@ void V060DemoApp::render() {
                         // Data changed - update graph and trigger full render
                         GraphData graphData = dataSeries->getGraphData();
                         m_graph->setData(graphData);
+
+                        // Draw background (axes + ticks) after first data load (needed for tick calculation)
+                        if (!backgroundDrawn) {
+                            m_graph->drawBackground();
+                            backgroundDrawn = true;
+                            Serial.println("[V060DemoApp] Background (axes + ticks) drawn with data-based tick marks");
+                        }
+
                         m_graph->drawData();
                         lastDataLength = currentDataLength;
                         needsFullRender = true;
@@ -310,7 +319,7 @@ void V060DemoApp::transitionToPhase(Phase newPhase) {
                         m_graph->setYAxisTitle("Value");
                         m_graph->setXAxisTitle("Mins Prior");
                         m_graph->setYTicks(0.002f);  // Set Y-axis tick spacing
-                        m_graph->drawBackground();
+                        // NOTE: drawBackground() will be called after first data load (needs data for tick calculation)
                         Serial.println("[V060DemoApp] TimeSeriesGraph initialized with INSIDE labels and axis titles");
                     }
                 }
