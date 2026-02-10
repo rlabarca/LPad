@@ -574,19 +574,23 @@ void TimeSeriesGraph::drawYTicks(RelativeDisplay* target) {
             int32_t label_x = target->relativeToAbsoluteX(tick_start) - w - 2;
             int32_t label_y = target->relativeToAbsoluteY(y_screen);
             if (label_x < 0) label_x = 0;
-            // Align text baseline with tick mark (built-in font baseline is ~3/4 down from top)
-            canvas->setCursor(label_x, label_y + 2);
+            // Vertically center label on tick mark: baseline needs to be offset by ~half height
+            // For built-in fonts, text height is approximately 8 pixels per size unit (size 2 = 16px)
+            int32_t text_center_offset = h / 2;
+            canvas->setCursor(label_x, label_y + text_center_offset);
             canvas->print(label);
         } else {
             // INSIDE: tick extends RIGHT into graph
             float tick_end = x_axis + theme_.tickLength;
             target->drawHorizontalLine(y_screen, x_axis, tick_end, theme_.tickColor);
 
-            // Label to RIGHT of tick (inside graph)
-            int32_t label_x = target->relativeToAbsoluteX(tick_end + 0.5f);
+            // Label to RIGHT of tick (inside graph), leaving small gap
+            int32_t label_x = target->relativeToAbsoluteX(tick_end) + 2;  // 2px gap after tick
             int32_t label_y = target->relativeToAbsoluteY(y_screen);
-            // Align text baseline with tick mark (built-in font baseline is ~3/4 down from top)
-            canvas->setCursor(label_x, label_y + 2);
+            // Vertically center label on tick mark: baseline needs to be offset by ~half height
+            // For built-in fonts, text height is approximately 8 pixels per size unit (size 2 = 16px)
+            int32_t text_center_offset = h / 2;
+            canvas->setCursor(label_x, label_y + text_center_offset);
             canvas->print(label);
         }
     }
