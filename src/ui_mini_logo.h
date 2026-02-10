@@ -50,8 +50,8 @@ private:
     RelativeDisplay* m_display;
     Corner m_corner;
 
-    // Logo size as percentage of screen height
-    static constexpr float LOGO_HEIGHT_PERCENT = 12.0f;
+    // Logo size as percentage of screen height (matches LogoScreen end size)
+    static constexpr float LOGO_HEIGHT_PERCENT = 10.0f;
 
     // Offset from corner edges in pixels
     static constexpr float CORNER_OFFSET_PX = 10.0f;

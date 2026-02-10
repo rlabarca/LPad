@@ -55,17 +55,20 @@ bool V060DemoApp::begin(RelativeDisplay* display) {
 
     m_display = display;
 
+    // Get theme colors
+    const LPad::Theme* theme = LPad::ThemeManager::getInstance().getTheme();
+
     // Clear display immediately
     Serial.println("[V060DemoApp] Clearing display at startup...");
     Arduino_GFX* gfx = m_display->getGfx();
     if (gfx != nullptr) {
-        gfx->fillScreen(0x0000);  // Clear to black
+        gfx->fillScreen(theme->colors.background);
         hal_display_flush();
     }
 
-    // Create LogoScreen with black background
+    // Create LogoScreen with theme background
     m_logoScreen = new LogoScreen();
-    if (!m_logoScreen->begin(m_display, 0x0000)) {
+    if (!m_logoScreen->begin(m_display, theme->colors.background)) {
         Serial.println("[V060DemoApp] ERROR: LogoScreen initialization failed");
         return false;
     }
@@ -174,21 +177,27 @@ void V060DemoApp::render() {
             break;
 
         case PHASE_STOCK_GRAPH: {
-            // Render graph
+            // Update graph data if available
             if (m_graph != nullptr && m_stockTracker != nullptr) {
-                // Get latest data from stock tracker
                 DataItemTimeSeries* dataSeries = m_stockTracker->getDataSeries();
 
                 if (dataSeries != nullptr && dataSeries->getLength() > 0) {
-                    // Get GraphData from DataItemTimeSeries
-                    GraphData graphData = dataSeries->getGraphData();
+                    // Check if data has been updated since last render
+                    static size_t lastDataLength = 0;
+                    size_t currentDataLength = dataSeries->getLength();
 
-                    // Update graph with new data
-                    m_graph->setData(graphData);
-                    m_graph->drawData();
+                    if (currentDataLength != lastDataLength) {
+                        // Data changed - update graph
+                        GraphData graphData = dataSeries->getGraphData();
+                        m_graph->setData(graphData);
+                        m_graph->drawData();
+                        lastDataLength = currentDataLength;
+
+                        Serial.printf("[V060DemoApp] Graph data updated: %zu points\n", currentDataLength);
+                    }
                 }
 
-                // Render graph to display
+                // Render graph (composites all layers)
                 m_graph->render();
 
                 // Update live indicator animation (draws on top of graph)
@@ -200,7 +209,7 @@ void V060DemoApp::render() {
                 m_miniLogo->render();
             }
 
-            // Render "DEMO v0.60" title in top-left corner
+            // Render "DEMO v0.60" title in top-left corner (every frame to prevent flashing)
             blitTitle();
 
             // Flush to display
@@ -282,6 +291,7 @@ void V060DemoApp::transitionToPhase(Phase newPhase) {
                         m_graph->setTickLabelPosition(TickLabelPosition::INSIDE);
                         m_graph->setYAxisTitle("Value");
                         m_graph->setXAxisTitle("Mins Prior");
+                        m_graph->setYTicks(0.002f);  // Set Y-axis tick spacing
                         m_graph->drawBackground();
                         Serial.println("[V060DemoApp] TimeSeriesGraph initialized with INSIDE labels and axis titles");
                     }
@@ -298,21 +308,24 @@ void V060DemoApp::transitionToPhase(Phase newPhase) {
 GraphTheme V060DemoApp::createStockGraphTheme() {
     GraphTheme theme = {};
 
-    // Solid dark grey background
-    theme.backgroundColor = 0x2104;  // Dark grey RGB565
+    // Get theme colors from ThemeManager
+    const LPad::Theme* lpadTheme = LPad::ThemeManager::getInstance().getTheme();
+
+    // Use theme background color
+    theme.backgroundColor = lpadTheme->colors.background;
     theme.useBackgroundGradient = false;
 
     // Solid white line
     theme.lineColor = RGB565_WHITE;
     theme.useLineGradient = false;
 
-    // Magenta axes
-    theme.axisColor = RGB565_MAGENTA;
+    // Use theme secondary color for axes
+    theme.axisColor = lpadTheme->colors.secondary;
 
     // Line and axis styling
     theme.lineThickness = 2.0f;
     theme.axisThickness = 0.8f;
-    theme.tickColor = RGB565_CYAN;
+    theme.tickColor = lpadTheme->colors.graph_ticks;
     theme.tickLength = 2.5f;
 
     // Solid green indicator
@@ -321,7 +334,6 @@ GraphTheme V060DemoApp::createStockGraphTheme() {
     theme.liveIndicatorPulseSpeed = 0.5f;
 
     // Font assignments from ThemeManager
-    const LPad::Theme* lpadTheme = LPad::ThemeManager::getInstance().getTheme();
     theme.tickFont = lpadTheme->fonts.smallest;
     theme.axisTitleFont = lpadTheme->fonts.ui;
 
@@ -392,8 +404,9 @@ void V060DemoApp::renderTitleToBuffer() {
         return;
     }
 
-    // Render title to canvas
-    canvas->fillScreen(0x0000);  // Black background
+    // Render title to canvas with chroma key for transparency
+    constexpr uint16_t CHROMA_KEY = 0x0001;
+    canvas->fillScreen(CHROMA_KEY);  // Chroma key background for transparency
     canvas->setFont(font);
     canvas->setTextColor(RGB565_WHITE);
     canvas->setCursor(0, -y1);  // Position at top-left of canvas
@@ -414,8 +427,9 @@ void V060DemoApp::blitTitle() {
         return;
     }
 
-    // Fast blit title buffer to display
-    hal_display_fast_blit(m_titleBufferX, m_titleBufferY,
-                         m_titleBufferWidth, m_titleBufferHeight,
-                         m_titleBuffer);
+    // Fast blit title buffer to display with transparency (chroma key 0x0001)
+    constexpr uint16_t CHROMA_KEY = 0x0001;
+    hal_display_fast_blit_transparent(m_titleBufferX, m_titleBufferY,
+                                      m_titleBufferWidth, m_titleBufferHeight,
+                                      m_titleBuffer, CHROMA_KEY);
 }

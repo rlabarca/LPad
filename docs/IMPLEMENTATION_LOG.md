@@ -2,6 +2,50 @@
 
 This document captures the "tribal knowledge" of the project: technical hurdles, why specific decisions were made, and what approaches were discarded.
 
+## [2026-02-09] Release v0.60 HIL Test Fixes
+
+### Problem
+During HIL testing of Release v0.60, multiple visual issues were discovered:
+1. Theme colors not being used (logo background wrong, graph colors wrong)
+2. Mini logo size mismatch (12% vs 10% height)
+3. Title text flashing with black background instead of transparent overlay
+4. Missing tick marks and labels on graph
+5. Graph not updating when StockTracker receives new data
+
+### Root Causes
+1. **Theme colors**: V060DemoApp hardcoded black (0x0000) instead of using ThemeManager
+2. **Mini logo size**: MiniLogo header defined 12% height vs LogoScreen's 10% end size
+3. **Title transparency**: Used `hal_display_fast_blit()` with black background instead of `hal_display_fast_blit_transparent()` with chroma key 0x0001
+4. **Graph ticks**: Missing `setYTicks()` call and not using theme colors properly
+5. **Graph updates**: Render loop didn't check for data changes from StockTracker background task
+
+### Solutions
+1. **Theme integration**: Get theme from ThemeManager in `begin()` and use `theme->colors.background` for logo screen and graph
+2. **Size consistency**: Changed MiniLogo `LOGO_HEIGHT_PERCENT` from 12.0f to 10.0f to match LogoScreen end size
+3. **Transparent title**: Changed `renderTitleToBuffer()` to fill with chroma key 0x0001 and `blitTitle()` to use `hal_display_fast_blit_transparent()`
+4. **Graph configuration**: Added `setYTicks(0.002f)` call and updated theme to use ThemeManager colors
+5. **Dynamic updates**: Added static tracking of last data length in render loop, triggers `setData()` + `drawData()` when data changes
+
+### Key Implementation Pattern: Transparent Overlay with Chroma Key
+This is the established pattern from v0.58 (see IMPLEMENTATION_LOG line 88):
+```cpp
+// Render title to buffer with chroma key
+constexpr uint16_t CHROMA_KEY = 0x0001;
+canvas->fillScreen(CHROMA_KEY);  // Transparent background
+canvas->setTextColor(RGB565_WHITE);
+canvas->print(titleText);
+
+// Fast blit with transparency
+hal_display_fast_blit_transparent(x, y, w, h, buffer, CHROMA_KEY);
+```
+
+### Key Lessons
+1. **Always use ThemeManager**: Don't hardcode colors - themes provide consistency across all components
+2. **Match component sizes**: When one component transitions to another (LogoScreen → MiniLogo), sizes must match exactly
+3. **Chroma key for overlays**: Text/UI elements drawn on top of animated content require transparent blitting to prevent black backgrounds
+4. **Graph needs explicit tick configuration**: Unlike v0.5 which set ticks in theme factory, v0.6 needs explicit `setYTicks()` call
+5. **Background tasks require polling**: StockTracker runs autonomously - render loop must check for changes and trigger updates
+
 ## [2026-02-07] TE Sync Eliminates Tearing on T-Display S3 AMOLED Plus
 
 ### Problem
@@ -314,11 +358,15 @@ Applied the same technique used in TimeSeriesGraph's live indicator:
 
 ### Updated Animation Parameters (2026-02-06)
 Re-implemented LogoScreen with corrected animation parameters per feature spec:
-- **End size**: 10% of screen height (was 5%)
-- **End position**: Top-right corner with dynamic 10px offset calculated from actual screen dimensions
-- **End anchor**: Top-left (0.0, 0.0) instead of bottom-right (1.0, 0.0)
-- **Dynamic calculation**: End position now calculated in `begin()` based on screen width/height instead of hardcoded constants
-- Formula: `posX = 100% - (10px / screenWidth * 100%)`, `posY = 100% - (10px / screenHeight * 100%)`
+- **End size**: 10% of screen height
+- **End anchor point**: Top-right corner of the logo image (1.0, 0.0)
+- **End position**: The anchor point (top-right of logo) is placed 10px from screen edges
+  - X position: `100% - (10px / screenWidth * 100%)` (10px from right edge)
+  - Y position: `0% + (10px / screenHeight * 100%)` (10px from top edge)
+- **Visual result**: The top-left corner of the logo ends up 10px down and to the left of the screen's top-right corner
+- **Dynamic calculation**: Position calculated in `begin()` based on actual screen dimensions
+
+**Critical clarification**: The anchor point (1.0, 0.0) means the top-right corner OF THE LOGO IMAGE, not the screen. This anchor point is positioned at the calculated screen coordinates, causing the rest of the logo to extend leftward and downward from that point.
 
 ### Key Lessons
 1. **Same solution for same problem**: Animated vector graphics require the same dirty-rect optimization as animated raster graphics
