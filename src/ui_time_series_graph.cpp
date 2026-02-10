@@ -119,6 +119,8 @@ bool TimeSeriesGraph::begin() {
         bg_canvas_ = nullptr;
         return false;
     }
+    // Clear canvas to prevent corrupted frame flash from uninitialized PSRAM
+    bg_canvas_->fillScreen(0x0000);
     Serial.println("  [OK] Background canvas created");
 
     // Allocate data canvas in PSRAM
@@ -132,6 +134,9 @@ bool TimeSeriesGraph::begin() {
         bg_canvas_ = nullptr;
         return false;
     }
+    // Clear canvas with chroma key to prevent corrupted frame flash
+    constexpr uint16_t CHROMA_KEY = 0x0001;
+    data_canvas_->fillScreen(CHROMA_KEY);
     Serial.println("  [OK] Data canvas created");
 
     // Create RelativeDisplay instances for each layer
@@ -297,7 +302,7 @@ void TimeSeriesGraph::drawAxisTitles(RelativeDisplay* target) {
     canvas->setTextSize(2);
     canvas->setTextColor(theme_.tickColor);
 
-    // X-axis title: centered horizontally below X-axis tick labels
+    // X-axis title: centered horizontally below X-axis line with proper padding
     if (x_axis_title_) {
         int16_t x1, y1;
         uint16_t w, h;
@@ -306,7 +311,14 @@ void TimeSeriesGraph::drawAxisTitles(RelativeDisplay* target) {
         float graph_center_x = m.left + (100.0f - m.left - m.right) / 2.0f;
         int32_t center_px = target->relativeToAbsoluteX(graph_center_x);
         int32_t title_x = center_px - static_cast<int32_t>(w) / 2;
-        int32_t title_y = height_ - h - 2;
+
+        // Position title below X-axis line with consistent padding
+        // X-axis is at y_max = 100% - m.bottom
+        float x_axis_y = 100.0f - m.bottom;
+        int32_t x_axis_y_px = target->relativeToAbsoluteY(x_axis_y);
+
+        // Add consistent padding below the axis line (6 pixels)
+        int32_t title_y = x_axis_y_px + 6;
 
         if (title_x < 0) title_x = 0;
         if (title_x + static_cast<int32_t>(w) >= width_) title_x = width_ - w - 1;
@@ -459,8 +471,18 @@ void TimeSeriesGraph::drawYTicks(RelativeDisplay* target) {
     canvas->setTextSize(2);
 
     // Draw tick marks and labels (skip first tick at y_min to avoid X-axis overlap)
+    // Also skip any tick too close to the origin to ensure clear separation
+    GraphMargins mx = getMargins();
+    float x_axis_y = 100.0f - mx.bottom;  // X-axis position in relative coordinates
+    constexpr float MIN_TICK_SPACING_FROM_ORIGIN = 5.0f;  // Minimum 5% spacing from origin
+
     for (double tick_value = y_min + y_tick_increment_; tick_value <= y_max; tick_value += y_tick_increment_) {
         float y_screen = mapYToScreen(tick_value, y_min, y_max);
+
+        // Skip ticks that are too close to the X-axis (origin suppression)
+        if (fabsf(y_screen - x_axis_y) < MIN_TICK_SPACING_FROM_ORIGIN) {
+            continue;
+        }
 
         char label[16];
         format_3_sig_digits(tick_value, label, sizeof(label));
@@ -582,8 +604,8 @@ void TimeSeriesGraph::drawDataLine(RelativeDisplay* target) {
 
     size_t point_count = data_.y_values.size();
 
-    // Calculate line thickness in pixels
-    float thickness_pct = theme_.lineThickness;  // Percentage
+    // Calculate line thickness in pixels (reduced by 10% for visual refinement)
+    float thickness_pct = theme_.lineThickness * 0.9f;  // Reduce by 10%
     int32_t thickness_px = static_cast<int32_t>((thickness_pct / 100.0f) * ((width_ + height_) / 2.0f));
     if (thickness_px < 1) thickness_px = 1;
     int32_t half_thickness = thickness_px / 2;
