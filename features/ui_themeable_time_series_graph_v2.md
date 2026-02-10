@@ -15,13 +15,13 @@ This feature updates the `TimeSeriesGraph` component with a new look and feel, a
 - **Then** the following styling rules should be applied:
   - The graph background should be a solid color matching the logo screen background.
   - All lines and indicators should be solid colors from the theme (no gradients).
-  - Axis labels should be drawn *inside* the graph area.
-  - The Y-axis should have labels with a maximum of 3 significant digits.
+  - Axis labels should be drawn *inside* the graph area, slightly offset from the axes.
+  - The Y-axis should have labels with a maximum of 3 significant digits, dynamically adjusted to the data range.
   - The X-axis labels should represent minutes prior to the latest data point (e.g., "0", "3", "6").
-  - The number and spacing of X-axis ticks and labels should be dynamically chosen to fit the screen width without overlapping.
-  - The Y-axis labels should be dynamically calculated based on the min/max values of the current data, and the graph's Y-values should align perfectly with these labels.
-  - The Y-axis should have a title "Value".
-  - The X-axis should have a title "Mins Prior".
+  - The number and spacing of X-axis ticks and labels should be dynamically chosen to fit the screen width without overlapping, ensuring they represent logical time intervals.
+  - The Y-axis should have a title "Value" rendered vertically.
+  - The X-axis should have a title "Mins Prior" rendered horizontally.
+  - The graph must maintain a "Live" indicator (pulsing circle) at the latest data point.
 
 ### Scenario: Dynamic Axis Labels
 

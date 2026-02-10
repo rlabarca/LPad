@@ -22,7 +22,7 @@ This feature defines a data provider that fetches, parses, and manages time-seri
 - **Given** a `StockTracker` that has successfully performed an initial data fetch.
 - **When** the 1-minute refresh interval has elapsed.
 - **Then** a new HTTP GET request is made to the Yahoo Finance API.
-- **And** the new data points from the response are added to the `DataItemTimeSeries`, pushing out the oldest data points.
+- **And** the `DataItemTimeSeries` is cleared and repopulated with the full set of data points from the response (maintaining the 1-day range).
 - **And** the `updated_at` timestamp of the `DataItemTimeSeries` is updated.
 
 ### Scenario: Threaded Operation
@@ -38,15 +38,14 @@ This feature defines a data provider that fetches, parses, and manages time-seri
   - This class will be responsible for managing the data fetching and parsing.
   - It should be configurable with a stock symbol and a refresh interval. For this release, these will be hardcoded to `^TNX` and 1 minute, respectively.
   - It will use the `Network` HAL for HTTP requests.
-  - The HTTP request and JSON parsing should occur in a separate thread (or using an asynchronous callback mechanism) to avoid blocking the main thread.
+  - The HTTP request and JSON parsing should occur in a separate FreeRTOS task (or using an asynchronous callback mechanism) to avoid blocking the main thread.
   - It will own the `DataItemTimeSeries` instance.
   - It should provide a thread-safe method to get a pointer to the `DataItemTimeSeries` instance.
 
 - **Data Parsing:**
-  - A new JSON parsing implementation is required that can handle the Yahoo Finance API response format. The previous `YahooChartParser` is obsolete.
+  - A new JSON parsing implementation is required that can handle the Yahoo Finance API response format.
   - The parser should extract the timestamps and closing prices from the JSON response.
-
-- **Thread Safety:**
+  - Because the API returns a full day of data, the `StockTracker` should clear the `DataItemTimeSeries` before repopulating it with the new dataset to avoid duplication and ensure the graph reflects the latest state.
   - The `DataItemTimeSeries` needs to be protected by a mutex or similar synchronization mechanism to ensure that the UI thread does not read the data while the network thread is writing to it. The `DataItemTimeSeries` should be extended to include this functionality.
 
 ## HAL Dependencies

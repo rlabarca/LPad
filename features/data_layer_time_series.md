@@ -12,6 +12,7 @@ This feature implements `DataItemTimeSeries`, a concrete subclass of `DataItem` 
 *   **Fixed Capacity:** The maximum number of data points (`max_length`) is defined at construction and cannot change (to avoid expensive reallocations).
 *   **Performance:** Adding a data point must be $O(1)$ or very close to it. Recalculating min/max can be optimized but must ensure correctness.
 *   **Data Integrity:** The order of data points must strictly follow insertion order (oldest -> newest).
+*   **Thread Safety:** The data structure must be thread-safe to allow concurrent access from the data provider thread (writing) and the UI thread (reading). This should be implemented using a mutex.
 
 ## Scenarios
 
