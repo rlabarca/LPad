@@ -2,7 +2,7 @@
 
 > Label: "UI Time Series Graph v2"
 > Category: "UI Framework"
-> Prerequisite: features/ui_base.md
+> Prerequisite: features/ui_themeable_time_series_graph.md
 
 This feature updates the `TimeSeriesGraph` component with a new look and feel, as specified for the v0.60 release.
 

@@ -10,8 +10,10 @@ graph TD
 
     subgraph Application_Layer ["<div class='subgraph-title'>Application Layer</div><div style='height: 150px;'></div>"]
         direction TB
+        RELEASE_v0_60_initial_stock_tracker("**Release v0.60**<br/><small>RELEASE_v0.60_initial_stock_tracker.md</small>"):::app
         app_animation_ticker("**Animation Ticker Engine**<br/><small>app_animation_ticker.md</small>"):::app
         app_config_system("**Config Injection System**<br/><small>app_config_system.md</small>"):::app
+        demo_release_0_60("**Demo v0.60**<br/><small>demo_release_0.60.md</small>"):::app
         ui_logo_screen("**Logo Splash Screen**<br/><small>ui_logo_screen.md</small>"):::app
     end
 
@@ -24,6 +26,7 @@ graph TD
     subgraph Data_Layer ["<div class='subgraph-title'>Data Layer</div><div style='height: 150px;'></div>"]
         direction TB
         data_layer_core("**Base Data Model**<br/><small>data_layer_core.md</small>")
+        data_layer_stock_tracker("**Data Stock Tracker**<br/><small>data_layer_stock_tracker.md</small>")
         data_layer_time_series("**Time Series Data Item**<br/><small>data_layer_time_series.md</small>")
     end
 
@@ -65,8 +68,10 @@ graph TD
         ui_base("**Base UI Elements**<br/><small>ui_base.md</small>"):::ui
         ui_connectivity_status_screen("**Connectivity Status Screen**<br/><small>ui_connectivity_status_screen.md</small>"):::ui
         ui_live_indicator("**Animated Live Indicator**<br/><small>ui_live_indicator.md</small>"):::ui
+        ui_mini_logo("**UI Mini Logo**<br/><small>ui_mini_logo.md</small>"):::ui
         ui_theme_support("**Theme Support**<br/><small>ui_theme_support.md</small>"):::ui
         ui_themeable_time_series_graph("**Themeable Graph**<br/><small>ui_themeable_time_series_graph.md</small>"):::ui
+        ui_themeable_time_series_graph_v2("**UI Time Series Graph v2**<br/><small>ui_themeable_time_series_graph_v2.md</small>"):::ui
     end
 
     %% Relationships
@@ -95,11 +100,14 @@ graph TD
     ui_vector_assets --> RELEASE_v0_5_display_drawing_ui_base
     ui_logo_screen --> RELEASE_v0_5_display_drawing_ui_base
     demo_release_0_5 --> RELEASE_v0_5_display_drawing_ui_base
+    RELEASE_v0_58_dynamic_visuals --> RELEASE_v0_60_initial_stock_tracker
     hal_spec_timer --> app_animation_ticker
     hal_core_contract --> data_layer_core
+    data_layer_time_series --> data_layer_stock_tracker
     data_layer_core --> data_layer_time_series
     data_layer_time_series --> demo_release_0_58
     demo_release_0_55 --> demo_release_0_58
+    RELEASE_v0_60_initial_stock_tracker --> demo_release_0_60
     hal_spec_display --> display_canvas_drawing
     hal_spec_display --> display_esp32s3_amoled
     hal_spec_display --> display_relative_drawing
@@ -112,5 +120,7 @@ graph TD
     ui_base --> ui_connectivity_status_screen
     ui_vector_assets --> ui_logo_screen
     app_animation_ticker --> ui_logo_screen
+    ui_logo_screen --> ui_mini_logo
     display_canvas_drawing --> ui_theme_support
+    ui_themeable_time_series_graph --> ui_themeable_time_series_graph_v2
     display_relative_drawing --> ui_vector_assets

@@ -199,12 +199,18 @@ class GraphHandler(http.server.SimpleHTTPRequestHandler):
             super().do_GET()
 
 if __name__ == "__main__":
-    print(f"Starting Software Map Server at http://localhost:{PORT}")
-    os.chdir(os.path.dirname(__file__))
-    socketserver.TCPServer.allow_reuse_address = True
-    with socketserver.TCPServer(("", PORT), GraphHandler) as httpd:
-        try:
-            httpd.serve_forever()
-        except KeyboardInterrupt:
-            pass
-        httpd.server_close()
+    import sys
+    if "--output-only" in sys.argv:
+        print("Generating graph and updating files without starting server...")
+        update_readme_and_mmd()
+        print("Done.")
+    else:
+        print(f"Starting Software Map Server at http://localhost:{PORT}")
+        os.chdir(os.path.dirname(__file__))
+        socketserver.TCPServer.allow_reuse_address = True
+        with socketserver.TCPServer(("", PORT), GraphHandler) as httpd:
+            try:
+                httpd.serve_forever()
+            except KeyboardInterrupt:
+                pass
+            httpd.server_close()

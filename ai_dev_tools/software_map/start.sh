@@ -10,11 +10,18 @@ LOG_FILE=".pio/software_map.log"
 
 mkdir -p .pio
 
+if [ "$1" == "update" ]; then
+    echo "Generating graph..."
+    python3 "$SCRIPT_PATH" --output-only
+    echo "Graph updated."
+    exit 0
+fi
+
 # Restart if already running
 PID=$(lsof -Pi :$PORT -sTCP:LISTEN -t)
 if [ -n "$PID" ]; then
     echo "Software Map server is already running (PID: $PID). Restarting..."
-    ./scripts/software_map/stop.sh
+    ./ai_dev_tools/software_map/stop.sh
     sleep 1 # Wait for port to clear
 fi
 
