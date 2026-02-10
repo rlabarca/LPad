@@ -4,7 +4,8 @@
 # Usage: ./ai_dev_tools/software_map/start.sh
 
 PORT=8085
-# Script path relative to project root (assuming we run from project root)
+# Script paths relative to project root
+SERVE_SCRIPT="ai_dev_tools/software_map/serve.py"
 GENERATE_SCRIPT="ai_dev_tools/software_map/generate_tree.py"
 LOG_FILE=".pio/software_map.log"
 
@@ -25,16 +26,13 @@ if [ -n "$PID" ]; then
     sleep 1 # Wait for port to clear
 fi
 
-if [ ! -f "$GENERATE_SCRIPT" ]; then
-    echo "Error: $GENERATE_SCRIPT not found. Make sure you are running from the project root."
+if [ ! -f "ai_dev_tools/software_map/serve.py" ]; then
+    echo "Error: ai_dev_tools/software_map/serve.py not found. Make sure you are running from the project root."
     exit 1
 fi
 
 echo "Starting Software Map server in background..."
-# Start a simple HTTP server to host the interactive map
-# Note: generate_tree.py is now separate from the serving logic
-cd ai_dev_tools/software_map
-python3 -m http.server $PORT > "../../$LOG_FILE" 2>&1 &
+python3 ai_dev_tools/software_map/serve.py > "$LOG_FILE" 2>&1 &
 
 # Store PID
 PID=$!

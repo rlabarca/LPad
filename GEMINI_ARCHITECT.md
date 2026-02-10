@@ -79,8 +79,8 @@ We maintain a strict separation of concerns in our documentation to ensure consi
 When a full context clear is performed (e.g., the chat history is lost, or a fresh agent instance starts without prior context), follow these steps to re-synchronize the project and establish the correct working environment:
 
 1.  **Read `GEMINI_ARCHITECT.md`:** Start by thoroughly reading this document to re-establish your role, core mandates, and the project's architectural principles.
-2.  **Review `CLAUDE.md`:** Understand the specific instructions and protocols for the Builder agent.
-3.  **Review `features/*.md`:** Understand the current desired state of the project by reading all feature files.
+2.  **Establish Dependency Context (CRITICAL):** Run `./ai_dev_tools/software_map/generate_tree.py`. This is the most efficient way to understand the project's current state and feature hierarchy.
+3.  **Review `CLAUDE.md`:** Understand the specific instructions and protocols for the Builder agent.
 4.  **Review `docs/ARCHITECTURE.md`:** Re-familiarize yourself with the system's constraints, patterns, and invariants.
 5.  **Clean Project State:**
     *   Run `pio run -t clean` to remove all build artifacts.
