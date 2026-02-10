@@ -15,10 +15,12 @@ This feature updates the `TimeSeriesGraph` component with a new look and feel, a
 - **Then** the following styling rules should be applied:
   - The graph background should be a solid color matching the logo screen background.
   - All lines and indicators should be solid colors from the theme (no gradients).
-  - Axis labels should be drawn *inside* the graph area, slightly offset from the axes.
+  - Axis labels should be drawn *inside* the graph area, with a consistent padding offset such that they NEVER overlap or touch the axis lines.
+  - The component MUST autonomously manage tick and label placement to prevent collisions between labels or with the axis lines.
+  - Origin Clearance: Labels for both X and Y axes MUST NOT be rendered at the origin to avoid mutual overlap and axis line interference.
   - The Y-axis should have labels with a maximum of 3 significant digits, dynamically adjusted to the data range.
   - The X-axis labels should represent minutes prior to the latest data point (e.g., "0", "3", "6").
-  - The number and spacing of X-axis ticks and labels should be dynamically chosen to fit the screen width without overlapping, ensuring they represent logical time intervals.
+  - The number and spacing of X-axis ticks and labels should be dynamically chosen by the component to fit the screen width without overlapping, ensuring they represent logical time intervals.
   - The Y-axis should have a title "Value" rendered vertically.
   - The X-axis should have a title "Mins Prior" rendered horizontally.
   - The graph must maintain a "Live" indicator (pulsing circle) at the latest data point.
