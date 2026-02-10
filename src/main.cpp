@@ -26,8 +26,11 @@
 #elif defined(DEMO_V058)
     #include "../demos/demo_v058_entry.h"
     #define DEMO_NAME "v0.58"
+#elif defined(DEMO_V060)
+    #include "../demos/demo_v060_entry.h"
+    #define DEMO_NAME "v0.60"
 #else
-    #error "No demo entry point defined. Set -DDEMO_V05, -DDEMO_V055, or -DDEMO_V058 in platformio.ini"
+    #error "No demo entry point defined. Set -DDEMO_V05, -DDEMO_V055, -DDEMO_V058, or -DDEMO_V060 in platformio.ini"
 #endif
 
 /**
