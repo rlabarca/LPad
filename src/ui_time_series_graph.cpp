@@ -302,7 +302,7 @@ void TimeSeriesGraph::drawAxisTitles(RelativeDisplay* target) {
     canvas->setTextSize(2);
     canvas->setTextColor(theme_.tickColor);
 
-    // X-axis title: centered horizontally below X-axis line with proper padding
+    // X-axis title: centered horizontally, positioned to avoid axis line overlap
     if (x_axis_title_) {
         int16_t x1, y1;
         uint16_t w, h;
@@ -312,18 +312,22 @@ void TimeSeriesGraph::drawAxisTitles(RelativeDisplay* target) {
         int32_t center_px = target->relativeToAbsoluteX(graph_center_x);
         int32_t title_x = center_px - static_cast<int32_t>(w) / 2;
 
-        // Position title below X-axis line with consistent padding
-        // X-axis is at y_max = 100% - m.bottom
-        float x_axis_y = 100.0f - m.bottom;
-        int32_t x_axis_y_px = target->relativeToAbsoluteY(x_axis_y);
-
-        // Add consistent padding below the axis line (6 pixels)
-        int32_t title_y = x_axis_y_px + 6;
+        // Position title based on label mode to ensure it doesn't overlap axis line
+        int32_t title_y;
+        if (tick_label_position_ == TickLabelPosition::OUTSIDE) {
+            // OUTSIDE mode: Position in bottom margin below axis line
+            float x_axis_y = 100.0f - m.bottom;
+            int32_t x_axis_y_px = target->relativeToAbsoluteY(x_axis_y);
+            title_y = x_axis_y_px + 6;  // 6 pixels below axis line
+        } else {
+            // INSIDE mode: Position at bottom of screen (margin is tiny, so use screen edge)
+            title_y = height_ - h - 2;  // 2 pixels from bottom
+        }
 
         if (title_x < 0) title_x = 0;
         if (title_x + static_cast<int32_t>(w) >= width_) title_x = width_ - w - 1;
-        if (title_y >= height_) title_y = height_ - 1;
         if (title_y < 0) title_y = 0;
+        if (title_y + static_cast<int32_t>(h) >= height_) title_y = height_ - h - 1;
 
         canvas->setCursor(title_x, title_y);
         canvas->print(x_axis_title_);
@@ -474,15 +478,13 @@ void TimeSeriesGraph::drawYTicks(RelativeDisplay* target) {
     // Also skip any tick too close to the origin to ensure clear separation
     GraphMargins mx = getMargins();
     float x_axis_y = 100.0f - mx.bottom;  // X-axis position in relative coordinates
-    constexpr float MIN_TICK_SPACING_FROM_ORIGIN = 5.0f;  // Minimum 5% spacing from origin
+
+    // Track seen labels to ensure uniqueness
+    char seen_labels[10][16];  // Support up to 10 labels
+    int seen_count = 0;
 
     for (double tick_value = y_min + y_tick_increment_; tick_value <= y_max; tick_value += y_tick_increment_) {
         float y_screen = mapYToScreen(tick_value, y_min, y_max);
-
-        // Skip ticks that are too close to the X-axis (origin suppression)
-        if (fabsf(y_screen - x_axis_y) < MIN_TICK_SPACING_FROM_ORIGIN) {
-            continue;
-        }
 
         char label[16];
         format_3_sig_digits(tick_value, label, sizeof(label));
@@ -490,6 +492,34 @@ void TimeSeriesGraph::drawYTicks(RelativeDisplay* target) {
         int16_t x1, y1;
         uint16_t w, h;
         canvas->getTextBounds(label, 0, 0, &x1, &y1, &w, &h);
+
+        // Calculate where the bottom of the label will be
+        int32_t label_y_px = target->relativeToAbsoluteY(y_screen) + h / 2;
+        int32_t x_axis_y_px = target->relativeToAbsoluteY(x_axis_y);
+
+        // Skip ticks whose labels would overlap with the X-axis (origin suppression)
+        // Account for label height - bottom of label should be at least h pixels above X-axis
+        if (label_y_px + h >= x_axis_y_px) {
+            continue;
+        }
+
+        // Skip duplicate labels (unique label constraint)
+        bool is_duplicate = false;
+        for (int i = 0; i < seen_count; i++) {
+            if (strcmp(seen_labels[i], label) == 0) {
+                is_duplicate = true;
+                break;
+            }
+        }
+        if (is_duplicate) {
+            continue;
+        }
+
+        // Record this label as seen
+        if (seen_count < 10) {
+            strncpy(seen_labels[seen_count], label, sizeof(seen_labels[0]));
+            seen_count++;
+        }
 
         if (tick_label_position_ == TickLabelPosition::OUTSIDE) {
             // Tick extends LEFT from Y-axis
@@ -604,8 +634,8 @@ void TimeSeriesGraph::drawDataLine(RelativeDisplay* target) {
 
     size_t point_count = data_.y_values.size();
 
-    // Calculate line thickness in pixels (reduced by 10% for visual refinement)
-    float thickness_pct = theme_.lineThickness * 0.9f;  // Reduce by 10%
+    // Calculate line thickness in pixels (reduced by 19% for visual refinement)
+    float thickness_pct = theme_.lineThickness * 0.81f;  // Reduce by 19% (0.9 * 0.9)
     int32_t thickness_px = static_cast<int32_t>((thickness_pct / 100.0f) * ((width_ + height_) / 2.0f));
     if (thickness_px < 1) thickness_px = 1;
     int32_t half_thickness = thickness_px / 2;
@@ -729,7 +759,7 @@ void TimeSeriesGraph::drawLiveIndicator() {
     // Calculate 1 pixel in relative percentage
     float avg_dimension = (static_cast<float>(width_) + static_cast<float>(height_)) / 2.0f;
     float one_pixel_pct = (1.0f / avg_dimension) * 100.0f;
-    float max_radius = 6.0f;  // Maximum radius in relative %
+    float max_radius = 3.0f;  // Maximum radius in relative % (half of previous 6.0)
 
     // Pulse from 1 pixel to max_radius
     float radius = one_pixel_pct + (max_radius - one_pixel_pct) * pulse_factor;

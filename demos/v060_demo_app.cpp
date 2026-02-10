@@ -280,15 +280,8 @@ void V060DemoApp::transitionToPhase(Phase newPhase) {
         case PHASE_STOCK_GRAPH:
             Serial.println("[V060DemoApp] Transitioning to PHASE_STOCK_GRAPH");
 
-            // Clear screen
-            if (m_display != nullptr) {
-                Arduino_GFX* gfx = m_display->getGfx();
-                if (gfx != nullptr) {
-                    Serial.println("[V060DemoApp] Clearing screen...");
-                    gfx->fillScreen(0x0000);  // Clear to black
-                    hal_display_flush();
-                }
-            }
+            // Do NOT clear screen - let the graph overwrite the WiFi test display
+            // This prevents a black flash between phases
 
             // Create stock tracker for ^TNX (60 second refresh, 30 minute history)
             Serial.println("[V060DemoApp] Creating StockTracker for ^TNX...");
