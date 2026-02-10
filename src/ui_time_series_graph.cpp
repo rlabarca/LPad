@@ -467,6 +467,9 @@ void TimeSeriesGraph::drawYTicks(RelativeDisplay* target) {
     double y_min = *std::min_element(data_.y_values.begin(), data_.y_values.end());
     double y_max = *std::max_element(data_.y_values.begin(), data_.y_values.end());
 
+    Serial.printf("[Graph] Y-axis range: min=%.6f, max=%.6f, range=%.6f, tick_increment=%.6f\n",
+                  y_min, y_max, y_max - y_min, y_tick_increment_);
+
     if (y_max - y_min < 0.001) return;
 
     GraphMargins m = getMargins();
@@ -494,11 +497,16 @@ void TimeSeriesGraph::drawYTicks(RelativeDisplay* target) {
 
     // First pass: check if default formatting produces duplicates
     std::vector<std::pair<double, float>> all_ticks;  // Store tick_value and y_screen
+    int suppressed_count = 0;
     for (double tick_value = y_min + y_tick_increment_; tick_value <= y_max; tick_value += y_tick_increment_) {
         float y_screen = mapYToScreen(tick_value, y_min, y_max);
-        if (fabsf(y_screen - x_axis_y) < 8.0f) continue;  // Origin suppression
+        if (fabsf(y_screen - x_axis_y) < 8.0f) {
+            suppressed_count++;
+            continue;  // Origin suppression
+        }
         all_ticks.push_back({tick_value, y_screen});
     }
+    Serial.printf("[Graph] Generated %zu Y-ticks (suppressed %d near X-axis)\n", all_ticks.size(), suppressed_count);
 
     // Check for duplicates in formatted labels
     std::vector<std::string> test_labels;
@@ -509,14 +517,19 @@ void TimeSeriesGraph::drawYTicks(RelativeDisplay* target) {
     }
 
     // If duplicates found, increase tick skip factor to reduce density
+    bool found_duplicates = false;
     for (size_t i = 0; i < test_labels.size(); i++) {
         for (size_t j = i + 1; j < test_labels.size(); j++) {
             if (test_labels[i] == test_labels[j]) {
                 tick_skip = 2;  // Show every 2nd tick
+                found_duplicates = true;
                 break;
             }
         }
         if (tick_skip > 1) break;
+    }
+    if (found_duplicates) {
+        Serial.printf("[Graph] Duplicate labels detected, tick_skip increased to %d\n", tick_skip);
     }
 
     // Second pass: render ticks with adjusted density

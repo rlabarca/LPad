@@ -197,13 +197,22 @@ void V060DemoApp::render() {
 
                 if (dataSeries != nullptr && dataSeries->getLength() > 0) {
                     // Check if data has been updated since last render
-                    static size_t lastDataLength = 0;
-                    size_t currentDataLength = dataSeries->getLength();
+                    // Use the timestamp of the last data point to detect updates (length may stay constant with rolling window)
+                    static long lastTimestamp = 0;
+                    GraphData graphData = dataSeries->getGraphData();
+                    long currentTimestamp = graphData.x_values.empty() ? 0 : graphData.x_values.back();
 
-                    if (currentDataLength != lastDataLength) {
+                    if (currentTimestamp != lastTimestamp) {
                         // Data changed - update graph and trigger full render
-                        GraphData graphData = dataSeries->getGraphData();
                         m_graph->setData(graphData);
+
+                        // Calculate and print data range for debugging
+                        if (!graphData.y_values.empty()) {
+                            double y_min = *std::min_element(graphData.y_values.begin(), graphData.y_values.end());
+                            double y_max = *std::max_element(graphData.y_values.begin(), graphData.y_values.end());
+                            Serial.printf("[V060DemoApp] Data range: Y min=%.6f, max=%.6f, range=%.6f\n",
+                                          y_min, y_max, y_max - y_min);
+                        }
 
                         // Draw background (axes + ticks) after first data load (needed for tick calculation)
                         if (!backgroundDrawn) {
@@ -213,10 +222,11 @@ void V060DemoApp::render() {
                         }
 
                         m_graph->drawData();
-                        lastDataLength = currentDataLength;
+                        lastTimestamp = currentTimestamp;
                         needsFullRender = true;  // NOW we have content to render
 
-                        Serial.printf("[V060DemoApp] Graph data updated: %zu points\n", currentDataLength);
+                        Serial.printf("[V060DemoApp] Graph data updated: %zu points, latest timestamp=%ld\n",
+                                      graphData.y_values.size(), currentTimestamp);
                     }
                 }
 
