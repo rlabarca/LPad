@@ -344,7 +344,7 @@ GraphTheme V060DemoApp::createStockGraphTheme() {
     theme.lineThickness = 2.0f;
     theme.axisThickness = 0.8f;
     theme.tickColor = lpadTheme->colors.graph_ticks;
-    theme.tickLength = 2.5f;
+    theme.tickLength = 5.0f;  // Increased from 2.5 for better visibility
 
     // Live indicator: use theme accent color instead of hardcoded green
     theme.liveIndicatorGradient.color_stops[0] = lpadTheme->colors.accent;

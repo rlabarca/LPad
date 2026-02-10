@@ -24,7 +24,7 @@ StockTracker::StockTracker(const std::string& symbol,
     : m_symbol(symbol)
     , m_refresh_interval_seconds(refresh_interval_seconds)
     , m_history_minutes(history_minutes)
-    , m_data_series(symbol, (history_minutes * 60) / 300)  // 5-minute intervals, so history_minutes*60/300 data points
+    , m_data_series(symbol, 300)  // Capacity for full day: 24h * 12 (5-min intervals) = 288 points
     , m_is_running(false)
 #ifdef ARDUINO
     , m_task_handle(nullptr)
@@ -140,19 +140,16 @@ bool StockTracker::fetchData() {
 
     free(response_buffer);
 
-    // Update data series with new data points
-    // Only add the last N minutes of data as specified by m_history_minutes
+    // Update data series with ALL data points from Yahoo Finance API
+    // API returns full day of 5-minute candles (~80-100 points during trading hours)
+    // DataItemTimeSeries will auto-manage capacity (keeps last 300 points max)
     size_t num_points = timestamps.size();
     if (num_points > 0) {
-        // Calculate how many points to keep (30 minutes = 6 points at 5-minute intervals)
-        size_t points_to_keep = (m_history_minutes / 5);
-        size_t start_idx = (num_points > points_to_keep) ? (num_points - points_to_keep) : 0;
-
-        for (size_t i = start_idx; i < num_points; i++) {
+        for (size_t i = 0; i < num_points; i++) {
             m_data_series.addDataPoint(timestamps[i], prices[i]);
         }
 
-        Serial.printf("[StockTracker] Updated with %d data points\n", num_points - start_idx);
+        Serial.printf("[StockTracker] Updated with %zu data points\n", num_points);
         return true;
     }
 
