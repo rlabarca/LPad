@@ -172,16 +172,3 @@ This protocol outlines how to direct a fresh Builder (Claude) instance to constr
     *   **Verification:** Tests pass, confirming relative coordinates map to correct pixel coordinates. The Builder MUST commit the result.
 
 This dependency-driven prompting ensures the project is built layer by layer, in a verifiable and architecturally sound manner.
-
----
-
-**CURRENT CONTEXT:**
-- **Process Refined:** The Builder's protocol (`CLAUDE.md`) has been significantly refactored into an "Unbreakable Implementation & Commit Protocol," a step-by-step checklist to improve reliability. A full audit confirmed alignment between `CLAUDE.md`, `ARCHITECTURE.md`, and this document.
-- **HAL Architecture:** Fully refactored into a domain-segmented structure (`hal_core_contract.md`, `hal_spec_display.md`, `hal_spec_timer.md`, `hal_spec_network.md`).
-- **Data Layer Established:** Core `DataItem` and `DataItemTimeSeries` classes provide a sliding-window FIFO model for live telemetry.
-- **Milestone v0.58 [DONE]:** Dynamic Data Layer, logical X-axis sequencing, and live graph updates (3s interval) fully implemented and verified.
-- **Milestone v0.55 [DONE]:** Connectivity Smoke Test, `config.json` injection system, and Network HAL are fully implemented and verified.
-- **Milestone v0.5 [DONE]:** Core visual engine and UI base verified.
-- **System State:** Clean state. All feature files in `features/` are currently synchronized with their implementations. v0.58 is the current active demo.
-- **Tooling Upgrade:** The project's dev tools have been fully refactored into `ai_dev_tools/`. The legacy `cdd.sh` script has been replaced by a new Python-based **CDD Web Monitor** (accessible via `ai_dev_tools/cdd/start.sh`) which runs alongside the interactive **Software Map** (viz + doc sync). Legacy scripts have been removed.
-- **Project Readiness:** The system is ready for the next phase (v0.6: Official Data Layer/Storage).
