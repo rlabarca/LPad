@@ -10,6 +10,7 @@
 #define HAL_NETWORK_H
 
 #include <stdbool.h>
+#include <stddef.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -54,6 +55,19 @@ hal_network_status_t hal_network_get_status(void);
  * @return true if the host responded, false otherwise
  */
 bool hal_network_ping(const char* host);
+
+/**
+ * @brief Performs an HTTP GET request and returns the response body
+ *
+ * Executes a blocking HTTP GET request to the specified URL and stores
+ * the response body in the provided buffer.
+ *
+ * @param url The complete URL to fetch (e.g., "https://api.example.com/data")
+ * @param response_buffer Buffer to store the response body (null-terminated string)
+ * @param buffer_size Size of the response buffer in bytes
+ * @return true if the request was successful (HTTP 200), false otherwise
+ */
+bool hal_network_http_get(const char* url, char* response_buffer, size_t buffer_size);
 
 #ifdef __cplusplus
 }

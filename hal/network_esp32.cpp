@@ -95,3 +95,48 @@ bool hal_network_ping(const char* host) {
     // We just want to know if we can reach the internet
     return (httpCode > 0);
 }
+
+bool hal_network_http_get(const char* url, char* response_buffer, size_t buffer_size) {
+    if (url == nullptr || response_buffer == nullptr || buffer_size == 0) {
+        Serial.println("[hal_network_http_get] Invalid parameters");
+        return false;
+    }
+
+    // Check if we're connected
+    if (WiFi.status() != WL_CONNECTED) {
+        Serial.println("[hal_network_http_get] WiFi not connected");
+        return false;
+    }
+
+    HTTPClient http;
+    http.begin(url);
+    http.setTimeout(10000);  // 10 second timeout
+
+    Serial.printf("[hal_network_http_get] Fetching: %s\n", url);
+
+    int httpCode = http.GET();
+
+    if (httpCode == HTTP_CODE_OK) {
+        String payload = http.getString();
+
+        // Check if response fits in buffer
+        if (payload.length() >= buffer_size) {
+            Serial.printf("[hal_network_http_get] Response too large: %d bytes (buffer: %d)\n",
+                         payload.length(), buffer_size);
+            http.end();
+            return false;
+        }
+
+        // Copy response to buffer
+        strncpy(response_buffer, payload.c_str(), buffer_size - 1);
+        response_buffer[buffer_size - 1] = '\0';  // Ensure null termination
+
+        Serial.printf("[hal_network_http_get] Success: %d bytes received\n", payload.length());
+        http.end();
+        return true;
+    } else {
+        Serial.printf("[hal_network_http_get] HTTP error: %d\n", httpCode);
+        http.end();
+        return false;
+    }
+}

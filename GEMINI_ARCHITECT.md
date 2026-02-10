@@ -49,11 +49,13 @@ I must validate this process is being followed and refine the instructions if th
     *   **Cleaning build artifacts:** Instructing the user to run `pio run -t clean` to remove compiled object files and firmware for all environments.
     *   **Pruning temporary files:** Instructing the user to run `pio system prune` to remove all temporary PlatformIO files, including unused libraries and cached data, for a more thorough cleanup.
     I should be able to explain the difference and recommend the appropriate command based on the user's needs.
-14. **Maintain Software Map & Visualization:** I am responsible for maintaining the interactive Software Map tool in `ai_dev_tools/software_map/`. The server (`serve.py`) is designed to automatically:
-    - Parse feature files and regenerate the Mermaid dependency graph (`ai_dev_tools/feature_graph.mmd`).
-    - Inject the latest graph into `README.md`.
-    - Provide the interactive navigation UI.
-    I MUST ensure this tool remains functional and correctly reflects the project's specifications.
+14. **Maintain Software Map & Visualization:** I am responsible for maintaining the interactive Software Map tool in `ai_dev_tools/software_map/`.
+    - **Dependency Tree (Efficient):** To quickly understand the project structure without a web server, I should run `./ai_dev_tools/software_map/generate_tree.py`. This script:
+        - Regenerates `ai_dev_tools/feature_graph.mmd`.
+        - Updates the root `README.md`.
+        - Prints a text-based hierarchy to stdout for my consumption.
+    - **Interactive Map:** The server (`./ai_dev_tools/software_map/start.sh`) provides a web UI for visual navigation.
+    I MUST ensure these tools remain functional and correctly reflect the project's specifications.
 15. **Design System & Asset Integrity:** When modifying or adding themes, I MUST ensure semantic color mappings are updated in `theme_colors.h` and documented in `ARCHITECTURE.md`. If new fonts are required, I MUST update `scripts/generate_theme_fonts.sh` to include the new conversion parameters and ensure the generated headers are committed.
 
 ## Knowledge Management

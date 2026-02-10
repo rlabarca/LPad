@@ -29,6 +29,17 @@ bool hal_network_ping(const char* host) {
     return g_stub_ping_result;
 }
 
+bool hal_network_http_get(const char* url, char* response_buffer, size_t buffer_size) {
+    (void)url;
+    (void)buffer_size;
+
+    // Stub returns empty response
+    if (response_buffer != nullptr && buffer_size > 0) {
+        response_buffer[0] = '\0';
+    }
+    return false;
+}
+
 // Test helper functions (not part of HAL API)
 #ifdef UNIT_TEST
 void hal_network_stub_set_status(hal_network_status_t status) {

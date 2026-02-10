@@ -16,9 +16,24 @@ DataItemTimeSeries::DataItemTimeSeries(const std::string& name, size_t max_lengt
     // Pre-allocate vectors to max capacity
     m_x_values.resize(max_length);
     m_y_values.resize(max_length);
+
+#ifdef ARDUINO
+    // Create mutex for thread-safe access
+    m_mutex = xSemaphoreCreateMutex();
+#endif
+}
+
+DataItemTimeSeries::~DataItemTimeSeries() {
+#ifdef ARDUINO
+    if (m_mutex != nullptr) {
+        vSemaphoreDelete(m_mutex);
+    }
+#endif
 }
 
 void DataItemTimeSeries::addDataPoint(long x, double y) {
+    if (!lock()) return;
+
     // Track if we're about to overwrite the min or max
     bool need_recalc = false;
     if (m_curr_length == m_max_length) {
@@ -51,20 +66,29 @@ void DataItemTimeSeries::addDataPoint(long x, double y) {
 
     // Update timestamp
     touch();
+
+    unlock();
 }
 
 void DataItemTimeSeries::clear() {
+    if (!lock()) return;
+
     m_curr_length = 0;
     m_head_idx = 0;
     m_min_val = std::numeric_limits<double>::infinity();
     m_max_val = -std::numeric_limits<double>::infinity();
     touch();
+
+    unlock();
 }
 
 GraphData DataItemTimeSeries::getGraphData() const {
+    if (!lock()) return GraphData(); // Return empty if lock fails
+
     GraphData data;
 
     if (m_curr_length == 0) {
+        unlock();
         return data; // Empty
     }
 
@@ -82,6 +106,7 @@ GraphData DataItemTimeSeries::getGraphData() const {
         data.y_values.push_back(m_y_values[idx]);
     }
 
+    unlock();
     return data;
 }
 
@@ -107,4 +132,26 @@ void DataItemTimeSeries::recalculateMinMax() {
 
     m_min_val = min;
     m_max_val = max;
+}
+
+bool DataItemTimeSeries::lock() const {
+#ifdef ARDUINO
+    if (m_mutex == nullptr) {
+        return false;
+    }
+    // Wait indefinitely for mutex (portMAX_DELAY)
+    return xSemaphoreTake(m_mutex, portMAX_DELAY) == pdTRUE;
+#else
+    // No locking on native platform (single-threaded tests)
+    return true;
+#endif
+}
+
+void DataItemTimeSeries::unlock() const {
+#ifdef ARDUINO
+    if (m_mutex != nullptr) {
+        xSemaphoreGive(m_mutex);
+    }
+#endif
+    // No-op on native platform
 }

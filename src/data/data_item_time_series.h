@@ -18,6 +18,12 @@
 #include <limits>
 #include <cstddef>
 
+// Thread safety support (FreeRTOS on ESP32, stub on native)
+#ifdef ARDUINO
+    #include <freertos/FreeRTOS.h>
+    #include <freertos/semphr.h>
+#endif
+
 /**
  * @class DataItemTimeSeries
  * @brief Specialized FIFO ring buffer for time series data with automatic statistics
@@ -37,7 +43,7 @@ public:
     /**
      * @brief Destructor
      */
-    virtual ~DataItemTimeSeries() = default;
+    virtual ~DataItemTimeSeries();
 
     /**
      * @brief Adds a new data point to the series
@@ -93,6 +99,17 @@ private:
      */
     void recalculateMinMax();
 
+    /**
+     * @brief Acquires the mutex lock (thread-safe operation)
+     * @return true if lock was acquired, false otherwise
+     */
+    bool lock() const;
+
+    /**
+     * @brief Releases the mutex lock (thread-safe operation)
+     */
+    void unlock() const;
+
     size_t m_max_length;        ///< Maximum capacity (fixed at construction)
     size_t m_curr_length;       ///< Current number of data points
     size_t m_head_idx;          ///< Index where next data point will be written
@@ -102,6 +119,10 @@ private:
 
     double m_min_val;           ///< Current minimum Y value
     double m_max_val;           ///< Current maximum Y value
+
+#ifdef ARDUINO
+    mutable SemaphoreHandle_t m_mutex;  ///< Mutex for thread-safe access
+#endif
 };
 
 #endif // DATA_ITEM_TIME_SERIES_H
