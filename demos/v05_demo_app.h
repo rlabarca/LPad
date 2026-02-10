@@ -13,7 +13,6 @@
 #include "ui_time_series_graph.h"
 #include "ui_logo_screen.h"
 #include "animation_ticker.h"
-#include "yahoo_chart_parser.h"
 
 /**
  * @class V05DemoApp

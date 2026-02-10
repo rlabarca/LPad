@@ -51,15 +51,8 @@ bool V05DemoApp::begin(RelativeDisplay* display) {
     // Get theme colors
     const LPad::Theme* theme = LPad::ThemeManager::getInstance().getTheme();
 
-    // Parse test data
-    YahooChartParser parser("");
-    if (!parser.parseFromString(V05_TEST_DATA_JSON)) {
-        Serial.println("[V05DemoApp] ERROR: Failed to parse test data");
-        return false;
-    }
-
-    m_graphData.x_values = parser.getTimestamps();
-    m_graphData.y_values = parser.getClosePrices();
+    m_graphData.x_values = {1770057900,1770058200,1770058500,1770058800,1770059100,1770059400,1770059700,1770060000,1770060300,1770060600,1770060900,1770061200,1770061500,1770061800,1770062100};
+    m_graphData.y_values = {4.270999908447266,4.2729997634887695,4.275000095367432,4.275000095367432,4.2769999504089355,4.275000095367432,4.2769999504089355,4.279000282287598,4.279000282287598,4.2769999504089355,4.2769999504089355,4.275000095367432,4.2729997634887695,4.2729997634887695,4.275000095367432};
     Serial.printf("[V05DemoApp] Parsed %d data points\n", m_graphData.y_values.size());
 
     // Create LogoScreen with 2s wait, 1.5s animation
