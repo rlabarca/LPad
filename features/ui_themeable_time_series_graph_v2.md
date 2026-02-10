@@ -16,6 +16,7 @@ This feature updates the `TimeSeriesGraph` component with a new look and feel, a
   - The graph background should be a solid color matching the logo screen background.
   - All lines and indicators should be solid colors from the theme (no gradients).
   - Axis labels should be drawn *inside* the graph area, with a consistent padding offset such that they NEVER overlap or touch the axis lines.
+  - The component MUST autonomously manage the spacing between axis lines and labels, dynamically adjusting internal margins based on label dimensions.
   - The component MUST autonomously manage tick and label placement to prevent collisions between labels or with the axis lines.
   - Origin Clearance: Labels for both X and Y axes MUST NOT be rendered at the origin to avoid mutual overlap and axis line interference.
   - The Y-axis should have labels with a maximum of 3 significant digits, dynamically adjusted to the data range.
