@@ -622,8 +622,12 @@ void TimeSeriesGraph::drawXTicks(RelativeDisplay* target) {
             target->drawVerticalLine(x_screen, tick_top, y_axis, theme_.tickColor);
 
             // Label above tick (inside graph)
+            // Position label so its BOTTOM is above tick_top, not overlapping
             int32_t label_x = target->relativeToAbsoluteX(x_screen) - w / 2;
-            int32_t label_y = target->relativeToAbsoluteY(tick_top) - 2;
+            int32_t tick_top_px = target->relativeToAbsoluteY(tick_top);
+            // setCursor sets baseline, text extends ~h above baseline for built-in fonts
+            // Position baseline so text bottom (baseline - h/4) is 2px above tick_top
+            int32_t label_y = tick_top_px - h + 2;
             if (label_x < 0) label_x = 0;
             canvas->setCursor(label_x, label_y);
             canvas->print(label);
