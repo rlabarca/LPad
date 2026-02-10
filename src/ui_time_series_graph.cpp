@@ -487,23 +487,56 @@ void TimeSeriesGraph::drawYTicks(RelativeDisplay* target) {
     float x_axis_y = 100.0f - mx.bottom;  // X-axis position in relative coordinates
 
     // Track seen labels to enforce unique label constraint
+    // When data range is small relative to tick spacing, labels may duplicate
+    // Strategy: skip every Nth tick until labels are unique (adjust tick density)
     std::vector<std::string> seen_labels;
-    int precision_boost = 0;  // Extra decimal places if duplicates detected
+    int tick_skip = 1;  // Show every tick initially
 
+    // First pass: check if default formatting produces duplicates
+    std::vector<std::pair<double, float>> all_ticks;  // Store tick_value and y_screen
     for (double tick_value = y_min + y_tick_increment_; tick_value <= y_max; tick_value += y_tick_increment_) {
         float y_screen = mapYToScreen(tick_value, y_min, y_max);
+        if (fabsf(y_screen - x_axis_y) < 8.0f) continue;  // Origin suppression
+        all_ticks.push_back({tick_value, y_screen});
+    }
 
-        // Simple origin suppression: skip if tick is within 8% of X-axis
-        // This is less aggressive and prevents filtering all labels when data range is small
-        if (fabsf(y_screen - x_axis_y) < 8.0f) {
+    // Check for duplicates in formatted labels
+    std::vector<std::string> test_labels;
+    for (const auto& tick : all_ticks) {
+        char label[16];
+        format_3_sig_digits(tick.first, label, sizeof(label));
+        test_labels.push_back(std::string(label));
+    }
+
+    // If duplicates found, increase tick skip factor to reduce density
+    for (size_t i = 0; i < test_labels.size(); i++) {
+        for (size_t j = i + 1; j < test_labels.size(); j++) {
+            if (test_labels[i] == test_labels[j]) {
+                tick_skip = 2;  // Show every 2nd tick
+                break;
+            }
+        }
+        if (tick_skip > 1) break;
+    }
+
+    // Second pass: render ticks with adjusted density
+    int tick_index = 0;
+    for (const auto& tick : all_ticks) {
+        // Skip ticks based on density adjustment
+        if (tick_index % tick_skip != 0) {
+            tick_index++;
             continue;
         }
+        tick_index++;
 
-        // Format label with adjusted precision if needed
+        double tick_value = tick.first;
+        float y_screen = tick.second;
+
+        // Format label
         char label[16];
         format_3_sig_digits(tick_value, label, sizeof(label));
 
-        // Check for duplicate labels (enforces unique label constraint)
+        // Check for duplicates (should be rare now with skip factor)
         std::string label_str(label);
         bool is_duplicate = false;
         for (const auto& seen : seen_labels) {
@@ -512,11 +545,7 @@ void TimeSeriesGraph::drawYTicks(RelativeDisplay* target) {
                 break;
             }
         }
-
-        // Skip this tick if duplicate (tick spacing too fine for display precision)
-        if (is_duplicate) {
-            continue;
-        }
+        if (is_duplicate) continue;
         seen_labels.push_back(label_str);
 
         int16_t x1, y1;
@@ -659,8 +688,8 @@ void TimeSeriesGraph::drawDataLine(RelativeDisplay* target) {
 
     size_t point_count = data_.y_values.size();
 
-    // Calculate line thickness in pixels (reduced by 19% for visual refinement)
-    float thickness_pct = theme_.lineThickness * 0.81f;  // Reduce by 19% (0.9 * 0.9)
+    // Calculate line thickness in pixels (reduced by 20% for visual refinement)
+    float thickness_pct = theme_.lineThickness * 0.80f;  // Reduce by 20%
     int32_t thickness_px = static_cast<int32_t>((thickness_pct / 100.0f) * ((width_ + height_) / 2.0f));
     if (thickness_px < 1) thickness_px = 1;
     int32_t half_thickness = thickness_px / 2;

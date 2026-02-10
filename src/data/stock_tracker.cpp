@@ -85,28 +85,12 @@ void StockTracker::stop() {
 
 std::string StockTracker::buildApiUrl() const {
     // Yahoo Finance API endpoint
-    // interval=1m for 1-minute candles (best granularity for 30-min history)
-    // range calculated from m_history_minutes parameter
+    // interval=1m for 1-minute candles (best granularity)
+    // range=1d (Yahoo Finance only reliably supports 1d for intraday data)
+    // We'll filter the results to m_history_minutes after fetching
     std::string url = "https://query1.finance.yahoo.com/v8/finance/chart/";
     url += m_symbol;
-
-    // Build range parameter from history_minutes
-    // Yahoo Finance supports: 1m, 5m, 15m, 30m, 1h, 1d, etc.
-    std::string range_param;
-    if (m_history_minutes < 60) {
-        // Less than 1 hour: use minutes
-        range_param = std::to_string(m_history_minutes) + "m";
-    } else if (m_history_minutes < 1440) {
-        // Less than 1 day: use hours
-        uint32_t hours = m_history_minutes / 60;
-        range_param = std::to_string(hours) + "h";
-    } else {
-        // 1 day or more: use days
-        uint32_t days = m_history_minutes / 1440;
-        range_param = std::to_string(days) + "d";
-    }
-
-    url += "?interval=1m&range=" + range_param;
+    url += "?interval=1m&range=1d";
     return url;
 }
 
@@ -157,18 +141,27 @@ bool StockTracker::fetchData() {
 
     free(response_buffer);
 
-    // Update data series with ALL data points from Yahoo Finance API
-    // API returns full day of 5-minute candles (~80-100 points during trading hours)
-    // CLEAR old data first to prevent appending duplicates (Yahoo API returns full day each time)
+    // Update data series with data points from Yahoo Finance API
+    // Filter to keep only points within m_history_minutes window
     size_t num_points = timestamps.size();
     if (num_points > 0) {
         m_data_series.clear();  // Clear before adding new dataset
 
+        // Calculate cutoff timestamp (current time - history window)
+        long latest_timestamp = timestamps[num_points - 1];
+        long cutoff_timestamp = latest_timestamp - (m_history_minutes * 60);
+
+        // Add only points within the history window
+        size_t added_count = 0;
         for (size_t i = 0; i < num_points; i++) {
-            m_data_series.addDataPoint(timestamps[i], prices[i]);
+            if (timestamps[i] >= cutoff_timestamp) {
+                m_data_series.addDataPoint(timestamps[i], prices[i]);
+                added_count++;
+            }
         }
 
-        Serial.printf("[StockTracker] Updated with %zu data points (replaced previous data)\n", num_points);
+        Serial.printf("[StockTracker] Updated with %zu data points (filtered from %zu total, last %u mins)\n",
+                      added_count, num_points, m_history_minutes);
         return true;
     }
 
