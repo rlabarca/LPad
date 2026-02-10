@@ -280,16 +280,7 @@ void V060DemoApp::transitionToPhase(Phase newPhase) {
         case PHASE_STOCK_GRAPH:
             Serial.println("[V060DemoApp] Transitioning to PHASE_STOCK_GRAPH");
 
-            // Clear screen to background color immediately to avoid black screen delay
-            if (m_display != nullptr) {
-                const LPad::Theme* theme = LPad::ThemeManager::getInstance().getTheme();
-                Arduino_GFX* gfx = m_display->getGfx();
-                if (gfx != nullptr) {
-                    gfx->fillScreen(theme->colors.background);
-                    hal_display_flush();
-                    Serial.println("[V060DemoApp] Screen cleared to background color");
-                }
-            }
+            // NOTE: Do NOT clear the screen - let graph overwrite WiFi screen to avoid black flash
 
             // Create stock tracker for ^TNX (60 second refresh, 30 minute history)
             Serial.println("[V060DemoApp] Creating StockTracker for ^TNX...");
@@ -343,15 +334,15 @@ GraphTheme V060DemoApp::createStockGraphTheme() {
     theme.backgroundColor = lpadTheme->colors.background;
     theme.useBackgroundGradient = false;
 
-    // Solid white line
-    theme.lineColor = RGB565_WHITE;
+    // Muted white line (COLOR_CREAM_16 instead of pure white)
+    theme.lineColor = lpadTheme->colors.text_main;  // Uses COLOR_CREAM_16 (muted white)
     theme.useLineGradient = false;
 
     // Use theme secondary color for axes
     theme.axisColor = lpadTheme->colors.secondary;
 
-    // Line and axis styling
-    theme.lineThickness = 2.0f;
+    // Line and axis styling (0.97 * 0.80 = 0.776% → 3 pixels on 536x240 display)
+    theme.lineThickness = 0.97f;
     theme.axisThickness = 0.8f;
     theme.tickColor = lpadTheme->colors.graph_ticks;
     theme.tickLength = 5.0f;  // Increased from 2.5 for better visibility
