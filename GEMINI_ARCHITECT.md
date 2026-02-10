@@ -55,7 +55,7 @@ I must validate this process is being followed and refine the instructions if th
         - Updates the root `README.md`.
         - Prints a text-based hierarchy to stdout for my consumption.
     - **Interactive Map:** The server (`./ai_dev_tools/software_map/start.sh`) provides a web UI for visual navigation.
-    I MUST ensure these tools remain functional and correctly reflect the project's specifications.
+    I MUST ensure these tools remain functional and correctly reflects the project's specifications.
 15. **Design System & Asset Integrity:** When modifying or adding themes, I MUST ensure semantic color mappings are updated in `theme_colors.h` and documented in `ARCHITECTURE.md`. If new fonts are required, I MUST update `scripts/generate_theme_fonts.sh` to include the new conversion parameters and ensure the generated headers are committed.
 
 ## Knowledge Management
@@ -172,3 +172,12 @@ This protocol outlines how to direct a fresh Builder (Claude) instance to constr
     *   **Verification:** Tests pass, confirming relative coordinates map to correct pixel coordinates. The Builder MUST commit the result.
 
 This dependency-driven prompting ensures the project is built layer by layer, in a verifiable and architecturally sound manner.
+
+---
+
+**CURRENT PROJECT STATE (Milestone v0.60):**
+- **v0.60 HIL Verified [DONE]:** Milestone v0.60 (Initial Stock Tracker) is fully implemented and hardware-verified.
+- **Graph v2 Engine:** Supports autonomous layout, collision avoidance between axes/labels, unique Y-axis labels (significant digit aware), and origin suppression.
+- **Stock Tracking:** Yahoo Finance API integration is stable using thread-safe `DataItemTimeSeries` and a background FreeRTOS task.
+- **UI Framework:** MiniLogo integration, persistent title overlays, and themeable components are fully functional.
+- **System Readiness:** All feature files are synchronized with the audited code base. The project is ready for the next capability expansion.
