@@ -9,11 +9,13 @@
  * - DEMO_V05: Release 0.5 Demo (Logo + 6 Graph Modes)
  * - DEMO_V055: Release 0.55 Demo (WiFi + Logo + 6 Graph Modes)
  * - DEMO_V058: Release 0.58 Demo (WiFi + Logo + 6 Graph Modes + Live Data)
+ * - DEMO_V060: Release 0.60 Demo (Logo + WiFi + Stock Tracker ^TNX)
  *
  * The actual setup() and loop() implementations live in:
  * - demos/demo_v05_entry.cpp  (for v0.5)
  * - demos/demo_v055_entry.cpp (for v0.55)
  * - demos/demo_v058_entry.cpp (for v0.58)
+ * - demos/demo_v060_entry.cpp (for v0.60)
  */
 
 // Conditional compilation: select the demo entry point
