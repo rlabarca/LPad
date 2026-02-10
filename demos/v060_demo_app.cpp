@@ -25,6 +25,7 @@ V060DemoApp::V060DemoApp()
     , m_titleBufferValid(false)
     , m_logoAnimationComplete(false)
     , m_pingResult(false)
+    , m_graphInitialRenderDone(false)
     , m_logoHoldTimer(0.0f)
     , m_handoverTimer(0.0f)
 {
@@ -177,6 +178,8 @@ void V060DemoApp::render() {
             break;
 
         case PHASE_STOCK_GRAPH: {
+            bool needsFullRender = !m_graphInitialRenderDone;
+
             // Update graph data if available
             if (m_graph != nullptr && m_stockTracker != nullptr) {
                 DataItemTimeSeries* dataSeries = m_stockTracker->getDataSeries();
@@ -187,33 +190,38 @@ void V060DemoApp::render() {
                     size_t currentDataLength = dataSeries->getLength();
 
                     if (currentDataLength != lastDataLength) {
-                        // Data changed - update graph
+                        // Data changed - update graph and trigger full render
                         GraphData graphData = dataSeries->getGraphData();
                         m_graph->setData(graphData);
                         m_graph->drawData();
                         lastDataLength = currentDataLength;
+                        needsFullRender = true;
 
                         Serial.printf("[V060DemoApp] Graph data updated: %zu points\n", currentDataLength);
                     }
                 }
 
-                // Render graph (composites all layers)
-                m_graph->render();
+                if (needsFullRender) {
+                    // Full render: composite all graph layers
+                    m_graph->render();
 
-                // Update live indicator animation (draws on top of graph)
+                    // Render mini logo in top-right corner (once, not every frame)
+                    if (m_miniLogo != nullptr) {
+                        m_miniLogo->render();
+                    }
+
+                    // Render "DEMO v0.60" title in top-left corner (once, not every frame)
+                    blitTitle();
+
+                    // Flush to display
+                    hal_display_flush();
+
+                    m_graphInitialRenderDone = true;
+                }
+
+                // Always update live indicator animation (efficient dirty-rect update)
                 m_graph->update(0.033f);  // ~30fps delta time
             }
-
-            // Render mini logo in top-right corner
-            if (m_miniLogo != nullptr) {
-                m_miniLogo->render();
-            }
-
-            // Render "DEMO v0.60" title in top-left corner (every frame to prevent flashing)
-            blitTitle();
-
-            // Flush to display
-            hal_display_flush();
             break;
         }
     }
@@ -352,9 +360,9 @@ void V060DemoApp::renderTitleToBuffer() {
 
     const char* titleText = "DEMO v0.60";
 
-    // Get theme font
+    // Get theme font (using smallest font for compact display)
     const LPad::Theme* theme = LPad::ThemeManager::getInstance().getTheme();
-    const GFXfont* font = theme->fonts.ui;
+    const GFXfont* font = theme->fonts.smallest;
 
     if (font == nullptr) {
         Serial.println("[V060DemoApp] ERROR: font is nullptr");
@@ -368,9 +376,9 @@ void V060DemoApp::renderTitleToBuffer() {
     uint16_t w, h;
     gfx->getTextBounds(titleText, 0, 0, &x1, &y1, &w, &h);
 
-    // Position in top-left corner with 10px offset
-    m_titleBufferX = 10;
-    m_titleBufferY = 10 - y1;  // Adjust for baseline
+    // Position in top-left corner with minimal offset
+    m_titleBufferX = 0;
+    m_titleBufferY = 0 - y1;  // Adjust for baseline
     m_titleBufferWidth = w;
     m_titleBufferHeight = h;
 

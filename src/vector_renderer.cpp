@@ -1,4 +1,5 @@
 #include "vector_renderer.h"
+#include "../hal/display.h"
 #include <Arduino_GFX_Library.h>
 
 void VectorRenderer::draw(
@@ -11,11 +12,20 @@ void VectorRenderer::draw(
     float anchor_y
 ) {
     // Calculate aspect ratio from original dimensions
-    float aspect_ratio = shape.original_height / shape.original_width;
+    float shape_aspect_ratio = shape.original_height / shape.original_width;
+
+    // Get screen dimensions to account for screen aspect ratio
+    // (VectorRenderer works in percentage coordinates where width% and height%
+    // are relative to screen width and height respectively, so we must convert)
+    int32_t screen_width = hal_display_get_width_pixels();
+    int32_t screen_height = hal_display_get_height_pixels();
+    float screen_aspect_ratio = static_cast<float>(screen_width) / static_cast<float>(screen_height);
 
     // Calculate target dimensions in percent
+    // width_percent is % of screen width
+    // target_height must be % of screen height (accounting for both shape and screen aspect ratios)
     float target_width = width_percent;
-    float target_height = width_percent * aspect_ratio;
+    float target_height = width_percent * shape_aspect_ratio * screen_aspect_ratio;
 
     // Calculate base position adjusted for anchor
     float base_x = x_percent - (anchor_x * target_width);

@@ -2,7 +2,53 @@
 
 This document captures the "tribal knowledge" of the project: technical hurdles, why specific decisions were made, and what approaches were discarded.
 
-## [2026-02-09] Release v0.60 HIL Test Fixes
+## [2026-02-09] Release v0.60 HIL Test Round 2: Rendering Optimization & Aspect Ratio Fix
+
+### Problems
+After initial v0.60 HIL testing, three issues were reported:
+1. **DEMO text too large**: "DEMO v0.60" text used 18pt font and was positioned 10px from corner - should be smaller and flush to corner
+2. **Flashing/slow animation**: DEMO text, mini logo, and live indicator were flashing; animation felt slow
+3. **Mini logo vertically squashed**: Logo appeared compressed (too short) compared to final frame of LogoScreen animation
+
+### Root Causes
+1. **Text size**: Used `theme->fonts.ui` (18pt) instead of smallest font; 10px offset pushed it away from corner
+2. **Unnecessary redraws**: Render loop called `m_graph->render()`, `m_miniLogo->render()`, and `blitTitle()` every frame (30fps), even when data hadn't changed. This caused visible flashing and performance issues.
+3. **VectorRenderer aspect ratio bug**: VectorRenderer calculated `target_height = width_percent * shape_aspect_ratio` but didn't account for screen aspect ratio. Since width_percent is % of screen width and target_height is % of screen height, the calculation needed to multiply by `screen_width / screen_height` to convert between the two coordinate spaces.
+
+### Solutions
+1. **Smaller text**: Changed from `theme->fonts.ui` (18pt) to `theme->fonts.smallest` (9pt); changed offset from 10px to 0px for flush top-left positioning
+2. **Render optimization**:
+   - Added `m_graphInitialRenderDone` flag to track if graph has been rendered
+   - Changed render loop to only do full render (graph + mini logo + title) when:
+     - Initial render needed (`!m_graphInitialRenderDone`)
+     - Data actually changed (data length increased)
+   - Live indicator animation (`m_graph->update()`) still runs every frame but uses efficient dirty-rect updates
+3. **Aspect ratio fix**: Updated VectorRenderer to account for screen aspect ratio:
+   ```cpp
+   float screen_aspect_ratio = screen_width / screen_height;
+   float target_height = width_percent * shape_aspect_ratio * screen_aspect_ratio;
+   ```
+   This correctly converts from width percentage (% of screen width) to height percentage (% of screen height) while maintaining the shape's aspect ratio.
+
+### Key Technical Insight: Percentage Coordinate Space Conversion
+VectorRenderer works in RelativeDisplay's percentage coordinate system where:
+- X coordinates are 0-100% of screen WIDTH
+- Y coordinates are 0-100% of screen HEIGHT
+
+When converting a width percentage to height percentage to maintain aspect ratio:
+1. Shape aspect = height / width (e.g., 370/245 = 1.51 for portrait logo)
+2. Screen aspect = width / height (e.g., 536/240 = 2.23 for landscape display)
+3. Height % = Width % × Shape aspect × Screen aspect
+
+Without the screen aspect correction, shapes appear squashed or stretched because the percentage units don't account for non-square screens.
+
+### Key Lessons
+1. **Use smallest font for compact overlays**: Status text like "DEMO v0.60" should use 9pt font, not 18pt UI font
+2. **Optimize render loops**: Only redraw when data changes. Use dirty-rect updates for animations.
+3. **VectorRenderer requires screen aspect ratio**: When calculating dimensions, always account for screen aspect ratio to prevent distortion on non-square displays
+4. **Coordinate space matters**: Percentage-based coordinates must account for screen dimensions when converting between width% and height%
+
+## [2026-02-09] Release v0.60 HIL Test Round 1: Theme Integration & Transparency
 
 ### Problem
 During HIL testing of Release v0.60, multiple visual issues were discovered:

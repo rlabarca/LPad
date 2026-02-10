@@ -80,6 +80,7 @@ private:
     // State tracking
     bool m_logoAnimationComplete;
     bool m_pingResult;
+    bool m_graphInitialRenderDone;
     float m_logoHoldTimer;
     float m_handoverTimer;
 
