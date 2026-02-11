@@ -98,30 +98,51 @@ bool hal_network_ping(const char* host) {
 
 bool hal_network_http_get(const char* url, char* response_buffer, size_t buffer_size) {
     if (url == nullptr || response_buffer == nullptr || buffer_size == 0) {
-        Serial.println("[hal_network_http_get] Invalid parameters");
+        Serial.println("[hal_network_http_get] ERROR: Invalid parameters");
         return false;
     }
 
     // Check if we're connected
-    if (WiFi.status() != WL_CONNECTED) {
-        Serial.println("[hal_network_http_get] WiFi not connected");
+    wl_status_t wifi_status = WiFi.status();
+    Serial.printf("[hal_network_http_get] WiFi status: %d\n", wifi_status);
+
+    if (wifi_status != WL_CONNECTED) {
+        Serial.printf("[hal_network_http_get] ERROR: WiFi not connected (status=%d)\n", wifi_status);
         return false;
     }
 
+    // Log network info
+    Serial.printf("[hal_network_http_get] Local IP: %s\n", WiFi.localIP().toString().c_str());
+    Serial.printf("[hal_network_http_get] Signal strength: %d dBm\n", WiFi.RSSI());
+
     HTTPClient http;
-    http.begin(url);
-    http.setTimeout(10000);  // 10 second timeout
-
     Serial.printf("[hal_network_http_get] Fetching: %s\n", url);
+    Serial.printf("[hal_network_http_get] Buffer size: %d bytes\n", buffer_size);
 
+    // Begin HTTP connection
+    Serial.println("[hal_network_http_get] Calling http.begin()...");
+    bool begin_result = http.begin(url);
+    if (!begin_result) {
+        Serial.println("[hal_network_http_get] ERROR: http.begin() failed");
+        return false;
+    }
+    Serial.println("[hal_network_http_get] http.begin() succeeded");
+
+    http.setTimeout(10000);  // 10 second timeout
+    Serial.println("[hal_network_http_get] Timeout set to 10000ms");
+
+    Serial.println("[hal_network_http_get] Sending GET request...");
     int httpCode = http.GET();
+    Serial.printf("[hal_network_http_get] GET returned code: %d\n", httpCode);
 
     if (httpCode == HTTP_CODE_OK) {
+        Serial.println("[hal_network_http_get] HTTP_CODE_OK received, getting payload...");
         String payload = http.getString();
+        Serial.printf("[hal_network_http_get] Payload length: %d bytes\n", payload.length());
 
         // Check if response fits in buffer
         if (payload.length() >= buffer_size) {
-            Serial.printf("[hal_network_http_get] Response too large: %d bytes (buffer: %d)\n",
+            Serial.printf("[hal_network_http_get] ERROR: Response too large: %d bytes (buffer: %d)\n",
                          payload.length(), buffer_size);
             http.end();
             return false;
@@ -131,11 +152,39 @@ bool hal_network_http_get(const char* url, char* response_buffer, size_t buffer_
         strncpy(response_buffer, payload.c_str(), buffer_size - 1);
         response_buffer[buffer_size - 1] = '\0';  // Ensure null termination
 
-        Serial.printf("[hal_network_http_get] Success: %d bytes received\n", payload.length());
+        Serial.printf("[hal_network_http_get] SUCCESS: %d bytes received and copied\n", payload.length());
         http.end();
         return true;
     } else {
-        Serial.printf("[hal_network_http_get] HTTP error: %d\n", httpCode);
+        // Detailed error reporting
+        Serial.printf("[hal_network_http_get] ERROR: HTTP error code: %d\n", httpCode);
+
+        if (httpCode == HTTPC_ERROR_CONNECTION_REFUSED) {
+            Serial.println("[hal_network_http_get] ERROR: Connection refused");
+        } else if (httpCode == HTTPC_ERROR_SEND_HEADER_FAILED) {
+            Serial.println("[hal_network_http_get] ERROR: Send header failed");
+        } else if (httpCode == HTTPC_ERROR_SEND_PAYLOAD_FAILED) {
+            Serial.println("[hal_network_http_get] ERROR: Send payload failed");
+        } else if (httpCode == HTTPC_ERROR_NOT_CONNECTED) {
+            Serial.println("[hal_network_http_get] ERROR: Not connected");
+        } else if (httpCode == HTTPC_ERROR_CONNECTION_LOST) {
+            Serial.println("[hal_network_http_get] ERROR: Connection lost");
+        } else if (httpCode == HTTPC_ERROR_NO_STREAM) {
+            Serial.println("[hal_network_http_get] ERROR: No stream");
+        } else if (httpCode == HTTPC_ERROR_NO_HTTP_SERVER) {
+            Serial.println("[hal_network_http_get] ERROR: No HTTP server");
+        } else if (httpCode == HTTPC_ERROR_TOO_LESS_RAM) {
+            Serial.println("[hal_network_http_get] ERROR: Too less RAM");
+        } else if (httpCode == HTTPC_ERROR_ENCODING) {
+            Serial.println("[hal_network_http_get] ERROR: Encoding error");
+        } else if (httpCode == HTTPC_ERROR_STREAM_WRITE) {
+            Serial.println("[hal_network_http_get] ERROR: Stream write failed");
+        } else if (httpCode == HTTPC_ERROR_READ_TIMEOUT) {
+            Serial.println("[hal_network_http_get] ERROR: Read timeout");
+        } else if (httpCode > 0) {
+            Serial.printf("[hal_network_http_get] HTTP status code: %d\n", httpCode);
+        }
+
         http.end();
         return false;
     }

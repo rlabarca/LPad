@@ -105,12 +105,23 @@ std::string StockTracker::buildApiUrl() const {
 
 bool StockTracker::fetchData() {
 #ifdef ARDUINO
+    Serial.printf("[StockTracker] ===== Starting fetchData() [%s fetch] =====\n",
+                  m_is_first_fetch ? "INITIAL" : "INCREMENTAL");
+
     // Check network status
     hal_network_status_t status = hal_network_get_status();
+    Serial.printf("[StockTracker] Network status: %d\n", status);
+
     if (status != HAL_NETWORK_STATUS_CONNECTED) {
-        Serial.println("[StockTracker] Network not connected");
+        Serial.println("[StockTracker] ERROR: Network not connected");
         return false;
     }
+
+    // Log free heap before allocation
+    Serial.printf("[StockTracker] Free heap before buffer allocation: %u bytes\n", ESP.getFreeHeap());
+#ifdef BOARD_HAS_PSRAM
+    Serial.printf("[StockTracker] Free PSRAM before allocation: %u bytes\n", ESP.getFreePsram());
+#endif
 
     // Allocate buffer for HTTP response (use PSRAM if available)
     char* response_buffer = static_cast<char*>(
@@ -122,21 +133,26 @@ bool StockTracker::fetchData() {
     );
 
     if (response_buffer == nullptr) {
-        Serial.println("[StockTracker] Failed to allocate response buffer");
+        Serial.println("[StockTracker] ERROR: Failed to allocate response buffer");
         return false;
     }
+    Serial.printf("[StockTracker] Response buffer allocated: %u bytes\n", HTTP_RESPONSE_BUFFER_SIZE);
 
     // Build API URL
     std::string url = buildApiUrl();
+    Serial.printf("[StockTracker] API URL: %s\n", url.c_str());
 
     // Make HTTP GET request
+    Serial.println("[StockTracker] Calling hal_network_http_get()...");
     bool success = hal_network_http_get(url.c_str(), response_buffer, HTTP_RESPONSE_BUFFER_SIZE);
 
     if (!success) {
-        Serial.println("[StockTracker] HTTP request failed");
+        Serial.println("[StockTracker] ERROR: HTTP request failed");
         free(response_buffer);
         return false;
     }
+
+    Serial.println("[StockTracker] HTTP request succeeded, parsing response...");
 
     // Parse JSON response
     std::vector<long> timestamps;
