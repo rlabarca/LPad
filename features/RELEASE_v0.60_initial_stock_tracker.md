@@ -1,17 +1,9 @@
 # Release v0.60: Initial Stock Tracker
 
 > Label: "Release v0.60"
-> Category: "Application Layer"
+> Category: "Releases"
 > Prerequisite: features/RELEASE_v0.58_dynamic_visuals.md
-
-This release focuses on tracking a single stock (^TNX) using the Yahoo Finance API and displaying it on a redesigned graph.
-
-## Features Included
-
-- `features/ui_mini_logo.md`: A persistent mini-logo in the corner of the screen.
-- `features/data_layer_stock_tracker.md`: A new data layer for fetching and managing stock data.
-- `features/ui_themeable_time_series_graph_v2.md`: An updated time series graph with a new look and feel.
-- `features/demo_release_0.60.md`: The demo for this release.
+> Prerequisite: features/demo_release_0.60.md
 
 ## Demo Flow
 

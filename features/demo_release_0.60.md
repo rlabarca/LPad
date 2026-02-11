@@ -1,8 +1,12 @@
 # Demo for Release v0.60
 
 > Label: "Demo v0.60"
-> Category: "Application Layer"
-> Prerequisite: features/RELEASE_v0.60_initial_stock_tracker.md
+> Category: "Release Demos"
+> Prerequisite: features/demo_release_0.58.md
+> Prerequisite: features/ui_mini_logo.md
+> Prerequisite: features/data_layer_stock_tracker.md
+> Prerequisite: features/ui_themeable_time_series_graph_v2.md
+> Prerequisite: features/ui_connectivity_status_screen.md
 
 This feature defines the implementation of the demo for release v0.60.
 
