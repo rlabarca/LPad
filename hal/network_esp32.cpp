@@ -142,91 +142,34 @@ bool hal_network_http_get(const char* url, char* response_buffer, size_t buffer_
         int contentLength = http.getSize();
         Serial.printf("[hal_network_http_get] Content-Length: %d bytes\n", contentLength);
 
-        if (contentLength > 0 && contentLength >= (int)buffer_size) {
-            Serial.printf("[hal_network_http_get] ERROR: Response too large: %d bytes (buffer: %d)\n",
-                         contentLength, buffer_size);
+        // For chunked encoding (Content-Length: -1), use getString() which handles decoding
+        // For known length, we can also use getString() as it's simpler and handles all cases
+        Serial.println("[hal_network_http_get] Using getString() to handle chunked encoding...");
+
+        String payload = http.getString();
+        Serial.printf("[hal_network_http_get] Received %d bytes\n", payload.length());
+
+        // Check if response fits in buffer
+        if (payload.length() >= buffer_size) {
+            Serial.printf("[hal_network_http_get] ERROR: Response too large: %d bytes (buffer: %zu)\n",
+                         payload.length(), buffer_size);
             http.end();
             return false;
         }
 
-        // Use streaming to read response in chunks
-        WiFiClient *stream = http.getStreamPtr();
-        size_t bytes_read = 0;
+        // Copy to buffer
+        strncpy(response_buffer, payload.c_str(), buffer_size - 1);
+        response_buffer[buffer_size - 1] = '\0';
 
-        // Initialize buffer to zeros to ensure clean state
-        memset(response_buffer, 0, buffer_size);
-
-        Serial.println("[hal_network_http_get] Reading stream in chunks...");
-
-        // Track time since last data received for timeout detection
-        unsigned long last_data_time = millis();
-        const unsigned long DATA_TIMEOUT_MS = 5000;  // 5 second timeout for data
-        unsigned long last_progress_log = millis();
-        bool first_chunk = true;
-
-        while (http.connected()) {
-            size_t available = stream->available();
-
-            if (available) {
-                // Read chunk (up to remaining buffer space)
-                size_t chunk_size = min(available, buffer_size - bytes_read - 1);
-                int c = stream->readBytes(response_buffer + bytes_read, chunk_size);
-
-                if (c > 0) {
-                    bytes_read += c;
-                    last_data_time = millis();  // Reset timeout
-
-                    if (contentLength > 0) {
-                        contentLength -= c;
-                    }
-
-                    // Debug first chunk
-                    if (first_chunk && bytes_read >= 50) {
-                        Serial.print("[hal_network_http_get] First 50 bytes: ");
-                        for (size_t i = 0; i < 50; i++) {
-                            Serial.printf("%02X ", (unsigned char)response_buffer[i]);
-                        }
-                        Serial.println();
-                        Serial.print("[hal_network_http_get] As text: ");
-                        for (size_t i = 0; i < 50; i++) {
-                            Serial.print(response_buffer[i]);
-                        }
-                        Serial.println();
-                        first_chunk = false;
-                    }
-
-                    // Log progress every 500ms
-                    if (millis() - last_progress_log > 500) {
-                        Serial.printf("[hal_network_http_get] Read %zu bytes...\n", bytes_read);
-                        last_progress_log = millis();
-                    }
-                }
-
-                // If we have known content length and received all data, break
-                if (contentLength > 0 && contentLength == 0) {
-                    Serial.println("[hal_network_http_get] All expected data received");
-                    break;
-                }
-            } else {
-                // No data available - check timeout
-                if (millis() - last_data_time > DATA_TIMEOUT_MS) {
-                    Serial.printf("[hal_network_http_get] Data timeout after %zu bytes\n", bytes_read);
-                    break;
-                }
-                delay(10);  // Wait for more data (yields to other tasks)
-            }
-
-            // Check buffer overflow
-            if (bytes_read >= buffer_size - 1) {
-                Serial.printf("[hal_network_http_get] ERROR: Buffer overflow at %zu bytes\n", bytes_read);
-                http.end();
-                return false;
-            }
+        // Debug first 50 bytes
+        Serial.print("[hal_network_http_get] First 50 bytes: ");
+        size_t preview_len = min(50, (int)payload.length());
+        for (size_t i = 0; i < preview_len; i++) {
+            Serial.printf("%02X ", (unsigned char)response_buffer[i]);
         }
+        Serial.println();
 
-        response_buffer[bytes_read] = '\0';  // Ensure null termination
-        Serial.printf("[hal_network_http_get] SUCCESS: %d bytes received and copied\n", bytes_read);
-
+        Serial.printf("[hal_network_http_get] SUCCESS: %d bytes received and copied\n", payload.length());
         http.end();
         return true;
     } else {
