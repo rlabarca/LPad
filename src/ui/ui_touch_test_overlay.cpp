@@ -95,8 +95,11 @@ void TouchTestOverlay::renderTextToBuffer() {
     // Get theme
     const LPad::Theme* theme = LPad::ThemeManager::getInstance().getTheme();
 
-    // Create a temporary canvas for rendering (standalone, no parent)
-    Arduino_Canvas canvas(m_text_width, m_text_height, nullptr);
+    // Get the underlying display device for canvas rendering
+    Arduino_GFX* gfx = static_cast<Arduino_GFX*>(hal_display_get_gfx());
+
+    // Create a temporary canvas for rendering
+    Arduino_Canvas canvas(m_text_width, m_text_height, gfx);
 
     // Fill with chroma key for transparency
     constexpr uint16_t CHROMA_KEY = 0x0001;
