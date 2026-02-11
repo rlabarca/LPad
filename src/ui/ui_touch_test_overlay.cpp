@@ -98,23 +98,28 @@ void TouchTestOverlay::renderTextToBuffer() {
     // Get the underlying display device for canvas rendering
     Arduino_GFX* gfx = static_cast<Arduino_GFX*>(hal_display_get_gfx());
 
-    // Create a temporary canvas for rendering
-    Arduino_Canvas canvas(m_text_width, m_text_height, gfx);
+    // Create a temporary canvas for rendering (heap allocation to avoid stack overflow)
+    Arduino_Canvas* canvas = new Arduino_Canvas(m_text_width, m_text_height, gfx);
+    if (canvas == nullptr) {
+        Serial.println("[TouchTestOverlay] ERROR: Failed to allocate canvas");
+        return;
+    }
 
     // Initialize canvas framebuffer (required before any drawing operations)
-    if (!canvas.begin(GFX_SKIP_OUTPUT_BEGIN)) {
+    if (!canvas->begin(GFX_SKIP_OUTPUT_BEGIN)) {
         Serial.println("[TouchTestOverlay] ERROR: Canvas begin() failed");
+        delete canvas;
         return;
     }
 
     // Fill with chroma key for transparency
     constexpr uint16_t CHROMA_KEY = 0x0001;
-    canvas.fillScreen(CHROMA_KEY);
+    canvas->fillScreen(CHROMA_KEY);
 
     // Set text properties (second largest font per spec)
-    canvas.setFont(theme->fonts.ui);  // 18pt UI font
-    canvas.setTextColor(RGB565_WHITE);
-    canvas.setTextSize(1);
+    canvas->setFont(theme->fonts.ui);  // 18pt UI font
+    canvas->setTextColor(RGB565_WHITE);
+    canvas->setTextSize(1);
 
     // Build text string
     char text_line1[64];
@@ -136,11 +141,11 @@ void TouchTestOverlay::renderTextToBuffer() {
     // Draw background box for legibility
     int16_t text1_x, text1_y;
     uint16_t text1_w, text1_h;
-    canvas.getTextBounds(text_line1, 0, 0, &text1_x, &text1_y, &text1_w, &text1_h);
+    canvas->getTextBounds(text_line1, 0, 0, &text1_x, &text1_y, &text1_w, &text1_h);
 
     int16_t text2_x, text2_y;
     uint16_t text2_w, text2_h;
-    canvas.getTextBounds(text_line2, 0, 0, &text2_x, &text2_y, &text2_w, &text2_h);
+    canvas->getTextBounds(text_line2, 0, 0, &text2_x, &text2_y, &text2_w, &text2_h);
 
     uint16_t max_w = (text1_w > text2_w) ? text1_w : text2_w;
     uint16_t total_h = text1_h + text2_h + 10;  // 10px spacing
@@ -150,21 +155,24 @@ void TouchTestOverlay::renderTextToBuffer() {
     uint16_t box_w = max_w + 10;
     uint16_t box_h = total_h + 10;
 
-    canvas.fillRect(box_x, box_y, box_w, box_h, theme->colors.background);
+    canvas->fillRect(box_x, box_y, box_w, box_h, theme->colors.background);
 
     // Draw text (centered)
     int16_t text1_pos_x = (m_text_width - text1_w) / 2;
     int16_t text1_pos_y = (m_text_height - total_h) / 2;
-    canvas.setCursor(text1_pos_x, text1_pos_y);
-    canvas.print(text_line1);
+    canvas->setCursor(text1_pos_x, text1_pos_y);
+    canvas->print(text_line1);
 
     int16_t text2_pos_x = (m_text_width - text2_w) / 2;
     int16_t text2_pos_y = text1_pos_y + text1_h + 5;
-    canvas.setCursor(text2_pos_x, text2_pos_y);
-    canvas.print(text_line2);
+    canvas->setCursor(text2_pos_x, text2_pos_y);
+    canvas->print(text_line2);
 
     // Copy framebuffer to cached buffer
-    memcpy(m_text_buffer, canvas.getFramebuffer(), m_text_width * m_text_height * sizeof(uint16_t));
+    memcpy(m_text_buffer, canvas->getFramebuffer(), m_text_width * m_text_height * sizeof(uint16_t));
+
+    // Clean up temporary canvas
+    delete canvas;
 }
 
 const char* TouchTestOverlay::gestureTypeToString(touch_gesture_type_t type) const {
