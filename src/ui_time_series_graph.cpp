@@ -513,6 +513,12 @@ void TimeSeriesGraph::drawYTicks(RelativeDisplay* target) {
         // Use integer multiple to ensure exact clean values
         double tick_value = first_tick + (i * y_tick_increment_);
 
+        // Round to remove floating-point garbage bits
+        // Determine precision needed based on increment magnitude
+        // For increment 0.002, need at least 3 decimal places
+        double rounding_factor = 1.0 / y_tick_increment_;
+        tick_value = round(tick_value * rounding_factor) / rounding_factor;
+
         // Don't exceed y_max
         if (tick_value > y_max + 1e-9) break;
 
