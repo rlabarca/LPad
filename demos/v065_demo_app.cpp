@@ -119,8 +119,7 @@ void V065DemoApp::update(float deltaTime) {
             if (gesture_event.type == TOUCH_EDGE_DRAG) {
                 int16_t start_x, start_y;
                 m_gestureEngine->getStartPosition(&start_x, &start_y);
-                Serial.printf("  Edge zones (rotated 90°): LEFT(x<320) RIGHT(x>455) TOP(y<180) BOTTOM(y>40)\n");
-                Serial.printf("  Note: Due to rotation, top/bottom params become visual left/right\n");
+                Serial.printf("  Edge zones: LEFT(x<455) RIGHT(x>320) TOP(y<40) BOTTOM(y>180)\n");
                 Serial.printf("  Started at: (%d, %d) → %s edge (ended at %d, %d)\n",
                               start_x, start_y,
                               edge_names[gesture_event.direction],

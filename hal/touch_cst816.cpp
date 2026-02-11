@@ -177,16 +177,13 @@ void hal_touch_configure_gesture_engine(TouchGestureEngine* engine) {
         //   X: ~308-517 (inverted from scaled_y 18-227: 535-227=308, 535-18=517)
         //   Y: ~2-214 (from scaled_x range)
         //
-        // CRITICAL: Screen is rotated 90°!
-        // What the function calls "left/right" become visual "top/bottom" after rotation
-        // What the function calls "top/bottom" become visual "left/right" after rotation
-        //
-        // To fix visual LEFT/RIGHT detection, swap the TOP/BOTTOM parameter values:
+        // CRITICAL: Screen is rotated 90° AND X is inverted!
+        // Need to swap BOTH pairs of thresholds to correct all edges:
         engine->setEdgeZones(
-            320,  // left_threshold (becomes visual TOP after rotation)
-            455,  // right_threshold (becomes visual BOTTOM after rotation)
-            180,  // top_threshold (becomes visual LEFT after rotation) - SWAPPED!
-            40    // bottom_threshold (becomes visual RIGHT after rotation) - SWAPPED!
+            455,  // left_threshold: SWAPPED (535-80=455)
+            320,  // right_threshold: SWAPPED (535-215=320)
+            40,   // top_threshold: REVERTED to original
+            180   // bottom_threshold: REVERTED to original
         );
     #else
         // ESP32-S3 AMOLED (1.8") - uses default percentage-based thresholds
