@@ -16,7 +16,7 @@ To validate the touch subsystem and gesture engine, a debug overlay will be adde
 - **Visibility:** Default hidden. Appears only when an event occurs.
 
 ### 2.2 Behavior
-- **Trigger:** Displays when a high-level event (Tap, Hold, Swipe, etc.) is reported by the Touch Gesture Engine.
+- **Trigger:** Displays when a high-level event (Tap, Hold, Edge Drag, etc.) is reported by the Touch Gesture Engine.
 - **Timeout:** The overlay must disappear automatically if no new event is registered for 3 seconds.
 - **Independence:** The rendering logic must be decoupled from the specific active screen (e.g., implemented as a global hook or a root-level render pass in `main.cpp` or `DisplayManager`).
 
@@ -26,7 +26,7 @@ The text must follow the format:
 
 Examples:
 - `TAP: (120, 50) 50%`
-- `SWIPE: RIGHT`
+- `EDGE_DRAG: LEFT`
 - `HOLD_DRAG: (200, 100)`
 
 ## 3. Scenarios

@@ -21,7 +21,6 @@ This release introduces full touchscreen support to the LPad platform. It establ
     - TAP
     - HOLD
     - HOLD_AND_DRAG
-    - SWIPE (Directional)
     - EDGE_DRAG (Directional)
 
 ### 2.3 UI Layer
@@ -44,15 +43,11 @@ This release introduces full touchscreen support to the LPad platform. It establ
 4. Verify overlay disappears.
 
 **Test B: Hold**
-1. Press and hold finger in center for > 1 second.
+1. Press and hold finger in center.
 2. Verify overlay appears: `HOLD: ...`.
 
-**Test C: Swipe**
-1. Swipe quickly from center to right.
-2. Verify overlay: `SWIPE: RIGHT`.
-
 **Test D: Edge Drag**
-1. Drag from the left edge (< 20% width) towards center.
+1. Drag from the left edge towards center.
 2. Verify overlay: `EDGE_DRAG: LEFT`.
 
 **Test E: Hold and Drag**
