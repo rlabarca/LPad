@@ -2,6 +2,102 @@
 
 This document captures the "tribal knowledge" of the project: technical hurdles, why specific decisions were made, and what approaches were discarded.
 
+## [2026-02-11] Touch Rotation & Gesture Tuning: The Coordinate Transform Odyssey
+
+### Problem
+Release v0.65 touch gestures on T-Display S3 AMOLED Plus (536×240 landscape, 90° rotation) exhibited multiple confusing symptoms:
+- Edge drags reported wrong directions (physical TOP reported as BOTTOM, etc.)
+- UP/DOWN swipes too easily confused with TOP/BOTTOM edge drags
+- Asymmetric sensitivity (LEFT/TOP edges easy to trigger, RIGHT/BOTTOM edges hard to trigger)
+- Direction names inconsistent between gesture types (EDGE_DRAG used TOP/BOTTOM, SWIPE used UP/DOWN)
+
+### Root Cause 1: Rotation Direction Confusion
+**Initial assumption:** Display rotation is 90° CW (clockwise), so apply 90° CW transform to touch coordinates.
+**Reality:** Display rotation is 90° CW in **screen-to-physical mapping**, so touch coordinates need **90° CCW (counter-clockwise)** transform to map physical-to-screen.
+
+**The Debugging Journey:**
+1. **Attempt 1:** Simple X↔Y swap → Directions still wrong
+2. **Attempt 2:** X↔Y swap + Y inversion → Closer, but still inverted
+3. **Attempt 3:** Tried alternative 270° formula → Same as 90° CCW (realized they're equivalent)
+4. **Success:** X↔Y swap + correct Y inversion → **Physical edges now map correctly to screen edges**
+
+**Final Transform (90° rotation):**
+```cpp
+transformed_x = scaled_y;                        // Touch Y → Display X
+transformed_y = g_display_height - 1 - scaled_x; // Inverted Touch X → Display Y
+```
+
+**Critical Insight:** When display says "90° rotation", it means:
+- Physical device TOP edge → Logical screen LEFT edge
+- Physical device RIGHT edge → Logical screen TOP edge
+- Physical device BOTTOM edge → Logical screen RIGHT edge
+- Physical device LEFT edge → Logical screen BOTTOM edge
+
+Touch coordinates must apply the **inverse rotation** (90° CCW) to map back correctly.
+
+### Root Cause 2: Aspect Ratio Distortion in Gesture Thresholds
+**Problem:** Both center swipes and edge drags used thresholds based on `m_screen_max_dim` (max of width and height).
+- For 536×240 screen: max_dim = 536px
+- Horizontal movement threshold: 536 × 8% = 43px (8% of width) ✓ Reasonable
+- Vertical movement threshold: 536 × 8% = 43px (**18% of height**) ✗ Too sensitive!
+
+**Result:** Vertical gestures required much higher screen percentage than horizontal gestures, causing:
+- UP/DOWN center swipes detected with minimal movement
+- TOP/BOTTOM edge drags overlapped heavily with center swipes
+- User couldn't distinguish edge drags from swipes in vertical direction
+
+**Solution: Axis-Aware Thresholds**
+```cpp
+int16_t getSwipeDistanceThreshold(int16_t dx, int16_t dy) const {
+    if (std::abs(dx) > std::abs(dy)) {
+        return static_cast<int16_t>(m_screen_width * SWIPE_DISTANCE_PERCENT);  // Horizontal
+    } else {
+        return static_cast<int16_t>(m_screen_height * SWIPE_DISTANCE_PERCENT); // Vertical
+    }
+}
+```
+
+**New Thresholds (v0.65.1):**
+- Center swipe: **12% of axis dimension** (increased from 8% for more deliberate gestures)
+- Edge drag: **30% of axis dimension** (increased from 15% to clearly differentiate from center swipes)
+
+**For 536×240 screen:**
+- Horizontal center swipe: 536 × 12% = 64px (12% of width)
+- Vertical center swipe: 240 × 12% = 29px (12% of height) → Balanced!
+- Horizontal edge drag: 536 × 30% = 161px (30% of width)
+- Vertical edge drag: 240 × 30% = 72px (30% of height) → Clear separation!
+
+### Root Cause 3: Board-Specific Edge Zone Configuration
+**Problem:** T-Display touch panel has limited active area (x: 18-227, y: 25-237 in screen coords).
+- Default percentage-based zones didn't align with actual touchable area
+- RIGHT and BOTTOM edges difficult to trigger (beyond touch panel range)
+
+**Solution:** Board-specific thresholds in HAL (`hal_touch_configure_gesture_engine()`):
+```cpp
+engine->setEdgeZones(
+    80,   // LEFT: x < 80 (catches minimum x=18)
+    215,  // RIGHT: x > 215 (within maximum x=227)
+    60,   // TOP: y < 60 (catches minimum y=25)
+    215   // BOTTOM: y > 215 (within maximum y=237)
+);
+```
+
+### Key Lessons
+1. **Rotation direction is relative to the mapping, not absolute** - Display "90° CW" means screen-to-physical mapping, touch needs inverse (physical-to-screen)
+2. **Test physical device orientation, not screen coordinates** - Labeling physical edges (TOP/LEFT/BOTTOM/RIGHT on actual device) prevents rotation confusion
+3. **Aspect ratio matters for gesture thresholds** - Non-square screens need axis-specific thresholds, not max-dimension-based percentages
+4. **Edge drags must be meaningfully different from center swipes** - Increased threshold from 15% to 30% (2x → 2.5x center swipe distance) provides clear separation
+5. **Touch panel active area ≠ display area** - Always test edge detection on actual hardware to tune zone thresholds
+6. **Direction rotation applies to gesture output, not input** - Touch coordinates are rotated at HAL level, but gesture directions (UP/DOWN/LEFT/RIGHT) must be rotated again for physical device mapping in demo code
+7. **Symmetric-sounding features hide asymmetric hardware** - "Touch panel covers full screen" assumption failed on T-Display (18-227 vs 0-536 range)
+
+### Architecture Impact
+- **HAL responsibility:** Board-specific edge zone configuration via `hal_touch_configure_gesture_engine()`
+- **Gesture engine responsibility:** Axis-aware thresholds for aspect-ratio-neutral gesture detection
+- **Demo responsibility:** Direction rotation for physical device mapping (screen coords → physical edges)
+
+This clean separation allows the gesture engine to remain hardware-agnostic while HAL handles board quirks.
+
 ## [2026-02-11] CST816 Touch Race Condition: isPressed() vs getPoint()
 
 ### Problem

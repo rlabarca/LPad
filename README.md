@@ -1,326 +1,118 @@
-# <img src="assets/LPadLogo.svg" width="48" height="48" valign="middle"> LPad
+# LPad: Agentic Embedded Development
 
-An autonomous ecosystem of tools to help me run my life, starting with embedded systems for financial data visualization.
+**LPad** is an experimental ESP32 project that serves as a proving ground for a **Spec-Driven Agentic Workflow**.
 
-![Release v0.5](https://img.shields.io/badge/Release-v0.5-orange) ![Status](https://img.shields.io/badge/Status-Active-green)
+The primary goal of this repository is not just the firmware itself, but the *process* of building it. We use a rigorous "Two-Agent" model where **Gemini** acts as the Architect and **Claude** acts as the Developer, with **You** (the Human) as the Executive/Process Manager.
 
-## 🛠️ Development Environment (macOS)
+## 🤖 The Agentic Workflow
 
-To build and extend this project, you need the following tools installed on your system.
+In this project, **Code is Disposable**. The "Source of Truth" is the set of Feature Specifications (`features/*.md`). If we deleted `src/` today, the agents could rebuild it entirely from the specs.
 
-### Base Dependencies (Homebrew)
+### The Agents
+
+*   **Gemini (The Architect):**
+    *   **Role:** Designs the system, writes Feature Specifications (`features/*.md`), enforces architectural constraints, and manages the DevOps process.
+    *   **Context:** Uses `GEMINI_ARCHITECT.md` to understand its role and mandates.
+    *   **Output:** Creates rigorous Gherkin-style specs and updates `docs/`.
+*   **Claude (The Builder):**
+    *   **Role:** Writes the C++/PlatformIO code to satisfy the specs.
+    *   **Context:** Uses `CLAUDE.md` for coding standards, git protocols, and command usage.
+    *   **Output:** Writes `src/`, `hal/`, and `test/` code.
+
+### Documentation Structure (`docs/`)
+
+*   **`docs/ARCHITECTURE.md` (The Constitution):** Defines system invariants and constraints (e.g., "HAL must never include Arduino.h"). This is the rulebook the Builder must check before coding.
+*   **`docs/IMPLEMENTATION_LOG.md` (The Lab Notebook):** Captures "Tribal Knowledge" and the "Why" behind complex technical decisions to prevent regression.
+*   **`features/` (The Spec):** The actual requirements. The status of these files drives the development loop.
+
+## 🧪 Testing Strategy
+
+We employ a dual-layer testing strategy to ensure both logic correctness and hardware fidelity.
+
+### 1. Unit Testing (Native)
+*   **Purpose:** Verifies business logic, data processing, and UI layout math without needing physical hardware.
+*   **Execution:** Runs on the host machine (Mac/Linux/Windows) using the PlatformIO native environment.
+*   **Command:**
+    ```bash
+    pio test -e native_test
+    ```
+
+### 2. Hardware-in-Loop (HIL) Testing
+*   **Purpose:** Verifies that the code works correctly on the physical ESP32 boards (e.g., display drivers, touch response, WiFi).
+*   **Execution:** These are often visual or interactive tests defined in the `## Hardware (HIL) Test` section of a feature file. The Builder implements a temporary demo in `main.cpp` to prove the feature works.
+*   **Validation:** Requires human-in-the-loop confirmation.
+
+### 3. CDD Monitor & Test Status
+The **Continuous Documentation Dashboard (CDD)** monitors the lifecycle of a feature:
+*   **`TODO`**: The spec file (`features/X.md`) has been modified more recently than the last implementation commit.
+*   **`TESTING`**: The Builder has implemented the feature and created a commit with the tag `[Ready for HIL Test features/X.md]`. This signals that unit tests pass and it's ready for physical board verification.
+*   **`DONE`**: Once verified on hardware (or by passing final integration tests), a commit with the tag `[Complete features/X.md]` marks the feature as finished.
+
+---
+
+## 🛠️ DevOps & Tooling
+
+We have built custom tooling to visualize and manage this workflow.
+
+### 1. CDD Web Monitor (Continuous Documentation Dashboard)
+A real-time dashboard that tracks the synchronization between Specs and Code.
+*   **Function:** Monitors git commit timestamps. If a Feature File is newer than its implementation commit, it flags the feature as `[TODO]`.
+*   **Usage:**
+    ```bash
+    ./ai_dev_tools/cdd/start.sh
+    # Open http://localhost:8086
+    ```
+
+### 2. Software Map (Dependency Visualization)
+An interactive node graph of the project's feature dependencies.
+*   **Function:** Visualizes the hierarchy from `RELEASE` nodes down to specific hardware specs.
+*   **Usage:**
+    ```bash
+    ./ai_dev_tools/software_map/start.sh
+    # Open http://localhost:8085
+    ```
+
+### Setup
+Ensure you have Python 3 installed. The tools use standard libraries or minimal dependencies.
+*   **PlatformIO:** Required for building the firmware.
+    ```bash
+    pip install platformio
+    ```
+
+---
+
+## ⚡ Supported Hardware (HAL)
+
+This project uses a strict **Hardware Abstraction Layer (HAL)**. Application code never touches hardware directly.
+
+We currently support two primary boards from LilyGo:
+
+| Board Name | Environment Name | Key Features |
+| :--- | :--- | :--- |
+| **[Waveshare ESP32-S3 1.8 AMOLED Touch](https://www.waveshare.com/esp32-s3-touch-amoled-1.8.htm?srsltid=AfmBOoqeOA9TgJGfhIbtYCvXR7oEmlO_g-zDU1NZwziZdzl7I1HydyTj)** | `env:esp32s3` | 1.8" AMOLED (SH8601), CST816 Touch |
+| **[LilyGo T-Display-S3 AMOLED Plus](https://github.com/Xinyuan-LilyGO/LilyGo-AMOLED-Series?tab=readme-ov-file)** | `env:tdisplay_s3_plus` | 1.91" AMOLED (RM67162), CST816 Touch |
+
+### Build Commands
+To build and upload the latest verified release:
 ```bash
-# PlatformIO Core (Build System)
-brew install platformio
+# For AMOLED version
+pio run -e demo_v065_esp32s3 -t upload
 
-# Node.js (Required for Mermaid CLI)
-brew install node
-
-# Git & Python3 (Standard)
-brew install git python3
+# For Plus version
+pio run -e demo_v065_tdisplay -t upload
 ```
 
-### Visual Tooling (NPM)
-We use `mermaid-cli` to generate architecture diagrams directly in the terminal.
-```bash
-# Mermaid CLI
-npm install -g @mermaid-js/mermaid-cli
-```
-
-### IDE Support
-*   **VS Code** with the **PlatformIO IDE** extension is highly recommended.
-*   **iTerm2** is recommended for terminal usage to support inline image rendering of graphs.
-
 ---
 
-## 🧠 The Agentic Workflow
+## ✨ Current Features (Firmware)
 
-This project is not built by humans writing C++. It is constructed using a rigorous **Agentic Workflow** where:
+The firmware is currently at **Milestone v0.65**.
 
-1.  **The Architect (User/Gemini):** Defines *what* the system does using Gherkin-style Feature Files (`features/*.md`) and maintains the System Constitution (`docs/ARCHITECTURE.md`).
-2.  **The Builder (Claude):** Reads the specs and writes the code to satisfy them, committing strictly when tests pass.
-3.  **The Process (Scripts):** Automated scripts (`ai_dev_tools/cdd.sh`) monitor file timestamps to enforce a "Stale Spec = Broken Build" philosophy.
+*   **Graph V2 Engine:** High-performance, thread-safe plotting engine with autonomous layout, collision avoidance, and significant-digit aware labeling.
+*   **Stock Tracker:** Real-time stock data tracking using the Yahoo Finance API (via WiFi).
+*   **Touch Interaction (New in v0.65):** Full gesture engine supporting Tap, Hold, Swipe, and Drag operations via the CST816 driver.
+*   **UI Framework:** Themeable components, MiniLogo vector rendering, and persistent overlays.
+*   **Agentic CI/CD:** Automated verification of feature states via the CDD Monitor.
 
-### Core Principles
-*   **Feature-First:** The `features/` directory is the Source of Truth.
-*   **Code is Disposable:** `src/` can be deleted and rebuilt entirely from the features.
-*   **Layered Architecture:** Strict separation between Hardware Abstraction Layer (HAL) and Application Logic.
-
----
-
-### Agent Configuration
-
-This project includes a `.gemini/settings.json` file. This file provides project-specific configuration for the Gemini CLI agent, which plays the "Architect" role.
-
--   **`context.fileName`**: This setting automatically loads the `GEMINI_ARCHITECT.md` file into the agent's context at the start of a session. This ensures the "Architect" agent is always aware of its core mission, responsibilities, and the project's development philosophy without needing to be manually prompted.
-
-By checking this file into the repository, we ensure that any developer (or agent) using this project will have their tools configured consistently.
-
----
-
-## 🏗️ Project Architecture
-
-### Dependency Graph
-The following DAG (Directed Acyclic Graph) represents the current feature set and their dependencies. This is generated automatically from the `features/` directory.
-
-<!-- MERMAID_START -->
-```mermaid
-flowchart TD
-
-
-    subgraph Application_Layer [" "]
-        title_Application_Layer["APPLICATION LAYER"]
-        app_animation_ticker["Animation Ticker Engine"]
-        title_Application_Layer ~~~ app_animation_ticker
-        app_config_system["Config Injection System"]
-        title_Application_Layer ~~~ app_config_system
-        touch_gesture_engine["Touch Gesture Engine"]
-        title_Application_Layer ~~~ touch_gesture_engine
-        ui_logo_screen["Logo Splash Screen"]
-        title_Application_Layer ~~~ ui_logo_screen
-    end
-
-    subgraph Board_Drivers [" "]
-        title_Board_Drivers["BOARD DRIVERS"]
-        display_esp32s3_amoled["ESP32-S3 AMOLED Driver"]
-        title_Board_Drivers ~~~ display_esp32s3_amoled
-        display_tdisplay_s3_plus["T-Display S3+ Driver"]
-        title_Board_Drivers ~~~ display_tdisplay_s3_plus
-    end
-
-    subgraph Data_Layer [" "]
-        title_Data_Layer["DATA LAYER"]
-        data_layer_core["Base Data Model"]
-        title_Data_Layer ~~~ data_layer_core
-        data_layer_stock_tracker["Data Stock Tracker"]
-        title_Data_Layer ~~~ data_layer_stock_tracker
-        data_layer_time_series["Time Series Data Item"]
-        title_Data_Layer ~~~ data_layer_time_series
-    end
-
-    subgraph Graphics_Engine [" "]
-        title_Graphics_Engine["GRAPHICS ENGINE"]
-        display_canvas_drawing["Layered Canvas Drawing"]
-        title_Graphics_Engine ~~~ display_canvas_drawing
-        display_relative_drawing["Relative Drawing"]
-        title_Graphics_Engine ~~~ display_relative_drawing
-        ui_vector_assets["Vector Asset Pipeline"]
-        title_Graphics_Engine ~~~ ui_vector_assets
-    end
-
-    subgraph Hardware_Layer [" "]
-        title_Hardware_Layer["HARDWARE LAYER"]
-        display_rotation_contract["Rotation Contract"]
-        title_Hardware_Layer ~~~ display_rotation_contract
-        display_target_rotation["Target Rotation"]
-        title_Hardware_Layer ~~~ display_target_rotation
-        hal_core_contract["HAL Core Contract"]
-        title_Hardware_Layer ~~~ hal_core_contract
-        hal_dma_blitting["DMA Blitting"]
-        title_Hardware_Layer ~~~ hal_dma_blitting
-        hal_spec_display["HAL Display Specification"]
-        title_Hardware_Layer ~~~ hal_spec_display
-        hal_spec_network["HAL Network Specification"]
-        title_Hardware_Layer ~~~ hal_spec_network
-        hal_spec_timer["HAL Timer Specification"]
-        title_Hardware_Layer ~~~ hal_spec_timer
-        hal_spec_touch["HAL: Touch Spec"]
-        title_Hardware_Layer ~~~ hal_spec_touch
-        hal_timer_esp32["ESP32 Timer"]
-        title_Hardware_Layer ~~~ hal_timer_esp32
-        touch_cst816_implementation["HAL: CST816 Impl"]
-        title_Hardware_Layer ~~~ touch_cst816_implementation
-    end
-
-    subgraph Release [" "]
-        title_Release["RELEASE"]
-        RELEASE_v0_65_touch_interaction["Release v0.65 (Touch)"]
-        title_Release ~~~ RELEASE_v0_65_touch_interaction
-    end
-
-    subgraph Release_Demos [" "]
-        title_Release_Demos["RELEASE DEMOS"]
-        demo_release_0_5["Demo for Release v0.5"]
-        title_Release_Demos ~~~ demo_release_0_5
-        demo_release_0_55["Demo for Release v0.55"]
-        title_Release_Demos ~~~ demo_release_0_55
-        demo_release_0_58["Demo for Release v0.58"]
-        title_Release_Demos ~~~ demo_release_0_58
-        demo_release_0_60["Demo v0.60"]
-        title_Release_Demos ~~~ demo_release_0_60
-    end
-
-    subgraph Releases [" "]
-        title_Releases["RELEASES"]
-        RELEASE_v0_55_connectivity_smoke_test["Release v0.55 - Connectivity Smoke Test"]
-        title_Releases ~~~ RELEASE_v0_55_connectivity_smoke_test
-        RELEASE_v0_58_dynamic_visuals["Release v0.58 - Dynamic Visuals"]
-        title_Releases ~~~ RELEASE_v0_58_dynamic_visuals
-        RELEASE_v0_5_display_drawing_ui_base["Release v0.5 - Display, Drawing & UI Base"]
-        title_Releases ~~~ RELEASE_v0_5_display_drawing_ui_base
-        RELEASE_v0_60_initial_stock_tracker["Release v0.60"]
-        title_Releases ~~~ RELEASE_v0_60_initial_stock_tracker
-    end
-
-    subgraph UI_Framework [" "]
-        title_UI_Framework["UI FRAMEWORK"]
-        ui_base["Base UI Elements"]
-        title_UI_Framework ~~~ ui_base
-        ui_connectivity_status_screen["Connectivity Status Screen"]
-        title_UI_Framework ~~~ ui_connectivity_status_screen
-        ui_live_indicator["Animated Live Indicator"]
-        title_UI_Framework ~~~ ui_live_indicator
-        ui_mini_logo["UI Mini Logo"]
-        title_UI_Framework ~~~ ui_mini_logo
-        ui_theme_support["Theme Support"]
-        title_UI_Framework ~~~ ui_theme_support
-        ui_themeable_time_series_graph["Themeable Graph"]
-        title_UI_Framework ~~~ ui_themeable_time_series_graph
-        ui_themeable_time_series_graph_v2["UI Time Series Graph v2"]
-        title_UI_Framework ~~~ ui_themeable_time_series_graph_v2
-        ui_touch_test_overlay["UI: Touch Overlay"]
-        title_UI_Framework ~~~ ui_touch_test_overlay
-    end
-
-    %% Relationships
-    RELEASE_v0_5_display_drawing_ui_base --> RELEASE_v0_55_connectivity_smoke_test
-    hal_spec_network --> RELEASE_v0_55_connectivity_smoke_test
-    app_config_system --> RELEASE_v0_55_connectivity_smoke_test
-    ui_connectivity_status_screen --> RELEASE_v0_55_connectivity_smoke_test
-    demo_release_0_55 --> RELEASE_v0_55_connectivity_smoke_test
-    RELEASE_v0_55_connectivity_smoke_test --> RELEASE_v0_58_dynamic_visuals
-    data_layer_time_series --> RELEASE_v0_58_dynamic_visuals
-    demo_release_0_58 --> RELEASE_v0_58_dynamic_visuals
-    hal_spec_display --> RELEASE_v0_5_display_drawing_ui_base
-    hal_spec_timer --> RELEASE_v0_5_display_drawing_ui_base
-    hal_timer_esp32 --> RELEASE_v0_5_display_drawing_ui_base
-    hal_dma_blitting --> RELEASE_v0_5_display_drawing_ui_base
-    display_rotation_contract --> RELEASE_v0_5_display_drawing_ui_base
-    display_target_rotation --> RELEASE_v0_5_display_drawing_ui_base
-    display_esp32s3_amoled --> RELEASE_v0_5_display_drawing_ui_base
-    display_tdisplay_s3_plus --> RELEASE_v0_5_display_drawing_ui_base
-    display_canvas_drawing --> RELEASE_v0_5_display_drawing_ui_base
-    display_relative_drawing --> RELEASE_v0_5_display_drawing_ui_base
-    ui_base --> RELEASE_v0_5_display_drawing_ui_base
-    app_animation_ticker --> RELEASE_v0_5_display_drawing_ui_base
-    ui_live_indicator --> RELEASE_v0_5_display_drawing_ui_base
-    ui_theme_support --> RELEASE_v0_5_display_drawing_ui_base
-    ui_vector_assets --> RELEASE_v0_5_display_drawing_ui_base
-    ui_logo_screen --> RELEASE_v0_5_display_drawing_ui_base
-    demo_release_0_5 --> RELEASE_v0_5_display_drawing_ui_base
-    RELEASE_v0_58_dynamic_visuals --> RELEASE_v0_60_initial_stock_tracker
-    demo_release_0_60 --> RELEASE_v0_60_initial_stock_tracker
-    ui_touch_test_overlay --> RELEASE_v0_65_touch_interaction
-    hal_spec_timer --> app_animation_ticker
-    hal_core_contract --> data_layer_core
-    data_layer_time_series --> data_layer_stock_tracker
-    data_layer_core --> data_layer_time_series
-    data_layer_time_series --> demo_release_0_58
-    demo_release_0_55 --> demo_release_0_58
-    demo_release_0_58 --> demo_release_0_60
-    ui_mini_logo --> demo_release_0_60
-    data_layer_stock_tracker --> demo_release_0_60
-    ui_themeable_time_series_graph_v2 --> demo_release_0_60
-    ui_connectivity_status_screen --> demo_release_0_60
-    hal_spec_display --> display_canvas_drawing
-    hal_spec_display --> display_esp32s3_amoled
-    hal_spec_display --> display_relative_drawing
-    hal_spec_display --> display_tdisplay_s3_plus
-    hal_core_contract --> hal_spec_display
-    hal_core_contract --> hal_spec_network
-    hal_core_contract --> hal_spec_timer
-    hal_core_contract --> hal_spec_touch
-    hal_spec_timer --> hal_timer_esp32
-    hal_spec_touch --> touch_cst816_implementation
-    hal_spec_touch --> touch_gesture_engine
-    hal_spec_network --> ui_connectivity_status_screen
-    ui_base --> ui_connectivity_status_screen
-    ui_vector_assets --> ui_logo_screen
-    app_animation_ticker --> ui_logo_screen
-    ui_logo_screen --> ui_mini_logo
-    display_canvas_drawing --> ui_theme_support
-    ui_themeable_time_series_graph --> ui_themeable_time_series_graph_v2
-    touch_gesture_engine --> ui_touch_test_overlay
-    display_relative_drawing --> ui_vector_assets
-
-    %% Styling Definitions
-    classDef default fill:#e1f5fe,stroke:#01579b,stroke-width:1px,color:black;
-    classDef release fill:#f96,stroke:#333,stroke-width:2px,color:black,font-weight:bold;
-    classDef hardware fill:#e8f5e9,stroke:#2e7d32,stroke-width:1px,color:black;
-    classDef ui fill:#f3e5f5,stroke:#7b1fa2,stroke-width:1px,color:black;
-    classDef app fill:#fff3e0,stroke:#e65100,stroke-width:1px,color:black;
-    classDef graphics fill:#e0f7fa,stroke:#006064,stroke-width:1px,color:black;
-    classDef subgraphTitle fill:none,stroke:none,color:#111,font-size:32px,font-weight:bold;
-
-    %% Style Applications
-    class title_Application_Layer subgraphTitle;
-    class app_animation_ticker app;
-    class app_config_system app;
-    class touch_gesture_engine app;
-    class ui_logo_screen app;
-    class title_Board_Drivers subgraphTitle;
-    class title_Data_Layer subgraphTitle;
-    class title_Graphics_Engine subgraphTitle;
-    class display_canvas_drawing graphics;
-    class display_relative_drawing graphics;
-    class ui_vector_assets graphics;
-    class title_Hardware_Layer subgraphTitle;
-    class display_rotation_contract hardware;
-    class display_target_rotation hardware;
-    class hal_core_contract hardware;
-    class hal_dma_blitting hardware;
-    class hal_spec_display hardware;
-    class hal_spec_network hardware;
-    class hal_spec_timer hardware;
-    class hal_spec_touch hardware;
-    class hal_timer_esp32 hardware;
-    class touch_cst816_implementation hardware;
-    class title_Release subgraphTitle;
-    class RELEASE_v0_65_touch_interaction release;
-    class title_Release_Demos subgraphTitle;
-    class demo_release_0_5 release;
-    class demo_release_0_55 release;
-    class demo_release_0_58 release;
-    class demo_release_0_60 release;
-    class title_Releases subgraphTitle;
-    class RELEASE_v0_55_connectivity_smoke_test release;
-    class RELEASE_v0_58_dynamic_visuals release;
-    class RELEASE_v0_5_display_drawing_ui_base release;
-    class RELEASE_v0_60_initial_stock_tracker release;
-    class title_UI_Framework subgraphTitle;
-    class ui_base ui;
-    class ui_connectivity_status_screen ui;
-    class ui_live_indicator ui;
-    class ui_mini_logo ui;
-    class ui_theme_support ui;
-    class ui_themeable_time_series_graph ui;
-    class ui_themeable_time_series_graph_v2 ui;
-    class ui_touch_test_overlay ui;
-```
-<!-- MERMAID_END -->
-
-### Directory Structure
-
-| Directory | Role |
-| :--- | :--- |
-| `features/` | **Source of Truth.** Gherkin-style specifications. |
-| `src/` | **Application Logic.** High-level code (e.g., Graph drawing, Data parsing). |
-| `hal/` | **Hardware Abstraction.** Drivers for Display, Timer, etc. |
-| `docs/` | **Knowledge Base.** Architecture rules (`ARCHITECTURE.md`) and Implementation Log (`IMPLEMENTATION_LOG.md`). |
-| `ai_dev_tools/` | **Agentic Tooling.** `cdd.sh` (Status Monitor) and `software_map/` (Visualization). |
-| `scripts/` | **Build Utility.** Helper scripts for firmware generation (Fonts, SVGs). |
-
----
-
-## 🚀 Getting Started
-
-1.  **Environment:** PlatformIO + VS Code.
-2.  **Monitor Status:** Run `./ai_dev_tools/cdd.sh` to see the current development status.
-3.  **Build:** `pio run` to compile.
-4.  **Upload:** `pio run -t upload` to flash the target.
-
-## 📜 Documentation
-
-*   [System Constitution](docs/ARCHITECTURE.md) - The rules of the road.
-*   [Implementation Log](docs/IMPLEMENTATION_LOG.md) - Lessons learned and technical decisions.
-*   [Agent Instructions](CLAUDE.md) - The prompt context for the Builder agent.
+## 📄 License
+This project is licensed under the **Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International (CC BY-NC-SA 4.0)**. See the [LICENSE.md](LICENSE.md) file for details.

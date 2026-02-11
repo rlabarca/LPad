@@ -15,6 +15,7 @@
 #ifndef UNIT_TEST  // Only compile for target hardware
 
 #include "touch.h"
+#include "input/touch_gesture_engine.h"
 #include <Arduino.h>
 #include <Wire.h>
 #include "TouchDrvCSTXXX.hpp"
@@ -162,6 +163,34 @@ bool hal_touch_read(hal_touch_point_t* point) {
     point->is_pressed = true;
 
     return true;
+}
+
+void hal_touch_configure_gesture_engine(TouchGestureEngine* engine) {
+    if (!engine) return;
+
+    // Board-specific edge zone configuration
+    #if defined(APP_DISPLAY_ROTATION)
+        // T-Display S3 AMOLED Plus (1.91") with 90° rotation
+        // Touch panel has limited range: x: ~18-227, y: ~25-237 (screen coords after transform)
+        //
+        // Tuned thresholds based on actual hardware testing:
+        //   LEFT: x < 80   (easy to trigger - good sensitivity)
+        //   RIGHT: x > 215 (harder to trigger - prevents false positives)
+        //   TOP: y < 60    (easy to trigger - good sensitivity)
+        //   BOTTOM: y > 215 (harder to trigger - prevents false positives)
+        //
+        // These values ensure all 4 edges are reachable while maintaining
+        // good differentiation between edge drags and center swipes.
+        engine->setEdgeZones(
+            80,   // LEFT threshold
+            215,  // RIGHT threshold
+            60,   // TOP threshold
+            215   // BOTTOM threshold
+        );
+    #else
+        // ESP32-S3 AMOLED (1.8") - uses default percentage-based thresholds
+        // Touch panel covers full screen area, no special configuration needed
+    #endif
 }
 
 #endif // !UNIT_TEST

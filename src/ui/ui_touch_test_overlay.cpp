@@ -171,7 +171,7 @@ void TouchTestOverlay::renderTextToBuffer() {
     char text_line2[64];
 
     const char* gesture_name = gestureTypeToString(m_last_type);
-    const char* dir_name = directionToString(m_last_direction);
+    const char* dir_name = directionToString(m_last_direction, m_last_type);
 
     // Safety check: ensure pointers are valid
     if (!gesture_name) gesture_name = "UNKNOWN";
@@ -251,13 +251,25 @@ const char* TouchTestOverlay::gestureTypeToString(touch_gesture_type_t type) con
     }
 }
 
-const char* TouchTestOverlay::directionToString(touch_direction_t dir) const {
-    switch (dir) {
-        case TOUCH_DIR_UP: return "UP";
-        case TOUCH_DIR_DOWN: return "DOWN";
-        case TOUCH_DIR_LEFT: return "LEFT";
-        case TOUCH_DIR_RIGHT: return "RIGHT";
-        default: return "";
+const char* TouchTestOverlay::directionToString(touch_direction_t dir, touch_gesture_type_t type) const {
+    // For edge drags, use TOP/BOTTOM instead of UP/DOWN to clarify edge names
+    if (type == TOUCH_EDGE_DRAG) {
+        switch (dir) {
+            case TOUCH_DIR_UP: return "TOP";
+            case TOUCH_DIR_DOWN: return "BOTTOM";
+            case TOUCH_DIR_LEFT: return "LEFT";
+            case TOUCH_DIR_RIGHT: return "RIGHT";
+            default: return "";
+        }
+    } else {
+        // For swipes, use directional movement names
+        switch (dir) {
+            case TOUCH_DIR_UP: return "UP";
+            case TOUCH_DIR_DOWN: return "DOWN";
+            case TOUCH_DIR_LEFT: return "LEFT";
+            case TOUCH_DIR_RIGHT: return "RIGHT";
+            default: return "";
+        }
     }
 }
 

@@ -85,6 +85,37 @@ public:
      */
     bool update(int16_t x, int16_t y, bool is_pressed, uint32_t delta_time, touch_gesture_event_t* event);
 
+    /**
+     * @brief Get the start position of the current/last gesture (for debugging)
+     * @param start_x Output parameter for start X coordinate
+     * @param start_y Output parameter for start Y coordinate
+     */
+    void getStartPosition(int16_t* start_x, int16_t* start_y) const {
+        *start_x = m_start_x;
+        *start_y = m_start_y;
+    }
+
+    /**
+     * @brief Configure board-specific edge detection zones
+     *
+     * Different touch panels have different active areas and sensitivities.
+     * This allows the HAL to configure edge zones that match the actual
+     * touchable area of the hardware.
+     *
+     * @param left_threshold X coordinate threshold for left edge (e.g., x < 80)
+     * @param right_threshold X coordinate threshold for right edge (e.g., x > 200)
+     * @param top_threshold Y coordinate threshold for top edge (e.g., y < 60)
+     * @param bottom_threshold Y coordinate threshold for bottom edge (e.g., y > 200)
+     */
+    void setEdgeZones(int16_t left_threshold, int16_t right_threshold,
+                      int16_t top_threshold, int16_t bottom_threshold) {
+        m_edge_left_threshold = left_threshold;
+        m_edge_right_threshold = right_threshold;
+        m_edge_top_threshold = top_threshold;
+        m_edge_bottom_threshold = bottom_threshold;
+        m_use_custom_edge_zones = true;
+    }
+
 private:
     // Screen dimensions
     int16_t m_screen_width;
@@ -106,15 +137,26 @@ private:
     uint32_t m_touch_duration_ms;         // Time since touch started
     bool m_hold_event_fired;              // Whether hold event was already fired
 
+    // Board-specific edge zone configuration (for limited touch panel ranges)
+    bool m_use_custom_edge_zones;
+    int16_t m_edge_left_threshold;
+    int16_t m_edge_right_threshold;
+    int16_t m_edge_top_threshold;
+    int16_t m_edge_bottom_threshold;
+
     // Gesture thresholds (tuned for small touch screens)
     static constexpr uint32_t HOLD_THRESHOLD_MS = 500;        // 500ms for hold (was 1000ms - too long)
     static constexpr float MOVEMENT_THRESHOLD_PERCENT = 0.05f; // 5% of max dimension (was 10% - too strict)
-    static constexpr float SWIPE_DISTANCE_PERCENT = 0.15f;     // 15% of dimension for swipe (was 40% - too far!)
-    static constexpr float EDGE_THRESHOLD_PERCENT = 0.15f;     // 15% from edge (was 20%)
+    static constexpr float SWIPE_DISTANCE_PERCENT = 0.12f;     // 12% of axis dimension for center swipes
+    static constexpr float EDGE_THRESHOLD_PERCENT = 0.30f;     // 30% from edge (balanced - not too strict, not too loose)
+    static constexpr float EDGE_SWIPE_DISTANCE_PERCENT = 0.30f; // 30% of axis dimension for edge drags (2.5x center swipes)
 
     // Helper functions
     int16_t getMovementThreshold() const;
-    int16_t getSwipeDistanceThreshold() const;
+    int16_t getSwipeDistanceThreshold() const;  // Deprecated: use axis-aware version
+    int16_t getEdgeSwipeDistanceThreshold() const;  // Deprecated: use axis-aware version
+    int16_t getSwipeDistanceThreshold(int16_t dx, int16_t dy) const;  // Axis-aware version
+    int16_t getEdgeSwipeDistanceThreshold(int16_t dx, int16_t dy) const;  // Axis-aware version
     int16_t getEdgeThreshold() const;
     bool isNearEdge(int16_t x, int16_t y, touch_direction_t* edge_dir) const;
     touch_direction_t getSwipeDirection(int16_t dx, int16_t dy) const;

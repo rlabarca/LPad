@@ -104,7 +104,7 @@ private:
     // Helper functions
     void renderTextToBuffer();
     const char* gestureTypeToString(touch_gesture_type_t type) const;
-    const char* directionToString(touch_direction_t dir) const;
+    const char* directionToString(touch_direction_t dir, touch_gesture_type_t type) const;
 };
 
 #endif // UI_TOUCH_TEST_OVERLAY_H

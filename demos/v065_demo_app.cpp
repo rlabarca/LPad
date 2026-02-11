@@ -42,6 +42,9 @@ bool V065DemoApp::begin(RelativeDisplay* display) {
         static_cast<int16_t>(screen_height)
     );
 
+    // Apply board-specific touch configuration from HAL
+    hal_touch_configure_gesture_engine(m_gestureEngine);
+
     // Initialize touch test overlay
     m_touchOverlay = new TouchTestOverlay();
     if (!m_touchOverlay->begin()) {
@@ -75,17 +78,43 @@ void V065DemoApp::update(float deltaTime) {
             &gesture_event
         );
 
-        // If gesture detected, update overlay
+        // If gesture detected, apply direction rotation and update overlay
         if (gesture_detected) {
+            // CRITICAL: When display is rotated 90° CW, directions are also rotated 90° CW
+            // We must rotate directions 90° CCW to map screen coords → physical device coords
+            // This applies to BOTH swipe directions AND edge names
+            #if defined(APP_DISPLAY_ROTATION)  // T-Display S3 AMOLED Plus with 90° rotation
+                if (gesture_event.direction != TOUCH_DIR_NONE) {
+                    // Rotate direction 90° CCW (or equivalently, 270° CW)
+                    // Screen → Physical mapping:
+                    //   LEFT (screen) → TOP (physical)
+                    //   DOWN (screen) → LEFT (physical)
+                    //   RIGHT (screen) → BOTTOM (physical)
+                    //   UP (screen) → RIGHT (physical)
+                    switch (gesture_event.direction) {
+                        case TOUCH_DIR_UP:    gesture_event.direction = TOUCH_DIR_RIGHT; break;
+                        case TOUCH_DIR_RIGHT: gesture_event.direction = TOUCH_DIR_DOWN;  break;
+                        case TOUCH_DIR_DOWN:  gesture_event.direction = TOUCH_DIR_LEFT;  break;
+                        case TOUCH_DIR_LEFT:  gesture_event.direction = TOUCH_DIR_UP;    break;
+                        default: break;
+                    }
+                }
+            #endif
+
             m_touchOverlay->update(gesture_event);
 
             // Debug output with screen dimension context
             const char* gesture_names[] = {"NONE", "TAP", "HOLD", "HOLD_DRAG", "SWIPE", "EDGE_DRAG"};
-            const char* dir_names[] = {"NONE", "UP", "DOWN", "LEFT", "RIGHT"};
+            const char* swipe_dir_names[] = {"NONE", "UP", "DOWN", "LEFT", "RIGHT"};
+            const char* edge_names[] = {"NONE", "TOP", "BOTTOM", "LEFT", "RIGHT"};
 
             Serial.printf("[Touch] %s", gesture_names[gesture_event.type]);
             if (gesture_event.direction != TOUCH_DIR_NONE) {
-                Serial.printf(": %s", dir_names[gesture_event.direction]);
+                // Use different labels for edge drags (TOP/BOTTOM) vs swipes (UP/DOWN)
+                const char* dir_label = (gesture_event.type == TOUCH_EDGE_DRAG)
+                    ? edge_names[gesture_event.direction]
+                    : swipe_dir_names[gesture_event.direction];
+                Serial.printf(": %s", dir_label);
             }
             Serial.printf(" at (%d, %d) = (%.1f%%, %.1f%%) [Screen: 536w x 240h]\n",
                           gesture_event.x_px, gesture_event.y_px,
@@ -94,22 +123,50 @@ void V065DemoApp::update(float deltaTime) {
 
             // Edge debug: show which edges are close
             if (gesture_event.type == TOUCH_EDGE_DRAG) {
-                Serial.printf("  Edge zones: LEFT(x<80) RIGHT(x>456) TOP(y<36) BOTTOM(y>204)\n");
-                Serial.printf("  Detected at: x=%d, y=%d → %s edge\n",
-                              gesture_event.x_px, gesture_event.y_px,
-                              dir_names[gesture_event.direction]);
+                int16_t start_x, start_y;
+                m_gestureEngine->getStartPosition(&start_x, &start_y);
+                Serial.printf("  Edge zones (board-specific): LEFT(x<80) RIGHT(x>215) TOP(y<60) BOTTOM(y>215)\n");
+                Serial.printf("  Started at: (%d, %d) → %s edge (ended at %d, %d)\n",
+                              start_x, start_y,
+                              edge_names[gesture_event.direction],
+                              gesture_event.x_px, gesture_event.y_px);
             }
         }
 
         // Debug: Track touch state changes for gesture engine diagnostics
         static bool last_pressed = false;
+        static int16_t press_start_x = 0, press_start_y = 0;
+
         if (touch_point.is_pressed != last_pressed) {
             if (touch_point.is_pressed) {
-                Serial.printf("[Touch] PRESS at (%d, %d)\n", touch_point.x, touch_point.y);
+                press_start_x = touch_point.x;
+                press_start_y = touch_point.y;
+
+                // Debug: Show which edge zone (if any) the press started in
+                // NOTE: Touch panel has limited range (x: 18-227, y: 25-237)
+                // Board-specific thresholds (see setEdgeZones above)
+                const char* zone = "CENTER";
+                if (touch_point.x < 80) zone = "LEFT";        // Catches x=18
+                else if (touch_point.x > 215) zone = "RIGHT";  // Harder to trigger
+                else if (touch_point.y < 60) zone = "TOP";     // Catches y=25, y=31
+                else if (touch_point.y > 215) zone = "BOTTOM"; // Harder to trigger
+
+                Serial.printf("[Touch] PRESS at (%d, %d) in %s zone\n",
+                              touch_point.x, touch_point.y, zone);
             } else {
                 Serial.printf("[Touch] RELEASE\n");
             }
             last_pressed = touch_point.is_pressed;
+        }
+
+        // Debug: Show deltas for swipe/edge drag gestures
+        if (gesture_detected && (gesture_event.type == TOUCH_SWIPE || gesture_event.type == TOUCH_EDGE_DRAG)) {
+            int16_t dx = gesture_event.x_px - press_start_x;
+            int16_t dy = gesture_event.y_px - press_start_y;
+            Serial.printf("  [Delta] START(%d,%d) → END(%d,%d) = dx=%d, dy=%d\n",
+                          press_start_x, press_start_y,
+                          gesture_event.x_px, gesture_event.y_px,
+                          dx, dy);
         }
 
         m_lastTouchPressed = touch_point.is_pressed;

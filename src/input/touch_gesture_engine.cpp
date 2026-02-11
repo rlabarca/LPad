@@ -17,7 +17,12 @@ TouchGestureEngine::TouchGestureEngine(int16_t screen_width, int16_t screen_heig
       m_last_x(0),
       m_last_y(0),
       m_touch_duration_ms(0),
-      m_hold_event_fired(false)
+      m_hold_event_fired(false),
+      m_use_custom_edge_zones(false),
+      m_edge_left_threshold(0),
+      m_edge_right_threshold(0),
+      m_edge_top_threshold(0),
+      m_edge_bottom_threshold(0)
 {
 }
 
@@ -124,12 +129,22 @@ bool TouchGestureEngine::update(int16_t x, int16_t y, bool is_pressed,
                     // Check if this was a swipe or edge drag
                     int16_t dx = m_last_x - m_start_x;
                     int16_t dy = m_last_y - m_start_y;
-                    int16_t swipe_threshold = getSwipeDistanceThreshold();
 
-                    if (std::abs(dx) >= swipe_threshold || std::abs(dy) >= swipe_threshold) {
-                        // Check if started from edge
-                        touch_direction_t edge_dir;
-                        if (isNearEdge(m_start_x, m_start_y, &edge_dir)) {
+                    // Check if started from edge
+                    touch_direction_t edge_dir;
+                    bool started_from_edge = isNearEdge(m_start_x, m_start_y, &edge_dir);
+
+                    // Use axis-aware thresholds (different for horizontal vs vertical)
+                    // Edge drags require MORE movement than center swipes
+                    int16_t swipe_threshold = started_from_edge
+                        ? getEdgeSwipeDistanceThreshold(dx, dy)
+                        : getSwipeDistanceThreshold(dx, dy);
+
+                    // Determine primary axis for threshold comparison
+                    int16_t primary_axis_delta = (std::abs(dx) > std::abs(dy)) ? std::abs(dx) : std::abs(dy);
+
+                    if (primary_axis_delta >= swipe_threshold) {
+                        if (started_from_edge) {
                             // Edge drag detected!
                             fillEventData(event, TOUCH_EDGE_DRAG, m_last_x, m_last_y, edge_dir);
                             gesture_detected = true;
@@ -166,7 +181,37 @@ int16_t TouchGestureEngine::getMovementThreshold() const {
 }
 
 int16_t TouchGestureEngine::getSwipeDistanceThreshold() const {
+    // Deprecated: Use axis-specific version instead
     return static_cast<int16_t>(m_screen_max_dim * SWIPE_DISTANCE_PERCENT);
+}
+
+int16_t TouchGestureEngine::getEdgeSwipeDistanceThreshold() const {
+    // Deprecated: Use axis-specific version instead
+    return static_cast<int16_t>(m_screen_max_dim * EDGE_SWIPE_DISTANCE_PERCENT);
+}
+
+int16_t TouchGestureEngine::getSwipeDistanceThreshold(int16_t dx, int16_t dy) const {
+    // Axis-aware threshold: use width for horizontal, height for vertical
+    // This prevents aspect ratio distortion on non-square screens
+    if (std::abs(dx) > std::abs(dy)) {
+        // Horizontal swipe - use screen width
+        return static_cast<int16_t>(m_screen_width * SWIPE_DISTANCE_PERCENT);
+    } else {
+        // Vertical swipe - use screen height
+        return static_cast<int16_t>(m_screen_height * SWIPE_DISTANCE_PERCENT);
+    }
+}
+
+int16_t TouchGestureEngine::getEdgeSwipeDistanceThreshold(int16_t dx, int16_t dy) const {
+    // Axis-aware threshold: use width for horizontal, height for vertical
+    // Edge drags require MORE movement than center swipes (higher percentage)
+    if (std::abs(dx) > std::abs(dy)) {
+        // Horizontal edge drag - use screen width
+        return static_cast<int16_t>(m_screen_width * EDGE_SWIPE_DISTANCE_PERCENT);
+    } else {
+        // Vertical edge drag - use screen height
+        return static_cast<int16_t>(m_screen_height * EDGE_SWIPE_DISTANCE_PERCENT);
+    }
 }
 
 int16_t TouchGestureEngine::getEdgeThreshold() const {
@@ -174,29 +219,66 @@ int16_t TouchGestureEngine::getEdgeThreshold() const {
 }
 
 bool TouchGestureEngine::isNearEdge(int16_t x, int16_t y, touch_direction_t* edge_dir) const {
-    int16_t edge_threshold_x = static_cast<int16_t>(m_screen_width * EDGE_THRESHOLD_PERCENT);
-    int16_t edge_threshold_y = static_cast<int16_t>(m_screen_height * EDGE_THRESHOLD_PERCENT);
+    // Use custom edge zones if configured by HAL, otherwise use percentage-based defaults
+    bool near_left, near_right, near_top, near_bottom;
 
-    // Check each edge (prioritize by proximity)
-    if (x < edge_threshold_x) {
-        *edge_dir = TOUCH_DIR_LEFT;
-        return true;
-    }
-    if (x > m_screen_width - edge_threshold_x) {
-        *edge_dir = TOUCH_DIR_RIGHT;
-        return true;
-    }
-    if (y < edge_threshold_y) {
-        *edge_dir = TOUCH_DIR_UP;
-        return true;
-    }
-    if (y > m_screen_height - edge_threshold_y) {
-        *edge_dir = TOUCH_DIR_DOWN;
-        return true;
+    if (m_use_custom_edge_zones) {
+        // Board-specific thresholds (configured by HAL for limited touch panel ranges)
+        near_left = (x < m_edge_left_threshold);
+        near_right = (x > m_edge_right_threshold);
+        near_top = (y < m_edge_top_threshold);
+        near_bottom = (y > m_edge_bottom_threshold);
+    } else {
+        // Default percentage-based thresholds
+        int16_t edge_threshold_x = static_cast<int16_t>(m_screen_width * EDGE_THRESHOLD_PERCENT);
+        int16_t edge_threshold_y = static_cast<int16_t>(m_screen_height * EDGE_THRESHOLD_PERCENT);
+
+        int16_t dist_left = x;
+        int16_t dist_right = m_screen_width - 1 - x;
+        int16_t dist_top = y;
+        int16_t dist_bottom = m_screen_height - 1 - y;
+
+        near_left = (dist_left < edge_threshold_x);
+        near_right = (dist_right < edge_threshold_x);
+        near_top = (dist_top < edge_threshold_y);
+        near_bottom = (dist_bottom < edge_threshold_y);
     }
 
-    *edge_dir = TOUCH_DIR_NONE;
-    return false;
+    // Calculate distances for closest-edge selection
+    int16_t dist_left = x;
+    int16_t dist_right = m_screen_width - 1 - x;
+    int16_t dist_top = y;
+    int16_t dist_bottom = m_screen_height - 1 - y;
+
+    // If not near any edge, return false
+    if (!near_left && !near_right && !near_top && !near_bottom) {
+        *edge_dir = TOUCH_DIR_NONE;
+        return false;
+    }
+
+    // Find the CLOSEST edge
+    int16_t min_dist = m_screen_width + m_screen_height;  // Larger than any possible distance
+    touch_direction_t closest_edge = TOUCH_DIR_NONE;
+
+    if (near_left && dist_left < min_dist) {
+        min_dist = dist_left;
+        closest_edge = TOUCH_DIR_LEFT;
+    }
+    if (near_right && dist_right < min_dist) {
+        min_dist = dist_right;
+        closest_edge = TOUCH_DIR_RIGHT;
+    }
+    if (near_top && dist_top < min_dist) {
+        min_dist = dist_top;
+        closest_edge = TOUCH_DIR_UP;
+    }
+    if (near_bottom && dist_bottom < min_dist) {
+        min_dist = dist_bottom;
+        closest_edge = TOUCH_DIR_DOWN;
+    }
+
+    *edge_dir = closest_edge;
+    return true;
 }
 
 touch_direction_t TouchGestureEngine::getSwipeDirection(int16_t dx, int16_t dy) const {

@@ -53,7 +53,24 @@ bool hal_touch_init(void);
 bool hal_touch_read(hal_touch_point_t* point);
 
 #ifdef __cplusplus
-}
+}  // extern "C"
+
+// C++ only: Gesture engine configuration
+class TouchGestureEngine;
+
+/**
+ * @brief Configure gesture engine with board-specific touch panel characteristics
+ *
+ * Different touch panels have different active areas and sensitivities.
+ * This function applies board-specific edge detection thresholds to match
+ * the actual touchable area of the hardware.
+ *
+ * This should be called after creating a TouchGestureEngine to ensure
+ * gesture detection works correctly for this specific hardware.
+ *
+ * @param engine Pointer to the TouchGestureEngine to configure
+ */
+void hal_touch_configure_gesture_engine(TouchGestureEngine* engine);
 #endif
 
 #endif // HAL_TOUCH_H
