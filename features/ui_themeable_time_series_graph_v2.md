@@ -21,10 +21,10 @@ This feature updates the `TimeSeriesGraph` component with a new look and feel, a
   - Origin Clearance: Labels for both X and Y axes MUST NOT be rendered at the origin to avoid mutual overlap and axis line interference.
   - The Y-axis should have labels with a maximum of 3 significant digits, dynamically adjusted to the data range.
   - **Unique Label Constraint:** The component MUST ensure that no two Y-axis tick labels are identical after formatting. If the data range is small enough that standard increments produce identical formatted strings, the component MUST increase the precision or adjust the tick spacing to ensure every label is unique.
-  - The X-axis labels should represent minutes prior to the latest data point (e.g., "0", "3", "6").
-  - The number and spacing of X-axis ticks and labels should be dynamically chosen by the component to fit the screen width without overlapping, ensuring they represent logical time intervals.
+  - The X-axis labels should represent hours prior to the latest data point (e.g., "0", "1", "2").
+  - The number and spacing of X-axis ticks and labels should be dynamically chosen by the component to fit the screen width without overlapping, ensuring they represent logical hour intervals.
   - The Y-axis should have a title "Value" rendered vertically.
-  - The X-axis should have a title "Mins Prior" rendered horizontally.
+  - The X-axis should have a title "Hours Prior" rendered horizontally.
   - The graph must maintain a "Live" indicator (pulsing circle) at the latest data point.
 
 ### Scenario: Dynamic Axis Labels
