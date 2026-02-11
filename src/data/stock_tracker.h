@@ -113,6 +113,7 @@ private:
     DataItemTimeSeries m_data_series;
 
     bool m_is_running;
+    bool m_is_first_fetch;  // Track if this is the initial data fetch
 
 #ifdef ARDUINO
     TaskHandle_t m_task_handle;

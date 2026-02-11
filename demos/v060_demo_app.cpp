@@ -319,7 +319,7 @@ void V060DemoApp::transitionToPhase(Phase newPhase) {
                         // Configure graph for v2 styling
                         m_graph->setTickLabelPosition(TickLabelPosition::INSIDE);
                         m_graph->setYAxisTitle("Value");
-                        m_graph->setXAxisTitle("Mins Prior");
+                        m_graph->setXAxisTitle("Hours Prior");
                         m_graph->setYTicks(0.002f);  // Set Y-axis tick spacing
                         // NOTE: drawBackground() will be called after first data load (needs data for tick calculation)
                         Serial.println("[V060DemoApp] TimeSeriesGraph initialized with INSIDE labels and axis titles");

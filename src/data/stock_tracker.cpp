@@ -24,8 +24,9 @@ StockTracker::StockTracker(const std::string& symbol,
     : m_symbol(symbol)
     , m_refresh_interval_seconds(refresh_interval_seconds)
     , m_history_minutes(history_minutes)
-    , m_data_series(symbol, 300)  // Capacity for full day: 24h * 12 (5-min intervals) = 288 points
+    , m_data_series(symbol, 1500)  // Capacity for 24h of 1-min data: 1440 points + buffer
     , m_is_running(false)
+    , m_is_first_fetch(true)
 #ifdef ARDUINO
     , m_task_handle(nullptr)
 #endif
@@ -86,18 +87,17 @@ void StockTracker::stop() {
 std::string StockTracker::buildApiUrl() const {
     // Yahoo Finance API endpoint
     // interval=1m for 1-minute candles (best granularity)
-    // range= based on m_history_minutes (request only what we need)
+    // range= based on whether this is initial fetch or update
     std::string url = "https://query1.finance.yahoo.com/v8/finance/chart/";
     url += m_symbol;
     url += "?interval=1m&range=";
 
-    // Convert history_minutes to Yahoo Finance range format
-    // Use hours if >= 60 minutes, otherwise use minutes
-    if (m_history_minutes >= 60) {
-        uint32_t hours = m_history_minutes / 60;
-        url += std::to_string(hours) + "h";
+    // Initial fetch: Get 24 hours of historical data (range=1d)
+    // Subsequent fetches: Get last 1 hour for efficiency (range=1h)
+    if (m_is_first_fetch) {
+        url += "1d";  // 24 hours for initial dataset
     } else {
-        url += std::to_string(m_history_minutes) + "m";
+        url += "1h";  // 1 hour for incremental updates
     }
 
     return url;
@@ -150,27 +150,47 @@ bool StockTracker::fetchData() {
 
     free(response_buffer);
 
-    // Update data series with data points from Yahoo Finance API
-    // Filter to keep only points within m_history_minutes window
+    // Update data series based on fetch mode
     size_t num_points = timestamps.size();
     if (num_points > 0) {
-        m_data_series.clear();  // Clear before adding new dataset
+        if (m_is_first_fetch) {
+            // Initial fetch: Clear and populate with full 24-hour dataset
+            m_data_series.clear();
 
-        // Calculate cutoff timestamp (current time - history window)
-        long latest_timestamp = timestamps[num_points - 1];
-        long cutoff_timestamp = latest_timestamp - (m_history_minutes * 60);
-
-        // Add only points within the history window
-        size_t added_count = 0;
-        for (size_t i = 0; i < num_points; i++) {
-            if (timestamps[i] >= cutoff_timestamp) {
+            for (size_t i = 0; i < num_points; i++) {
                 m_data_series.addDataPoint(timestamps[i], prices[i]);
-                added_count++;
             }
+
+            Serial.printf("[StockTracker] Initial fetch: Loaded %zu data points (24h history)\n", num_points);
+            m_is_first_fetch = false;  // Mark initial fetch as complete
+        } else {
+            // Incremental update: Append only NEW data points
+            long latest_existing_timestamp = 0;
+
+            // Get the latest timestamp currently in the series
+            if (m_data_series.getSize() > 0) {
+                // Access the last timestamp in the series
+                // Note: DataItemTimeSeries doesn't expose direct timestamp access,
+                // so we need to export and check the last value
+                TimeSeriesGraphData temp_data = m_data_series.exportToGraphData();
+                if (temp_data.num_points > 0) {
+                    latest_existing_timestamp = temp_data.x_values[temp_data.num_points - 1];
+                }
+            }
+
+            // Append only points with timestamps NEWER than what we have
+            size_t added_count = 0;
+            for (size_t i = 0; i < num_points; i++) {
+                if (timestamps[i] > latest_existing_timestamp) {
+                    m_data_series.addDataPoint(timestamps[i], prices[i]);
+                    added_count++;
+                }
+            }
+
+            Serial.printf("[StockTracker] Incremental update: Added %zu new data points (total: %zu)\n",
+                          added_count, m_data_series.getSize());
         }
 
-        Serial.printf("[StockTracker] Updated with %zu data points (filtered from %zu total, last %u mins)\n",
-                      added_count, num_points, m_history_minutes);
         return true;
     }
 

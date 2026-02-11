@@ -622,28 +622,28 @@ void TimeSeriesGraph::drawXTicks(RelativeDisplay* target) {
     size_t tick_interval = (num_points > 5) ? (num_points / 5) : 1;
 
     // Track previous label to skip duplicates (happens when data points are very close in time)
-    long prev_minutes_prior = -999;  // Initialize to impossible value
+    long prev_hours_prior = -999;  // Initialize to impossible value
 
     // Skip first tick near Y-axis
     for (size_t i = tick_interval; i < num_points; i += tick_interval) {
         float x_screen = mapXToScreen(i, num_points);
 
         char label[16];
-        long minutes_prior = 0;
+        long hours_prior = 0;
         if (i < data_.x_values.size()) {
             long timestamp = data_.x_values[i];
-            // Calculate minutes prior to latest data point
+            // Calculate hours prior to latest data point
             long seconds_prior = latest_timestamp - timestamp;
-            minutes_prior = seconds_prior / 60;
+            hours_prior = seconds_prior / 3600;
 
-            // Skip this tick if it has the same minutes_prior as previous tick
-            // (happens when initial data points arrive at nearly same time)
-            if (minutes_prior == prev_minutes_prior) {
+            // Skip this tick if it has the same hours_prior as previous tick
+            // (happens when data points within same hour)
+            if (hours_prior == prev_hours_prior) {
                 continue;
             }
-            prev_minutes_prior = minutes_prior;
+            prev_hours_prior = hours_prior;
 
-            snprintf(label, sizeof(label), "%ld", minutes_prior);
+            snprintf(label, sizeof(label), "%ld", hours_prior);
         } else {
             snprintf(label, sizeof(label), "%zu", i);
         }
