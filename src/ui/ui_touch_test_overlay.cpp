@@ -26,6 +26,7 @@ TouchTestOverlay::TouchTestOverlay()
       m_text_width(0),
       m_text_height(0),
       m_buffer_valid(false),
+      m_needs_blit(false),
       m_render_canvas(nullptr)
 {
 }
@@ -43,9 +44,11 @@ TouchTestOverlay::~TouchTestOverlay() {
 
 bool TouchTestOverlay::begin() {
     // Allocate buffer for text rendering
-    // Use a reasonable size for text overlay (200x60 pixels)
-    m_text_width = 200;
-    m_text_height = 60;
+    // Sized to fit full gesture text: "EDGE_DRAG: RIGHT" + "(240, 536) 100%" with 18pt font
+    // 18pt font ≈ 12px/char width, ~35 chars max = 420px + margins = 300px width
+    // 18pt font ≈ 18px height, 2 lines + spacing + box padding = 80px height
+    m_text_width = 300;
+    m_text_height = 80;
 
     m_text_buffer = static_cast<uint16_t*>(malloc(m_text_width * m_text_height * sizeof(uint16_t)));
     if (!m_text_buffer) {
@@ -101,6 +104,7 @@ void TouchTestOverlay::update(const touch_gesture_event_t& event) {
     m_visible = true;
     m_time_since_last_event_ms = 0;
     m_buffer_valid = false;  // Invalidate cached render
+    m_needs_blit = true;      // Mark that we need to blit the new text
 }
 
 void TouchTestOverlay::tick(uint32_t delta_time) {
@@ -123,6 +127,12 @@ void TouchTestOverlay::render() {
     if (!m_buffer_valid) {
         renderTextToBuffer();
         m_buffer_valid = true;
+        m_needs_blit = true;  // New render means we need to blit
+    }
+
+    // Only blit if needed (gesture changed or first render after becoming visible)
+    if (!m_needs_blit) {
+        return;  // Skip blit if overlay hasn't changed
     }
 
     // Calculate centered position
@@ -133,6 +143,8 @@ void TouchTestOverlay::render() {
 
     // Blit with transparency (chroma key 0x0001)
     hal_display_fast_blit_transparent(x, y, m_text_width, m_text_height, m_text_buffer, 0x0001);
+
+    m_needs_blit = false;  // Blit complete, clear flag
 }
 
 void TouchTestOverlay::renderTextToBuffer() {

@@ -65,6 +65,18 @@ public:
      */
     bool isVisible() const { return m_visible; }
 
+    /**
+     * @brief Mark overlay as needing re-blit (called when underlying content changes)
+     *
+     * This should be called when the underlying screen content is re-rendered
+     * (e.g., graph updates) to ensure the overlay is re-drawn on top.
+     */
+    void markForReblit() {
+        if (m_visible) {
+            m_needs_blit = true;
+        }
+    }
+
 private:
     static constexpr uint32_t TIMEOUT_MS = 3000;  // 3 seconds
 
@@ -84,6 +96,7 @@ private:
     int16_t m_text_width;
     int16_t m_text_height;
     bool m_buffer_valid;
+    bool m_needs_blit;  // Track if overlay needs to be re-blitted (optimization: skip blit if unchanged)
 
     // Reusable canvas for text rendering (to avoid repeated allocation/deallocation)
     class Arduino_Canvas* m_render_canvas;

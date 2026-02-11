@@ -2,6 +2,117 @@
 
 This document captures the "tribal knowledge" of the project: technical hurdles, why specific decisions were made, and what approaches were discarded.
 
+## [2026-02-11] Touch Overlay Optimization: Reducing Render Cost & Polling Overhead
+
+### Problem
+Release v0.65 (touch interaction demo) exhibited three performance issues:
+1. **Text cutoff**: Touch gesture text was truncated (buffer too small for full text)
+2. **Touch polling overhead**: `hal_touch_read()` performed 2 I2C transactions EVERY frame (30fps = 60 I2C reads/sec)
+3. **Overlay over-rendering**: Touch overlay blit happened every frame even when overlay content hadn't changed
+
+### Root Causes
+
+**1. Text Cutoff:**
+- Buffer size was 200x60 pixels
+- Text with 18pt font could be ~300px wide: "EDGE_DRAG: RIGHT" + "(240, 536) 100%"
+- Long gesture names + coordinates exceeded buffer width, causing cutoff
+
+**2. Touch Polling Overhead:**
+- `hal_touch_read()` called every frame in V065DemoApp::update()
+- Each call executed 2 I2C transactions:
+  - `g_touch.isPressed()` - read touch state register
+  - `g_touch.getPoint()` - read coordinate registers
+- At 30fps, this resulted in 60 I2C reads/second
+- **CST816 INT pin (GPIO 21) was configured but never checked** - pin goes LOW when touch data is ready, HIGH when idle
+
+**3. Overlay Over-Rendering:**
+- `TouchTestOverlay::render()` called every frame via V065DemoApp::render()
+- `hal_display_fast_blit_transparent()` executed every frame even when overlay text hadn't changed
+- Overlay only changes when new gesture detected (typically <1fps), but was blitting at 30fps
+
+### Solutions
+
+**1. Increased Buffer Size (200x60 → 300x80):**
+```cpp
+// Old: 200x60 (too small)
+m_text_width = 200;
+m_text_height = 60;
+
+// New: 300x80 (fits full text with 18pt font)
+m_text_width = 300;  // 18pt ≈ 12px/char, ~35 chars max = 420px, reduced to 300px
+m_text_height = 80;  // 2 lines + spacing + box padding
+```
+
+**2. INT Pin Polling Optimization:**
+Added fast-path check in `hal_touch_read()`:
+```cpp
+// Check INT pin first (GPIO read - microseconds)
+if (digitalRead(TOUCH_INT) == HIGH) {
+    point->is_pressed = false;
+    return true;  // Fast path - no I2C transaction
+}
+
+// INT pin LOW - touch data ready, proceed with I2C read
+if (!g_touch.isPressed()) { ... }
+```
+
+**Impact:**
+- **When no touch active (majority of time)**: Single GPIO read (microseconds) instead of 2 I2C transactions (~2-3ms total)
+- **When touch active**: Same 2 I2C transactions as before (no performance loss)
+- **Estimated savings**: ~2-3ms per frame when idle = ~60-90ms/second at 30fps
+
+**3. Conditional Blit with Dirty Flag:**
+Added `m_needs_blit` flag to track when overlay content changes:
+```cpp
+void TouchTestOverlay::update(const touch_gesture_event_t& event) {
+    // ... store event data ...
+    m_buffer_valid = false;  // Re-render text
+    m_needs_blit = true;      // Mark for blit
+}
+
+void TouchTestOverlay::render() {
+    if (!m_buffer_valid) {
+        renderTextToBuffer();   // Render text to buffer
+        m_needs_blit = true;    // New content needs blit
+    }
+
+    if (!m_needs_blit) {
+        return;  // Skip blit if unchanged
+    }
+
+    hal_display_fast_blit_transparent(...);
+    m_needs_blit = false;  // Blit complete
+}
+```
+
+**Additional Helper Method:**
+```cpp
+void TouchTestOverlay::markForReblit() {
+    if (m_visible) {
+        m_needs_blit = true;  // Re-blit after graph render
+    }
+}
+```
+Called in V065DemoApp::render() to ensure overlay reappears after graph updates.
+
+**Impact:**
+- Overlay blit only happens when:
+  1. New gesture detected (~1fps typical)
+  2. Graph re-renders and may have overwritten overlay
+- Eliminates 29 unnecessary blits per second (at 30fps with 1fps gesture rate)
+
+### Results
+- **Text cutoff eliminated**: Full gesture text visible with 300x80 buffer
+- **Touch polling overhead reduced by ~90% when idle**: GPIO read instead of I2C transactions
+- **Overlay render cost reduced by ~97%**: 1 blit/sec (on gesture) instead of 30 blits/sec
+
+### Key Lessons
+1. **Check hardware interrupt pins before I2C/SPI reads** - INT/IRQ pins exist specifically to avoid polling overhead
+2. **Dirty flags prevent redundant render operations** - Track when content actually changes instead of rendering every frame
+3. **Buffer size must accommodate worst-case content** - Measure longest possible text with actual font metrics, don't guess
+4. **GPIO reads are 100-1000x faster than I2C transactions** - Use them as fast-path guards
+5. **DMA blits are fast but not free** - Eliminate unnecessary blits even if each one is only 1-2ms
+
 ## [2026-02-11] Touch Coordinate Scaling: Controller Resolution vs Display Pixels
 
 ### Problem

@@ -104,6 +104,10 @@ void V065DemoApp::render() {
     // Render v0.60 demo (logo, connectivity, stock graph)
     m_v060Demo->render();
 
+    // Mark overlay for re-blit if it's visible and graph may have re-rendered
+    // (this ensures overlay stays on top after graph updates)
+    m_touchOverlay->markForReblit();
+
     // Render touch overlay on top
     m_touchOverlay->render();
 }
