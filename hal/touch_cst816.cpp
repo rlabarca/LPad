@@ -133,11 +133,12 @@ bool hal_touch_read(hal_touch_point_t* point) {
         transformed_x = scaled_x;
         transformed_y = scaled_y;
     #elif DISPLAY_ROTATION == 90
-        // Landscape 90° CW: Swap axes + invert one
-        // Physical TOP → Logical LEFT ✓ (confirmed by testing)
-        // Physical RIGHT → Logical TOP (needs Y output)
-        transformed_x = scaled_y;  // Touch Y → Display X
-        transformed_y = g_display_height - 1 - scaled_x;  // Inverted Touch X → Display Y
+        // Landscape 90° CW: Swap axes (no inversion needed)
+        // Coordinate system: (0,0) at top-left, (535, 239) at bottom-right
+        // Physical TOP → Screen LEFT
+        // Physical RIGHT → Screen TOP
+        transformed_x = scaled_y;  // Touch Y → Display X (horizontal)
+        transformed_y = scaled_x;  // Touch X → Display Y (vertical, NOT inverted)
     #elif DISPLAY_ROTATION == 180
         // Inverted portrait (180°)
         transformed_x = g_display_width - scaled_x;

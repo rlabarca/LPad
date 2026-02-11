@@ -147,9 +147,9 @@ private:
     // Gesture thresholds (tuned for small touch screens)
     static constexpr uint32_t HOLD_THRESHOLD_MS = 500;        // 500ms for hold (was 1000ms - too long)
     static constexpr float MOVEMENT_THRESHOLD_PERCENT = 0.05f; // 5% of max dimension (was 10% - too strict)
-    static constexpr float SWIPE_DISTANCE_PERCENT = 0.12f;     // 12% of axis dimension for center swipes
+    static constexpr float SWIPE_DISTANCE_PERCENT = 0.08f;     // 8% of axis dimension for center swipes (easy to trigger)
     static constexpr float EDGE_THRESHOLD_PERCENT = 0.30f;     // 30% from edge (balanced - not too strict, not too loose)
-    static constexpr float EDGE_SWIPE_DISTANCE_PERCENT = 0.30f; // 30% of axis dimension for edge drags (2.5x center swipes)
+    static constexpr float EDGE_SWIPE_DISTANCE_PERCENT = 0.30f; // 30% of axis dimension for edge drags (3.75x center swipes)
 
     // Helper functions
     int16_t getMovementThreshold() const;

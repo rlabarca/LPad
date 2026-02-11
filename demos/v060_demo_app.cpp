@@ -30,6 +30,7 @@ V060DemoApp::V060DemoApp(const char* versionText)
     , m_logoHoldTimer(0.0f)
     , m_handoverTimer(0.0f)
 {
+    Serial.printf("[V060DemoApp] Constructor called with versionText='%s'\n", versionText);
 }
 
 V060DemoApp::~V060DemoApp() {
@@ -370,6 +371,7 @@ void V060DemoApp::renderTitleToBuffer() {
     }
 
     const char* titleText = m_versionText;
+    Serial.printf("[V060DemoApp] Rendering title: '%s' (strlen=%zu)\n", titleText, strlen(titleText));
 
     // Get theme font (using smallest font for compact display)
     const LPad::Theme* theme = LPad::ThemeManager::getInstance().getTheme();
