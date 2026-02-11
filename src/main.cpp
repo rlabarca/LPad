@@ -10,12 +10,14 @@
  * - DEMO_V055: Release 0.55 Demo (WiFi + Logo + 6 Graph Modes)
  * - DEMO_V058: Release 0.58 Demo (WiFi + Logo + 6 Graph Modes + Live Data)
  * - DEMO_V060: Release 0.60 Demo (Logo + WiFi + Stock Tracker ^TNX)
+ * - DEMO_V065: Release 0.65 Demo (v0.60 + Touch Interaction)
  *
  * The actual setup() and loop() implementations live in:
  * - demos/demo_v05_entry.cpp  (for v0.5)
  * - demos/demo_v055_entry.cpp (for v0.55)
  * - demos/demo_v058_entry.cpp (for v0.58)
  * - demos/demo_v060_entry.cpp (for v0.60)
+ * - demos/demo_v065_entry.cpp (for v0.65)
  */
 
 // Conditional compilation: select the demo entry point
@@ -31,8 +33,11 @@
 #elif defined(DEMO_V060)
     #include "../demos/demo_v060_entry.h"
     #define DEMO_NAME "v0.60"
+#elif defined(DEMO_V065)
+    #include "../demos/demo_v065_entry.h"
+    #define DEMO_NAME "v0.65"
 #else
-    #error "No demo entry point defined. Set -DDEMO_V05, -DDEMO_V055, -DDEMO_V058, or -DDEMO_V060 in platformio.ini"
+    #error "No demo entry point defined. Set -DDEMO_V05, -DDEMO_V055, -DDEMO_V058, -DDEMO_V060, or -DDEMO_V065 in platformio.ini"
 #endif
 
 /**

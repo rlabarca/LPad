@@ -9,7 +9,7 @@
 #include <Arduino.h>
 #include <Arduino_GFX_Library.h>
 
-V060DemoApp::V060DemoApp()
+V060DemoApp::V060DemoApp(const char* versionText)
     : m_currentPhase(PHASE_LOGO)
     , m_display(nullptr)
     , m_logoScreen(nullptr)
@@ -17,6 +17,7 @@ V060DemoApp::V060DemoApp()
     , m_graph(nullptr)
     , m_miniLogo(nullptr)
     , m_stockTracker(nullptr)
+    , m_versionText(versionText)
     , m_titleBuffer(nullptr)
     , m_titleBufferX(0)
     , m_titleBufferY(0)
@@ -368,7 +369,7 @@ void V060DemoApp::renderTitleToBuffer() {
         return;
     }
 
-    const char* titleText = "DEMO v0.60";
+    const char* titleText = m_versionText;
 
     // Get theme font (using smallest font for compact display)
     const LPad::Theme* theme = LPad::ThemeManager::getInstance().getTheme();

@@ -28,7 +28,11 @@
  */
 class V060DemoApp {
 public:
-    V060DemoApp();
+    /**
+     * @brief Constructor
+     * @param versionText Version text to display (default: "DEMO v0.60")
+     */
+    V060DemoApp(const char* versionText = "DEMO v0.60");
     ~V060DemoApp();
 
     /**
@@ -69,7 +73,10 @@ private:
     // Data Layer
     StockTracker* m_stockTracker;
 
-    // Title buffer for "DEMO v0.60" text
+    // Version text (e.g., "DEMO v0.60", "DEMO v0.65")
+    const char* m_versionText;
+
+    // Title buffer for version text
     uint16_t* m_titleBuffer;
     int16_t m_titleBufferX;
     int16_t m_titleBufferY;
