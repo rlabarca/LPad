@@ -80,22 +80,22 @@ void V065DemoApp::update(float deltaTime) {
 
         // If gesture detected, apply direction rotation and update overlay
         if (gesture_detected) {
-            // CRITICAL: When display is rotated 90° CW, directions are also rotated 90° CW
-            // We must rotate directions 90° CCW to map screen coords → physical device coords
-            // This applies to BOTH swipe directions AND edge names
+            // CRITICAL: With X-INVERTED coordinates, direction rotation must account for
+            // the swapped LEFT/RIGHT detection in coordinate space.
+            // Physical edges map through inverted coordinates to rotated display labels.
             #if defined(APP_DISPLAY_ROTATION)  // T-Display S3 AMOLED Plus with 90° rotation
                 if (gesture_event.direction != TOUCH_DIR_NONE) {
-                    // Rotate direction 90° CCW (or equivalently, 270° CW)
-                    // Screen → Physical mapping:
-                    //   LEFT (screen) → TOP (physical)
-                    //   DOWN (screen) → LEFT (physical)
-                    //   RIGHT (screen) → BOTTOM (physical)
-                    //   UP (screen) → RIGHT (physical)
+                    // Direction rotation with LEFT/RIGHT swapped to compensate for X-inversion:
+                    // Physical edge → Detected as → Rotated to → Displayed as
+                    //   LEFT → RIGHT zone → UP → "TOP"
+                    //   RIGHT → LEFT zone → DOWN → "BOTTOM"
+                    //   TOP → TOP zone → RIGHT → "RIGHT"
+                    //   BOTTOM → BOTTOM zone → LEFT → "LEFT"
                     switch (gesture_event.direction) {
                         case TOUCH_DIR_UP:    gesture_event.direction = TOUCH_DIR_RIGHT; break;
-                        case TOUCH_DIR_RIGHT: gesture_event.direction = TOUCH_DIR_DOWN;  break;
+                        case TOUCH_DIR_RIGHT: gesture_event.direction = TOUCH_DIR_UP;    break;  // SWAPPED for X-inversion
                         case TOUCH_DIR_DOWN:  gesture_event.direction = TOUCH_DIR_LEFT;  break;
-                        case TOUCH_DIR_LEFT:  gesture_event.direction = TOUCH_DIR_UP;    break;
+                        case TOUCH_DIR_LEFT:  gesture_event.direction = TOUCH_DIR_DOWN;  break;  // SWAPPED for X-inversion
                         default: break;
                     }
                 }
@@ -125,7 +125,8 @@ void V065DemoApp::update(float deltaTime) {
             if (gesture_event.type == TOUCH_EDGE_DRAG) {
                 int16_t start_x, start_y;
                 m_gestureEngine->getStartPosition(&start_x, &start_y);
-                Serial.printf("  Edge zones: LEFT(x<80) RIGHT(x>215) TOP(y<40) BOTTOM(y>180)\n");
+                Serial.printf("  Edge zones (X-INVERTED): LEFT(x<320) RIGHT(x>455) TOP(y<40) BOTTOM(y>180)\n");
+                Serial.printf("  Note: LEFT zone detects physical RIGHT, RIGHT zone detects physical LEFT\n");
                 Serial.printf("  Started at: (%d, %d) → %s edge (ended at %d, %d)\n",
                               start_x, start_y,
                               edge_names[gesture_event.direction],

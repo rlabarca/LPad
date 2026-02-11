@@ -133,9 +133,10 @@ bool hal_touch_read(hal_touch_point_t* point) {
         transformed_x = scaled_x;
         transformed_y = scaled_y;
     #elif DISPLAY_ROTATION == 90
-        // Landscape 90° CW: Simple axis swap, no inversions
+        // Landscape 90° CW: Swap axes and invert X
         // Coordinate system: (0,0) at top-left, (535, 239) at bottom-right
-        transformed_x = scaled_y;  // Touch Y → Display X
+        // X must be inverted due to physical panel orientation
+        transformed_x = g_display_width - 1 - scaled_y;  // Touch Y → Display X (INVERTED)
         transformed_y = scaled_x;  // Touch X → Display Y
     #elif DISPLAY_ROTATION == 180
         // Inverted portrait (180°)
@@ -170,22 +171,26 @@ void hal_touch_configure_gesture_engine(TouchGestureEngine* engine) {
     // Board-specific edge zone configuration
     #if defined(APP_DISPLAY_ROTATION)
         // T-Display S3 AMOLED Plus (1.91") with 90° rotation
-        // Coordinate system: (0,0) at top-left, simple axis swap (x=y, y=x)
+        // Coordinate system: (0,0) at top-left, X-INVERTED (x = 535 - scaled_y)
         //
-        // Touch panel has limited range:
-        //   X: ~18-227 (from scaled_y range)
-        //   Y: ~2-214 (from scaled_x range, was 25-237 with old Y-inversion)
+        // Touch panel has limited range after X-inversion:
+        //   X: ~308-517 (inverted from scaled_y 18-227: 535-227=308, 535-18=517)
+        //   Y: ~2-214 (from scaled_x range)
         //
-        // Edge zones avoid corner overlap while staying within touchable range:
-        //   LEFT: x < 80 → left edge (x≈18-79)
-        //   RIGHT: x > 215 → right edge (x≈216-227)
-        //   TOP: y < 40 → top edge (y≈2-39, reduced from 60 to avoid corners)
-        //   BOTTOM: y > 180 → bottom edge (y≈181-214, reduced from 215 to be reachable)
+        // CRITICAL: Due to X-inversion, LEFT/RIGHT zones are swapped in coordinate space:
+        //   - Physical LEFT edge (high X ≈517) detected by RIGHT zone (x > threshold)
+        //   - Physical RIGHT edge (low X ≈308) detected by LEFT zone (x < threshold)
+        //
+        // Edge zones adjusted for inverted X coordinate system:
+        //   LEFT: x < 320 → detects physical RIGHT edge (x≈308)
+        //   RIGHT: x > 455 → detects physical LEFT edge (x≈517)
+        //   TOP: y < 40 → detects physical TOP edge (y≈2)
+        //   BOTTOM: y > 180 → detects physical BOTTOM edge (y≈181-214)
         engine->setEdgeZones(
-            80,   // LEFT threshold
-            215,  // RIGHT threshold
-            40,   // TOP threshold (reduced to avoid corner overlap)
-            180   // BOTTOM threshold (reduced to be reachable in new Y range)
+            320,  // LEFT threshold: 535-215=320 (detects physical RIGHT edge)
+            455,  // RIGHT threshold: 535-80=455 (detects physical LEFT edge)
+            40,   // TOP threshold
+            180   // BOTTOM threshold
         );
     #else
         // ESP32-S3 AMOLED (1.8") - uses default percentage-based thresholds
