@@ -467,8 +467,6 @@ void TimeSeriesGraph::drawYTicks(RelativeDisplay* target) {
     double y_min = *std::min_element(data_.y_values.begin(), data_.y_values.end());
     double y_max = *std::max_element(data_.y_values.begin(), data_.y_values.end());
 
-    Serial.printf("[Graph] Y-axis range: min=%.6f, max=%.6f, range=%.6f, tick_increment=%.6f\n",
-                  y_min, y_max, y_max - y_min, y_tick_increment_);
 
     if (y_max - y_min < 0.001) return;
 
@@ -534,18 +532,6 @@ void TimeSeriesGraph::drawYTicks(RelativeDisplay* target) {
         all_ticks.push_back({tick_value, y_screen});
     }
 
-    Serial.printf("[Graph] Generated %zu Y-ticks (suppressed %d near X-axis)\n", all_ticks.size(), suppressed_count);
-    Serial.printf("[Graph] Clean tick values: first=%.9f, increment=%.9f\n", first_tick, y_tick_increment_);
-
-    // Debug: log actual tick values and screen positions to verify uniform spacing
-    if (all_ticks.size() > 0) {
-        Serial.println("[Graph] Tick debug (value, screen_y, delta):");
-        for (size_t i = 0; i < all_ticks.size(); i++) {
-            float delta = (i > 0) ? (all_ticks[i].second - all_ticks[i-1].second) : 0.0f;
-            Serial.printf("  [%zu] value=%.9f, screen_y=%.3f, delta=%.3f\n",
-                          i, all_ticks[i].first, all_ticks[i].second, delta);
-        }
-    }
 
     // CRITICAL FIX: Iteratively increase tick_skip until all labels are unique
     // Problem: tick increment (e.g., 0.002) may be too fine for 3-sig-fig display
@@ -577,9 +563,6 @@ void TimeSeriesGraph::drawYTicks(RelativeDisplay* target) {
         }
     }
 
-    if (tick_skip > 1) {
-        Serial.printf("[Graph] Duplicate labels detected, tick_skip increased to %d for unique labels\n", tick_skip);
-    }
 
     // Second pass: render ticks with adjusted density
     int tick_index = 0;

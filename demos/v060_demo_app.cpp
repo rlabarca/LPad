@@ -207,26 +207,15 @@ void V060DemoApp::render() {
                         m_graph->setData(graphData);
 
                         // Calculate and print data range for debugging
-                        if (!graphData.y_values.empty()) {
-                            double y_min = *std::min_element(graphData.y_values.begin(), graphData.y_values.end());
-                            double y_max = *std::max_element(graphData.y_values.begin(), graphData.y_values.end());
-                            Serial.printf("[V060DemoApp] Data range: Y min=%.6f, max=%.6f, range=%.6f\n",
-                                          y_min, y_max, y_max - y_min);
-                        }
-
                         // Draw background (axes + ticks) after first data load (needed for tick calculation)
                         if (!backgroundDrawn) {
                             m_graph->drawBackground();
                             backgroundDrawn = true;
-                            Serial.println("[V060DemoApp] Background (axes + ticks) drawn with data-based tick marks");
                         }
 
                         m_graph->drawData();
                         lastTimestamp = currentTimestamp;
                         needsFullRender = true;  // NOW we have content to render
-
-                        Serial.printf("[V060DemoApp] Graph data updated: %zu points, latest timestamp=%ld\n",
-                                      graphData.y_values.size(), currentTimestamp);
                     }
                 }
 
