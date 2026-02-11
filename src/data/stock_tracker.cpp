@@ -16,8 +16,8 @@
 #endif
 
 // Buffer size for HTTP response (Yahoo Finance responses can be large)
-// 6-hour range returns ~10KB, so 20KB provides safe headroom
-static constexpr size_t HTTP_RESPONSE_BUFFER_SIZE = 20480;  // 20KB
+// 6-hour range returns ~20KB, using 32KB for safe headroom
+static constexpr size_t HTTP_RESPONSE_BUFFER_SIZE = 32768;  // 32KB
 
 StockTracker::StockTracker(const std::string& symbol,
                           uint32_t refresh_interval_seconds,
