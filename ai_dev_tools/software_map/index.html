@@ -130,10 +130,11 @@
             stroke: none !important;
         }
         .node.subgraphTitle .nodeLabel {
-            font-size: 32px !important;
+            font-size: 36px !important;
             font-weight: bold !important;
             color: #111 !important;
             cursor: default !important;
+            padding: 20px !important;
         }
         
         /* Subgraph styling overrides */
@@ -144,6 +145,12 @@
         .cluster rect {
             fill: #e6e6e6 !important;
             stroke: #cccccc !important;
+        }
+        
+        /* Nested inner subgraphs should be transparent and borderless */
+        [id$="_inner"] rect {
+            fill: none !important;
+            stroke: none !important;
         }
         
         /* Class Diagram Styles */
