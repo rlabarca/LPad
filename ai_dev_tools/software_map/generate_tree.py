@@ -54,7 +54,7 @@ def parse_features():
     return features
 
 def generate_mermaid_content(features):
-    lines = ["graph TD"]
+    lines = ["flowchart TD"]
     lines.append("    %% Styling")
     lines.append("    classDef default fill:#e1f5fe,stroke:#01579b,stroke-width:1px,color:black;")
     lines.append("    classDef release fill:#f96,stroke:#333,stroke-width:2px,color:black,font-weight:bold;")
@@ -71,16 +71,15 @@ def generate_mermaid_content(features):
     
     for category, node_ids in sorted(grouped_categories.items()):
         category_id = category.replace(' ', '_')
-        lines.append(f"\n    subgraph {category_id} [ ]")
+        lines.append(f"\n    subgraph {category_id} [\" \"]")
         lines.append(f"        direction TB")
         
         # Add a title node at the top of the outer subgraph
-        # Adding non-breaking spaces for a bit of extra width to help centering
-        title_text = f"&nbsp;&nbsp;&nbsp;&nbsp;{category.upper()}&nbsp;&nbsp;&nbsp;&nbsp;"
+        title_text = f"        {category.upper()}        "
         lines.append(f'        title_{category_id}("{title_text}"):::subgraphTitle')
         
         # Inner subgraph for the actual content nodes
-        lines.append(f"        subgraph {category_id}_inner [ ]")
+        lines.append(f"        subgraph {category_id}_inner [\" \"]")
         lines.append(f"            direction TB")
         for node_id in sorted(node_ids):
             data = features[node_id]

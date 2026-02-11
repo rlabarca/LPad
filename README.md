@@ -65,7 +65,7 @@ The following DAG (Directed Acyclic Graph) represents the current feature set an
 
 <!-- MERMAID_START -->
 ```mermaid
-graph TD
+flowchart TD
     %% Styling
     classDef default fill:#e1f5fe,stroke:#01579b,stroke-width:1px,color:black;
     classDef release fill:#f96,stroke:#333,stroke-width:2px,color:black,font-weight:bold;
@@ -76,10 +76,10 @@ graph TD
     classDef subgraphTitle fill:none,stroke:none,color:#111,font-size:32px,font-weight:bold;
 
 
-    subgraph Application_Layer [ ]
+    subgraph Application_Layer [" "]
         direction TB
-        title_Application_Layer("&nbsp;&nbsp;&nbsp;&nbsp;APPLICATION LAYER&nbsp;&nbsp;&nbsp;&nbsp;"):::subgraphTitle
-        subgraph Application_Layer_inner [ ]
+        title_Application_Layer("        APPLICATION LAYER        "):::subgraphTitle
+        subgraph Application_Layer_inner [" "]
             direction TB
             app_animation_ticker("**Animation Ticker Engine**<br/><small>app_animation_ticker.md</small>"):::app
             app_config_system("**Config Injection System**<br/><small>app_config_system.md</small>"):::app
@@ -89,10 +89,10 @@ graph TD
         title_Application_Layer ~~~ Application_Layer_inner
     end
 
-    subgraph Board_Drivers [ ]
+    subgraph Board_Drivers [" "]
         direction TB
-        title_Board_Drivers("&nbsp;&nbsp;&nbsp;&nbsp;BOARD DRIVERS&nbsp;&nbsp;&nbsp;&nbsp;"):::subgraphTitle
-        subgraph Board_Drivers_inner [ ]
+        title_Board_Drivers("        BOARD DRIVERS        "):::subgraphTitle
+        subgraph Board_Drivers_inner [" "]
             direction TB
             display_esp32s3_amoled("**ESP32-S3 AMOLED Driver**<br/><small>display_esp32s3_amoled.md</small>")
             display_tdisplay_s3_plus("**T-Display S3+ Driver**<br/><small>display_tdisplay_s3_plus.md</small>")
@@ -100,10 +100,10 @@ graph TD
         title_Board_Drivers ~~~ Board_Drivers_inner
     end
 
-    subgraph Data_Layer [ ]
+    subgraph Data_Layer [" "]
         direction TB
-        title_Data_Layer("&nbsp;&nbsp;&nbsp;&nbsp;DATA LAYER&nbsp;&nbsp;&nbsp;&nbsp;"):::subgraphTitle
-        subgraph Data_Layer_inner [ ]
+        title_Data_Layer("        DATA LAYER        "):::subgraphTitle
+        subgraph Data_Layer_inner [" "]
             direction TB
             data_layer_core("**Base Data Model**<br/><small>data_layer_core.md</small>")
             data_layer_stock_tracker("**Data Stock Tracker**<br/><small>data_layer_stock_tracker.md</small>")
@@ -112,10 +112,10 @@ graph TD
         title_Data_Layer ~~~ Data_Layer_inner
     end
 
-    subgraph Graphics_Engine [ ]
+    subgraph Graphics_Engine [" "]
         direction TB
-        title_Graphics_Engine("&nbsp;&nbsp;&nbsp;&nbsp;GRAPHICS ENGINE&nbsp;&nbsp;&nbsp;&nbsp;"):::subgraphTitle
-        subgraph Graphics_Engine_inner [ ]
+        title_Graphics_Engine("        GRAPHICS ENGINE        "):::subgraphTitle
+        subgraph Graphics_Engine_inner [" "]
             direction TB
             display_canvas_drawing("**Layered Canvas Drawing**<br/><small>display_canvas_drawing.md</small>"):::graphics
             display_relative_drawing("**Relative Drawing**<br/><small>display_relative_drawing.md</small>"):::graphics
@@ -124,10 +124,10 @@ graph TD
         title_Graphics_Engine ~~~ Graphics_Engine_inner
     end
 
-    subgraph Hardware_Layer [ ]
+    subgraph Hardware_Layer [" "]
         direction TB
-        title_Hardware_Layer("&nbsp;&nbsp;&nbsp;&nbsp;HARDWARE LAYER&nbsp;&nbsp;&nbsp;&nbsp;"):::subgraphTitle
-        subgraph Hardware_Layer_inner [ ]
+        title_Hardware_Layer("        HARDWARE LAYER        "):::subgraphTitle
+        subgraph Hardware_Layer_inner [" "]
             direction TB
             display_rotation_contract("**Rotation Contract**<br/><small>display_rotation_contract.md</small>"):::hardware
             display_target_rotation("**Target Rotation**<br/><small>display_target_rotation.md</small>"):::hardware
@@ -143,20 +143,20 @@ graph TD
         title_Hardware_Layer ~~~ Hardware_Layer_inner
     end
 
-    subgraph Release [ ]
+    subgraph Release [" "]
         direction TB
-        title_Release("&nbsp;&nbsp;&nbsp;&nbsp;RELEASE&nbsp;&nbsp;&nbsp;&nbsp;"):::subgraphTitle
-        subgraph Release_inner [ ]
+        title_Release("        RELEASE        "):::subgraphTitle
+        subgraph Release_inner [" "]
             direction TB
             RELEASE_v0_65_touch_interaction("**Release v0.65 (Touch)**<br/><small>RELEASE_v0.65_touch_interaction.md</small>"):::release
         end
         title_Release ~~~ Release_inner
     end
 
-    subgraph Release_Demos [ ]
+    subgraph Release_Demos [" "]
         direction TB
-        title_Release_Demos("&nbsp;&nbsp;&nbsp;&nbsp;RELEASE DEMOS&nbsp;&nbsp;&nbsp;&nbsp;"):::subgraphTitle
-        subgraph Release_Demos_inner [ ]
+        title_Release_Demos("        RELEASE DEMOS        "):::subgraphTitle
+        subgraph Release_Demos_inner [" "]
             direction TB
             demo_release_0_5("**Demo for Release v0.5**<br/><small>demo_release_0.5.md</small>"):::release
             demo_release_0_55("**Demo for Release v0.55**<br/><small>demo_release_0.55.md</small>"):::release
@@ -166,10 +166,10 @@ graph TD
         title_Release_Demos ~~~ Release_Demos_inner
     end
 
-    subgraph Releases [ ]
+    subgraph Releases [" "]
         direction TB
-        title_Releases("&nbsp;&nbsp;&nbsp;&nbsp;RELEASES&nbsp;&nbsp;&nbsp;&nbsp;"):::subgraphTitle
-        subgraph Releases_inner [ ]
+        title_Releases("        RELEASES        "):::subgraphTitle
+        subgraph Releases_inner [" "]
             direction TB
             RELEASE_v0_55_connectivity_smoke_test("**Release v0.55 - Connectivity Smoke Test**<br/><small>RELEASE_v0.55_connectivity_smoke_test.md</small>"):::release
             RELEASE_v0_58_dynamic_visuals("**Release v0.58 - Dynamic Visuals**<br/><small>RELEASE_v0.58_dynamic_visuals.md</small>"):::release
@@ -179,10 +179,10 @@ graph TD
         title_Releases ~~~ Releases_inner
     end
 
-    subgraph UI_Framework [ ]
+    subgraph UI_Framework [" "]
         direction TB
-        title_UI_Framework("&nbsp;&nbsp;&nbsp;&nbsp;UI FRAMEWORK&nbsp;&nbsp;&nbsp;&nbsp;"):::subgraphTitle
-        subgraph UI_Framework_inner [ ]
+        title_UI_Framework("        UI FRAMEWORK        "):::subgraphTitle
+        subgraph UI_Framework_inner [" "]
             direction TB
             ui_base("**Base UI Elements**<br/><small>ui_base.md</small>"):::ui
             ui_connectivity_status_screen("**Connectivity Status Screen**<br/><small>ui_connectivity_status_screen.md</small>"):::ui

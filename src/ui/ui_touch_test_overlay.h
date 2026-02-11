@@ -25,6 +25,11 @@ public:
     TouchTestOverlay();
 
     /**
+     * @brief Destructor - cleans up allocated resources
+     */
+    ~TouchTestOverlay();
+
+    /**
      * @brief Initialize the overlay
      * @return true if initialization was successful
      */
@@ -79,6 +84,9 @@ private:
     int16_t m_text_width;
     int16_t m_text_height;
     bool m_buffer_valid;
+
+    // Reusable canvas for text rendering (to avoid repeated allocation/deallocation)
+    class Arduino_Canvas* m_render_canvas;
 
     // Helper functions
     void renderTextToBuffer();
