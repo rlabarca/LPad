@@ -2,6 +2,76 @@
 
 This document captures the "tribal knowledge" of the project: technical hurdles, why specific decisions were made, and what approaches were discarded.
 
+## [2026-02-11] CST816 Touch Race Condition: isPressed() vs getPoint()
+
+### Problem
+Touch events showed impossible timing: PRESS, TAP, and RELEASE all occurring in a single 33ms frame:
+```
+[Touch] PRESS at (134, 186)
+[Touch] TAP at (134, 186) = (25.0%, 77.5%)
+[Touch] RELEASE
+```
+
+User reported:
+- Only TAP gestures detected (no HOLD, SWIPE, DRAG)
+- 1.5 second delay before touch registers
+- RELEASE events triggered while finger still down
+
+### Root Cause: I2C Race Condition
+
+`hal_touch_read()` made TWO separate I2C transactions:
+```cpp
+// WRONG: Two separate reads create race condition
+if (!g_touch.isPressed()) {  // I2C read #1
+    return false;
+}
+uint8_t count = g_touch.getPoint(x, y, 1);  // I2C read #2
+```
+
+**The Problem:**
+1. Frame N: `isPressed()` returns TRUE → read coordinates → report touch pressed
+2. Between frames: CST816 interrupt flag auto-clears after coordinate read
+3. Frame N+1: `isPressed()` returns FALSE (flag cleared) → report touch released
+4. But `getPoint()` STILL returns valid coordinates (cached by controller)
+
+**Result:** Phantom RELEASE events between every frame, preventing gesture detection.
+
+### Solution: Single Source of Truth
+
+Use `point_count` from `getPoint()` as the ONLY indicator of touch state:
+```cpp
+// CORRECT: Single I2C transaction
+uint8_t point_count = g_touch.getPoint(x, y, 1);
+if (point_count == 0) {
+    point->is_pressed = false;  // No valid coordinates
+} else {
+    point->is_pressed = true;   // Valid coordinates = touch present
+}
+```
+
+**Why This Works:**
+- `getPoint()` returns 0 when no touch detected
+- Returns 1 (or more) when touch coordinates are valid
+- Single I2C transaction = no race condition
+- No dependency on volatile interrupt flags
+
+### Results
+- Touch state now stable across frames
+- HOLD gestures should work (no phantom releases interrupting 1s timer)
+- SWIPE/DRAG can track continuous motion
+- Coordinates changing correctly (RAW values vary across screen)
+
+**Remaining Issue:** 1.5 second delay before first touch registers
+- Likely CST816 internal debounce/noise filtering
+- May require firmware configuration via I2C registers
+
+### Key Lessons
+1. **Never split atomic operations across multiple I2C transactions** - hardware state can change between reads
+2. **CST816 interrupt flag auto-clears on coordinate read** - makes `isPressed()` unreliable for state tracking
+3. **Use point_count as touch state indicator** - it's the direct result of the coordinate read, not a separate status check
+4. **Debug multi-event-per-frame anomalies immediately** - they indicate race conditions or timing bugs
+5. **Hardware interrupts/flags are NOT stable across I2C transactions** - assume they can change at any time
+
 ## [2026-02-11] Touch Overlay Optimization: Reducing Render Cost & Polling Overhead
 
 ### Problem
