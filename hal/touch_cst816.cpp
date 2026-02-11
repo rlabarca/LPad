@@ -133,11 +133,11 @@ bool hal_touch_read(hal_touch_point_t* point) {
         transformed_x = scaled_x;
         transformed_y = scaled_y;
     #elif DISPLAY_ROTATION == 90
-        // Landscape 90° CW: Simple axis swap, NO inversion
-        // Coordinate system: (0,0) at top-left, (535, 239) at bottom-right
-        // Based on HIL corner tap data showing X-inversion causes wrong mapping
-        transformed_x = scaled_y;  // Touch Y → Display X (NOT inverted)
-        transformed_y = scaled_x;  // Touch X → Display Y
+        // Landscape 90° CW: NO axis swap needed!
+        // Touch controller already reports in rotated coordinate system
+        // HIL corner data shows axes are correctly aligned, just need direct mapping
+        transformed_x = scaled_x;  // Touch X → Display X (NO swap!)
+        transformed_y = scaled_y;  // Touch Y → Display Y (NO swap!)
     #elif DISPLAY_ROTATION == 180
         // Inverted portrait (180°)
         transformed_x = g_display_width - scaled_x;
