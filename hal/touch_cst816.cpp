@@ -123,6 +123,8 @@ bool hal_touch_read(hal_touch_point_t* point) {
     int16_t scaled_y = (y[0] * PHYSICAL_HEIGHT) / TOUCH_HEIGHT;
 
     // Apply coordinate transformation based on display rotation
+    // NOTE: Touch panel and display have different orientations!
+    // For T-Display S3 AMOLED Plus, touch panel needs 180° adjustment
     int16_t transformed_x, transformed_y;
 
     #if DISPLAY_ROTATION == 0
@@ -130,9 +132,10 @@ bool hal_touch_read(hal_touch_point_t* point) {
         transformed_x = scaled_x;
         transformed_y = scaled_y;
     #elif DISPLAY_ROTATION == 90
-        // Landscape mode (90° clockwise)
-        transformed_x = scaled_y;
-        transformed_y = g_display_height - scaled_x;
+        // Landscape mode - CORRECTED transform for tdisplay touch panel
+        // Physical edges: LEFT→BOTTOM, RIGHT→TOP, TOP→LEFT, BOTTOM→RIGHT
+        transformed_x = g_display_width - scaled_y - 1;  // Flip X
+        transformed_y = scaled_x;  // Swap Y←X
     #elif DISPLAY_ROTATION == 180
         // Inverted portrait (180°)
         transformed_x = g_display_width - scaled_x;
