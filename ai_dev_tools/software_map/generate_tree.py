@@ -54,7 +54,7 @@ def parse_features():
     return features
 
 def generate_mermaid_content(features):
-    lines = ["graph TD"]
+    lines = ["flowchart TD"]
     lines.append("")
 
     grouped_categories = defaultdict(list)
@@ -68,7 +68,6 @@ def generate_mermaid_content(features):
         category_id = category.replace(' ', '_')
         # Use [" "] to explicitly hide the default subgraph label
         lines.append(f'\n    subgraph {category_id} [" "]')
-        lines.append(f"        direction TB")
         
         # Add a title node at the top
         title_id = f"title_{category_id}"
@@ -90,8 +89,8 @@ def generate_mermaid_content(features):
             if css_class:
                 style_apps.append(f"    class {node_id} {css_class};")
             
-            # Link title to node for layout order (these will be hidden via CSS)
-            lines.append(f'        {title_id} --- {node_id}')
+            # Use invisible layout edge to force centering
+            lines.append(f'        {title_id} ~~~ {node_id}')
         lines.append("    end")
 
     lines.append("\n    %% Relationships")

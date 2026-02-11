@@ -1,127 +1,118 @@
-graph TD
+flowchart TD
 
 
     subgraph Application_Layer [" "]
-        direction TB
         title_Application_Layer["APPLICATION LAYER"]
         app_animation_ticker["Animation Ticker Engine"]
-        title_Application_Layer --- app_animation_ticker
+        title_Application_Layer ~~~ app_animation_ticker
         app_config_system["Config Injection System"]
-        title_Application_Layer --- app_config_system
+        title_Application_Layer ~~~ app_config_system
         touch_gesture_engine["Touch Gesture Engine"]
-        title_Application_Layer --- touch_gesture_engine
+        title_Application_Layer ~~~ touch_gesture_engine
         ui_logo_screen["Logo Splash Screen"]
-        title_Application_Layer --- ui_logo_screen
+        title_Application_Layer ~~~ ui_logo_screen
     end
 
     subgraph Board_Drivers [" "]
-        direction TB
         title_Board_Drivers["BOARD DRIVERS"]
         display_esp32s3_amoled["ESP32-S3 AMOLED Driver"]
-        title_Board_Drivers --- display_esp32s3_amoled
+        title_Board_Drivers ~~~ display_esp32s3_amoled
         display_tdisplay_s3_plus["T-Display S3+ Driver"]
-        title_Board_Drivers --- display_tdisplay_s3_plus
+        title_Board_Drivers ~~~ display_tdisplay_s3_plus
     end
 
     subgraph Data_Layer [" "]
-        direction TB
         title_Data_Layer["DATA LAYER"]
         data_layer_core["Base Data Model"]
-        title_Data_Layer --- data_layer_core
+        title_Data_Layer ~~~ data_layer_core
         data_layer_stock_tracker["Data Stock Tracker"]
-        title_Data_Layer --- data_layer_stock_tracker
+        title_Data_Layer ~~~ data_layer_stock_tracker
         data_layer_time_series["Time Series Data Item"]
-        title_Data_Layer --- data_layer_time_series
+        title_Data_Layer ~~~ data_layer_time_series
     end
 
     subgraph Graphics_Engine [" "]
-        direction TB
         title_Graphics_Engine["GRAPHICS ENGINE"]
         display_canvas_drawing["Layered Canvas Drawing"]
-        title_Graphics_Engine --- display_canvas_drawing
+        title_Graphics_Engine ~~~ display_canvas_drawing
         display_relative_drawing["Relative Drawing"]
-        title_Graphics_Engine --- display_relative_drawing
+        title_Graphics_Engine ~~~ display_relative_drawing
         ui_vector_assets["Vector Asset Pipeline"]
-        title_Graphics_Engine --- ui_vector_assets
+        title_Graphics_Engine ~~~ ui_vector_assets
     end
 
     subgraph Hardware_Layer [" "]
-        direction TB
         title_Hardware_Layer["HARDWARE LAYER"]
         display_rotation_contract["Rotation Contract"]
-        title_Hardware_Layer --- display_rotation_contract
+        title_Hardware_Layer ~~~ display_rotation_contract
         display_target_rotation["Target Rotation"]
-        title_Hardware_Layer --- display_target_rotation
+        title_Hardware_Layer ~~~ display_target_rotation
         hal_core_contract["HAL Core Contract"]
-        title_Hardware_Layer --- hal_core_contract
+        title_Hardware_Layer ~~~ hal_core_contract
         hal_dma_blitting["DMA Blitting"]
-        title_Hardware_Layer --- hal_dma_blitting
+        title_Hardware_Layer ~~~ hal_dma_blitting
         hal_spec_display["HAL Display Specification"]
-        title_Hardware_Layer --- hal_spec_display
+        title_Hardware_Layer ~~~ hal_spec_display
         hal_spec_network["HAL Network Specification"]
-        title_Hardware_Layer --- hal_spec_network
+        title_Hardware_Layer ~~~ hal_spec_network
         hal_spec_timer["HAL Timer Specification"]
-        title_Hardware_Layer --- hal_spec_timer
+        title_Hardware_Layer ~~~ hal_spec_timer
         hal_spec_touch["HAL: Touch Spec"]
-        title_Hardware_Layer --- hal_spec_touch
+        title_Hardware_Layer ~~~ hal_spec_touch
         hal_timer_esp32["ESP32 Timer"]
-        title_Hardware_Layer --- hal_timer_esp32
+        title_Hardware_Layer ~~~ hal_timer_esp32
         touch_cst816_implementation["HAL: CST816 Impl"]
-        title_Hardware_Layer --- touch_cst816_implementation
+        title_Hardware_Layer ~~~ touch_cst816_implementation
     end
 
     subgraph Release [" "]
-        direction TB
         title_Release["RELEASE"]
         RELEASE_v0_65_touch_interaction["Release v0.65 (Touch)"]
-        title_Release --- RELEASE_v0_65_touch_interaction
+        title_Release ~~~ RELEASE_v0_65_touch_interaction
     end
 
     subgraph Release_Demos [" "]
-        direction TB
         title_Release_Demos["RELEASE DEMOS"]
         demo_release_0_5["Demo for Release v0.5"]
-        title_Release_Demos --- demo_release_0_5
+        title_Release_Demos ~~~ demo_release_0_5
         demo_release_0_55["Demo for Release v0.55"]
-        title_Release_Demos --- demo_release_0_55
+        title_Release_Demos ~~~ demo_release_0_55
         demo_release_0_58["Demo for Release v0.58"]
-        title_Release_Demos --- demo_release_0_58
+        title_Release_Demos ~~~ demo_release_0_58
         demo_release_0_60["Demo v0.60"]
-        title_Release_Demos --- demo_release_0_60
+        title_Release_Demos ~~~ demo_release_0_60
     end
 
     subgraph Releases [" "]
-        direction TB
         title_Releases["RELEASES"]
         RELEASE_v0_55_connectivity_smoke_test["Release v0.55 - Connectivity Smoke Test"]
-        title_Releases --- RELEASE_v0_55_connectivity_smoke_test
+        title_Releases ~~~ RELEASE_v0_55_connectivity_smoke_test
         RELEASE_v0_58_dynamic_visuals["Release v0.58 - Dynamic Visuals"]
-        title_Releases --- RELEASE_v0_58_dynamic_visuals
+        title_Releases ~~~ RELEASE_v0_58_dynamic_visuals
         RELEASE_v0_5_display_drawing_ui_base["Release v0.5 - Display, Drawing & UI Base"]
-        title_Releases --- RELEASE_v0_5_display_drawing_ui_base
+        title_Releases ~~~ RELEASE_v0_5_display_drawing_ui_base
         RELEASE_v0_60_initial_stock_tracker["Release v0.60"]
-        title_Releases --- RELEASE_v0_60_initial_stock_tracker
+        title_Releases ~~~ RELEASE_v0_60_initial_stock_tracker
     end
 
     subgraph UI_Framework [" "]
-        direction TB
         title_UI_Framework["UI FRAMEWORK"]
         ui_base["Base UI Elements"]
-        title_UI_Framework --- ui_base
+        title_UI_Framework ~~~ ui_base
         ui_connectivity_status_screen["Connectivity Status Screen"]
-        title_UI_Framework --- ui_connectivity_status_screen
+        title_UI_Framework ~~~ ui_connectivity_status_screen
         ui_live_indicator["Animated Live Indicator"]
-        title_UI_Framework --- ui_live_indicator
+        title_UI_Framework ~~~ ui_live_indicator
         ui_mini_logo["UI Mini Logo"]
-        title_UI_Framework --- ui_mini_logo
+        title_UI_Framework ~~~ ui_mini_logo
         ui_theme_support["Theme Support"]
-        title_UI_Framework --- ui_theme_support
+        title_UI_Framework ~~~ ui_theme_support
         ui_themeable_time_series_graph["Themeable Graph"]
-        title_UI_Framework --- ui_themeable_time_series_graph
+        title_UI_Framework ~~~ ui_themeable_time_series_graph
         ui_themeable_time_series_graph_v2["UI Time Series Graph v2"]
-        title_UI_Framework --- ui_themeable_time_series_graph_v2
+        title_UI_Framework ~~~ ui_themeable_time_series_graph_v2
         ui_touch_test_overlay["UI: Touch Overlay"]
-        title_UI_Framework --- ui_touch_test_overlay
+        title_UI_Framework ~~~ ui_touch_test_overlay
     end
 
     %% Relationships
