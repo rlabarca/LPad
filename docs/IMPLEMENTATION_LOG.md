@@ -2,6 +2,118 @@
 
 This document captures the "tribal knowledge" of the project: technical hurdles, why specific decisions were made, and what approaches were discarded.
 
+## [2026-02-11] Release v0.60 Final: Y-Axis Tick Spacing & Label Uniqueness
+
+### Problem
+During v0.60 HIL testing, two critical graph rendering issues were discovered:
+1. **Non-uniform Y-axis tick spacing**: Tick marks appeared at inconsistent pixel intervals (2, 2, 2, 3, 2, 2, 3 pixels) creating visible unevenness
+2. **Duplicate Y-axis labels**: Tick increment (0.002 = 4 significant figures) was too fine for 3-sig-fig display, producing identical labels like "4.14", "4.14", "4.14"
+3. **Missing X-axis "0" label**: The "NOW" (0 hours prior) label didn't always appear at the most recent data point
+
+### Root Cause Analysis
+
+**Issue 1: Tick Spacing**
+The ticks were correctly generated at "clean" data values (4.134, 4.136, 4.138...) per feature spec requirement: "tick at 4.19 must be at exact vertical position representing 4.19". These values mapped to fractional pixel positions (78.316, 76.165, 74.013...) with uniform spacing of 2.152 pixels.
+
+However, when `RelativeDisplay::relativeToAbsoluteY()` applied `roundf()` to convert to integer pixels:
+- 78.316 → 78
+- 76.165 → 76 (gap: 2 pixels)
+- 74.013 → 74 (gap: 2 pixels)
+- 71.861 → 72 (gap: 2 pixels) ← rounds up
+- 69.709 → 70 (gap: 2 pixels)
+- 67.557 → 68 (gap: 2 pixels)
+- 65.405 → 65 (gap: 3 pixels!) ← accumulated rounding error
+
+**Issue 2: Duplicate Labels**
+The `format_3_sig_digits()` function produces 3-digit precision (e.g., "4.14"), but tick values at 0.002 increment require 4 digits to distinguish:
+- 4.138 → "4.14"
+- 4.140 → "4.14" ← duplicate!
+- 4.142 → "4.14" ← duplicate!
+- 4.144 → "4.14" ← duplicate!
+
+The code had duplicate detection but only tried `tick_skip = 2`, which wasn't sufficient.
+
+**Issue 3: X-axis "0" Missing**
+The X-tick loop (`for i = tick_interval; i < num_points; i += tick_interval`) didn't guarantee the last data point would be included. If `num_points=100` and `tick_interval=20`, ticks appeared at i=20, 40, 60, 80 — missing the last point (99).
+
+### Discarded Approach: Uniform Pixel Spacing (WRONG)
+
+**Attempt:** Calculate integer pixel spacing, place ticks at evenly-spaced pixel positions, map back to data values for labels.
+
+**Why it failed:**
+1. **Violated feature spec**: "Tick at 4.19 must be at exact vertical position representing 4.19" — this approach placed ticks at pixel positions that didn't correspond to their labeled data values
+2. **Broke origin suppression**: The algorithm recalculated all tick positions, bypassing the origin suppression check that prevents ticks from overlapping the X-axis
+3. **Regression introduced**: A Y-tick was drawn over the X-axis, making the issue worse
+
+**Key insight from user:** "We are only displaying 3 significant digits (e.g., 4.19), but the value is being represented as 4.192, 4.194, 4.196... 4 significant digits)" — the real problem wasn't pixel spacing, it was tick density relative to display precision.
+
+### Final Solution: Iterative Tick Skip Adjustment
+
+Instead of fighting the pixel rounding, we **increase tick density** until all labels are unique:
+
+```cpp
+bool has_duplicates = true;
+while (has_duplicates && tick_skip < static_cast<int>(all_ticks.size())) {
+    // Generate labels for ticks at current skip level
+    std::vector<std::string> test_labels;
+    for (size_t idx = 0; idx < all_ticks.size(); idx += tick_skip) {
+        char label[16];
+        format_3_sig_digits(all_ticks[idx].first, label, sizeof(label));
+        test_labels.push_back(std::string(label));
+    }
+
+    // Check for duplicates
+    has_duplicates = false;
+    for (size_t i = 0; i < test_labels.size(); i++) {
+        for (size_t j = i + 1; j < test_labels.size(); j++) {
+            if (test_labels[i] == test_labels[j]) {
+                has_duplicates = true;
+                break;
+            }
+        }
+        if (has_duplicates) break;
+    }
+
+    if (has_duplicates) tick_skip++;
+}
+```
+
+**For the example data (range 0.079, increment 0.002):**
+- tick_skip=1: 35 ticks, many duplicates
+- tick_skip=2: 17 ticks, still duplicates
+- tick_skip=5: 7 ticks with labels "4.13", "4.14", "4.15", "4.16", "4.17", "4.18" → ALL UNIQUE ✓
+
+**X-axis fix:**
+```cpp
+std::vector<size_t> tick_indices;
+for (size_t i = tick_interval; i < num_points; i += tick_interval) {
+    tick_indices.push_back(i);
+}
+
+// Always include last data point
+size_t last_index = num_points - 1;
+if (tick_indices.empty() || tick_indices.back() != last_index) {
+    tick_indices.push_back(last_index);
+}
+```
+
+### Results
+- ✓ Y-ticks remain at exact vertical positions for clean data values (spec compliant)
+- ✓ All Y-tick labels are unique (auto-adjusted tick_skip from 1→5)
+- ✓ No ticks overlap X-axis (origin suppression preserved)
+- ✓ X-axis "0" label always appears at most recent data point
+- ✓ Tick spacing is mathematically uniform (2.152 pixels), visual variation from rounding is acceptable given larger tick density reduces total variation
+
+### Key Lessons
+1. **Don't fight the spec to fix a symptom** - The spec requires ticks at exact data values; trying to move them to uniform pixels violates this requirement
+2. **Precision mismatch is solvable by density** - If display precision is coarser than data increment, reduce tick count until labels are distinguishable
+3. **User insight is invaluable** - "4 sig figs being displayed as 3 sig figs" immediately identified the root cause
+4. **Iterative algorithms > fixed heuristics** - `tick_skip = 2` hardcoded guess fails; `while (has_duplicates) tick_skip++` always succeeds
+5. **Feature specs can conflict** - "Ticks at exact clean values" + "Uniform visual spacing" are mathematically incompatible when increment is fractional pixels; prioritize data accuracy over visual perfection
+6. **Test what users see, not what code calculates** - Debug showed "delta = -2.152" (uniform), but users saw "inconsistent spacing" (rounding artifacts); both were correct from their reference frames
+
+---
+
 ## [2026-02-09] Release v0.60 HIL Test Round 2: Rendering Optimization & Aspect Ratio Fix
 
 ### Problems
