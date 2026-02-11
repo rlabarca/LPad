@@ -260,7 +260,7 @@ bool StockTracker::parseYahooFinanceResponse(const char* json_response,
     JsonObject result = result_array[0];
 
     // Check if timestamp exists (may be missing during non-trading hours)
-    if (!result.containsKey("timestamp")) {
+    if (!result["timestamp"].is<JsonArray>()) {
         Serial.println("[StockTracker] No timestamp field (likely non-trading hours or no data)");
 
         // Log what we do have
@@ -275,20 +275,20 @@ bool StockTracker::parseYahooFinanceResponse(const char* json_response,
 
     // Get timestamp array
     JsonArray timestamps_array = result["timestamp"].as<JsonArray>();
-    if (timestamps_array.isNull() || timestamps_array.size() == 0) {
-        Serial.println("[StockTracker] Empty or null timestamp array");
+    if (timestamps_array.size() == 0) {
+        Serial.println("[StockTracker] Empty timestamp array");
         return false;
     }
 
     // Get close price array
-    if (!result["indicators"]["quote"][0].containsKey("close")) {
+    if (!result["indicators"]["quote"][0]["close"].is<JsonArray>()) {
         Serial.println("[StockTracker] No close price data");
         return false;
     }
 
     JsonArray close_array = result["indicators"]["quote"][0]["close"].as<JsonArray>();
-    if (close_array.isNull() || close_array.size() == 0) {
-        Serial.println("[StockTracker] Empty or null close array");
+    if (close_array.size() == 0) {
+        Serial.println("[StockTracker] Empty close array");
         return false;
     }
 
