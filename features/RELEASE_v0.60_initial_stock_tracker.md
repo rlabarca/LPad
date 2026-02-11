@@ -26,7 +26,7 @@ The demo for this release will have the following flow:
     - The graph of the ^TNX stock is displayed.
     - The mini logo remains in the top-right corner.
     - The text "DEMO v0.60" is displayed in the top-left corner.
-    - The graph is updated periodically with new data fetched from the Yahoo Finance API.
+    - The graph is initialized with the past 24 hours of data and updated every minute with new data fetched from the Yahoo Finance API.
 
 ## Validation Criteria
 
