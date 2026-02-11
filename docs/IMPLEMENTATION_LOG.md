@@ -106,12 +106,44 @@ Called in V065DemoApp::render() to ensure overlay reappears after graph updates.
 - **Touch polling overhead reduced by ~90% when idle**: GPIO read instead of I2C transactions
 - **Overlay render cost reduced by ~97%**: 1 blit/sec (on gesture) instead of 30 blits/sec
 
+### Results
+- **Text cutoff eliminated**: Full gesture text visible with 300x100 buffer
+- **Overlay render cost reduced by ~97%**: 1 blit/sec (on gesture) instead of 30 blits/sec
+- **INT pin optimization FAILED**: Caused false positives (touch reported when not touching)
+
+### Lessons Learned: INT Pin Polling Failure
+
+**Attempted Optimization (FAILED):**
+```cpp
+// Check INT pin before I2C read
+if (digitalRead(TOUCH_INT) == HIGH) {
+    return false;  // Assume no touch
+}
+```
+
+**Result:** Constant false positives - touch reported at (120, 0) even without contact.
+
+**Root Cause (Hypothesis):** INT pin polarity/behavior different than assumed:
+- May be active-high instead of active-low
+- May require pull-up resistor configuration
+- SensorLib may configure pin differently than expected
+- Pin state may not directly indicate "touch ready"
+
+**Correct Approach for Future:**
+1. Read CST816 datasheet for INT pin specifications
+2. Use logic analyzer to observe pin state during touch events
+3. Check SensorLib source code for pin configuration
+4. Test with oscilloscope to verify timing and polarity
+5. **Never assume INT pin behavior without verification**
+
+**Interim Solution:** Reverted to I2C polling (isPressed() check) until pin behavior understood.
+
 ### Key Lessons
-1. **Check hardware interrupt pins before I2C/SPI reads** - INT/IRQ pins exist specifically to avoid polling overhead
-2. **Dirty flags prevent redundant render operations** - Track when content actually changes instead of rendering every frame
-3. **Buffer size must accommodate worst-case content** - Measure longest possible text with actual font metrics, don't guess
-4. **GPIO reads are 100-1000x faster than I2C transactions** - Use them as fast-path guards
-5. **DMA blits are fast but not free** - Eliminate unnecessary blits even if each one is only 1-2ms
+1. **Dirty flags prevent redundant render operations** - Track when content actually changes instead of rendering every frame
+2. **Buffer size must accommodate worst-case content** - Measure longest possible text with actual font metrics, don't guess
+3. **Font baseline positioning is critical** - getTextBounds() returns negative y offset from baseline to top, must subtract when centering
+4. **DMA blits are fast but not free** - Eliminate unnecessary blits even if each one is only 1-2ms
+5. **DO NOT assume hardware pin behavior** - INT/IRQ pin polarity and configuration must be verified with datasheet + testing before optimization
 
 ## [2026-02-11] Touch Coordinate Scaling: Controller Resolution vs Display Pixels
 
