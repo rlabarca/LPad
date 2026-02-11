@@ -9,6 +9,9 @@ This release introduces full touchscreen support to the LPad platform. It establ
 
 ## 2. Components
 
+### 2.0 Versioning
+- **Demo Title:** The persistent title overlay on the graph (or the demo coordinator) must be updated to display **"DEMO v0.65"**.
+
 ### 2.1 Hardware Layer
 - **HAL Contract:** `hal_touch_init`, `hal_touch_read`.
 - **Implementation:** CST816 driver support for `esp32s3` (1.8") and `tdisplay_s3_plus` (1.91") environments using correct pin mappings.
