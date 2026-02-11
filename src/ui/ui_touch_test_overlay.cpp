@@ -156,7 +156,8 @@ void TouchTestOverlay::renderTextToBuffer() {
     // Get theme
     const LPad::Theme* theme = LPad::ThemeManager::getInstance().getTheme();
 
-    // Fill canvas with chroma key for transparency
+    // CRITICAL: Always clear ENTIRE buffer to prevent text artifacts
+    // Fill full canvas with chroma key for transparency
     constexpr uint16_t CHROMA_KEY = 0x0001;
     m_render_canvas->fillScreen(CHROMA_KEY);
 
@@ -182,7 +183,7 @@ void TouchTestOverlay::renderTextToBuffer() {
         snprintf(text_line2, sizeof(text_line2), "(%d, %d) %.0f%%", m_last_x, m_last_y, m_last_x_percent * 100.0f);
     }
 
-    // Draw background box for legibility
+    // Get text dimensions
     int16_t text1_x, text1_y;
     uint16_t text1_w, text1_h;
     m_render_canvas->getTextBounds(text_line1, 0, 0, &text1_x, &text1_y, &text1_w, &text1_h);
@@ -191,13 +192,14 @@ void TouchTestOverlay::renderTextToBuffer() {
     uint16_t text2_w, text2_h;
     m_render_canvas->getTextBounds(text_line2, 0, 0, &text2_x, &text2_y, &text2_w, &text2_h);
 
-    uint16_t max_w = (text1_w > text2_w) ? text1_w : text2_w;
     uint16_t total_h = text1_h + text2_h + 10;  // 10px spacing between lines
 
-    int16_t box_x = (m_text_width - max_w) / 2 - 5;
-    int16_t box_y = (m_text_height - total_h) / 2 - 5;
-    uint16_t box_w = max_w + 10;
-    uint16_t box_h = total_h + 10;
+    // Draw solid background box for ENTIRE overlay (prevents artifacts from varying text sizes)
+    // Use full width minus small margin to ensure complete coverage
+    int16_t box_x = 10;
+    int16_t box_y = (m_text_height - total_h) / 2 - 10;
+    uint16_t box_w = m_text_width - 20;  // Full width minus margins
+    uint16_t box_h = total_h + 20;
 
     m_render_canvas->fillRect(box_x, box_y, box_w, box_h, theme->colors.background);
 
