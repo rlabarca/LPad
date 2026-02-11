@@ -157,7 +157,11 @@ bool hal_network_http_get(const char* url, char* response_buffer, size_t buffer_
 
         Serial.println("[hal_network_http_get] Reading stream in chunks...");
 
-        while (http.connected() && (contentLength > 0 || contentLength == -1)) {
+        // Track time since last data received for timeout detection
+        unsigned long last_data_time = millis();
+        const unsigned long DATA_TIMEOUT_MS = 5000;  // 5 second timeout for data
+
+        while (http.connected()) {
             size_t available = stream->available();
 
             if (available) {
@@ -167,6 +171,7 @@ bool hal_network_http_get(const char* url, char* response_buffer, size_t buffer_
 
                 if (c > 0) {
                     bytes_read += c;
+                    last_data_time = millis();  // Reset timeout
 
                     if (contentLength > 0) {
                         contentLength -= c;
@@ -176,18 +181,28 @@ bool hal_network_http_get(const char* url, char* response_buffer, size_t buffer_
                     if (millis() - last_wdt_feed > 100) {
                         esp_task_wdt_reset();
                         last_wdt_feed = millis();
-                        Serial.printf("[hal_network_http_get] Read %d bytes (feeding watchdog)...\n", bytes_read);
+                        Serial.printf("[hal_network_http_get] Read %zu bytes (feeding watchdog)...\n", bytes_read);
                     }
                 }
-            } else if (contentLength <= 0) {
-                break;  // All data received
+
+                // If we have known content length and received all data, break
+                if (contentLength > 0 && contentLength == 0) {
+                    Serial.println("[hal_network_http_get] All expected data received");
+                    break;
+                }
             } else {
-                delay(1);  // Wait for more data
+                // No data available - check timeout
+                if (millis() - last_data_time > DATA_TIMEOUT_MS) {
+                    Serial.printf("[hal_network_http_get] Data timeout after %zu bytes\n", bytes_read);
+                    break;
+                }
+                delay(10);  // Wait for more data
+                esp_task_wdt_reset();  // Feed watchdog during wait
             }
 
             // Check buffer overflow
             if (bytes_read >= buffer_size - 1) {
-                Serial.printf("[hal_network_http_get] ERROR: Buffer overflow at %d bytes\n", bytes_read);
+                Serial.printf("[hal_network_http_get] ERROR: Buffer overflow at %zu bytes\n", bytes_read);
                 http.end();
                 return false;
             }

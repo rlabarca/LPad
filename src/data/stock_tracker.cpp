@@ -222,6 +222,16 @@ bool StockTracker::parseYahooFinanceResponse(const char* json_response,
                                              std::vector<long>& out_timestamps,
                                              std::vector<double>& out_prices) {
 #ifdef ARDUINO
+    // Debug: Show first 300 chars of response
+    size_t response_len = strlen(json_response);
+    Serial.printf("[StockTracker] Response length: %zu bytes\n", response_len);
+    Serial.print("[StockTracker] Response preview (first 300 chars): ");
+    size_t preview_len = (response_len < 300) ? response_len : 300;
+    for (size_t i = 0; i < preview_len; i++) {
+        Serial.print(json_response[i]);
+    }
+    Serial.println();
+
     // Parse JSON using ArduinoJson
     JsonDocument doc;
     DeserializationError error = deserializeJson(doc, json_response);
