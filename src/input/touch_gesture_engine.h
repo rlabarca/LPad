@@ -106,11 +106,11 @@ private:
     uint32_t m_touch_duration_ms;         // Time since touch started
     bool m_hold_event_fired;              // Whether hold event was already fired
 
-    // Gesture thresholds (from spec)
-    static constexpr uint32_t HOLD_THRESHOLD_MS = 1000;      // 1 second for hold
-    static constexpr float MOVEMENT_THRESHOLD_PERCENT = 0.10f;  // 10% of max dimension
-    static constexpr float SWIPE_DISTANCE_PERCENT = 0.40f;      // 40% of dimension for swipe
-    static constexpr float EDGE_THRESHOLD_PERCENT = 0.20f;      // 20% from edge
+    // Gesture thresholds (tuned for small touch screens)
+    static constexpr uint32_t HOLD_THRESHOLD_MS = 500;        // 500ms for hold (was 1000ms - too long)
+    static constexpr float MOVEMENT_THRESHOLD_PERCENT = 0.05f; // 5% of max dimension (was 10% - too strict)
+    static constexpr float SWIPE_DISTANCE_PERCENT = 0.15f;     // 15% of dimension for swipe (was 40% - too far!)
+    static constexpr float EDGE_THRESHOLD_PERCENT = 0.15f;     // 15% from edge (was 20%)
 
     // Helper functions
     int16_t getMovementThreshold() const;
