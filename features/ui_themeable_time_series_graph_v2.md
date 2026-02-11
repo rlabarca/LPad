@@ -20,7 +20,9 @@ This feature updates the `TimeSeriesGraph` component with a new look and feel, a
   - The component MUST autonomously manage tick and label placement to prevent collisions between labels or with the axis lines.
   - Origin Clearance: Labels for both X and Y axes MUST NOT be rendered at the origin to avoid mutual overlap and axis line interference.
   - The Y-axis should have labels with a maximum of 3 significant digits, dynamically adjusted to the data range.
+  - **Precise Tick Placement:** Tick marks MUST be placed at exact "clean" values where all non-significant digits are zero. For example, if displaying 3 significant digits, a tick at `4.19` must be located at the exact vertical position representing `4.19000...`, rather than an arbitrary data point that rounds to `4.19`.
   - **Unique Label Constraint:** The component MUST ensure that no two Y-axis tick labels are identical after formatting. If the data range is small enough that standard increments produce identical formatted strings, the component MUST increase the precision or adjust the tick spacing to ensure every label is unique.
+  - **Spacing & Clearance:** The component MUST maintain clear vertical spacing between Y-axis labels. The bottom-most Y-axis label MUST NOT overlap the X-axis line or its title.
   - The X-axis labels should represent hours prior to the latest data point (e.g., "0", "1", "2").
   - The number and spacing of X-axis ticks and labels should be dynamically chosen by the component to fit the screen width without overlapping, ensuring they represent logical hour intervals.
   - The Y-axis should have a title "Value" rendered vertically.
