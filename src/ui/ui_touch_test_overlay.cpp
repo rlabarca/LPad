@@ -101,6 +101,12 @@ void TouchTestOverlay::renderTextToBuffer() {
     // Create a temporary canvas for rendering
     Arduino_Canvas canvas(m_text_width, m_text_height, gfx);
 
+    // Initialize canvas framebuffer (required before any drawing operations)
+    if (!canvas.begin(GFX_SKIP_OUTPUT_BEGIN)) {
+        Serial.println("[TouchTestOverlay] ERROR: Canvas begin() failed");
+        return;
+    }
+
     // Fill with chroma key for transparency
     constexpr uint16_t CHROMA_KEY = 0x0001;
     canvas.fillScreen(CHROMA_KEY);
