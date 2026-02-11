@@ -79,17 +79,26 @@ void V065DemoApp::update(float deltaTime) {
         if (gesture_detected) {
             m_touchOverlay->update(gesture_event);
 
-            // Debug output
+            // Debug output with screen dimension context
             const char* gesture_names[] = {"NONE", "TAP", "HOLD", "HOLD_DRAG", "SWIPE", "EDGE_DRAG"};
             const char* dir_names[] = {"NONE", "UP", "DOWN", "LEFT", "RIGHT"};
+
             Serial.printf("[Touch] %s", gesture_names[gesture_event.type]);
             if (gesture_event.direction != TOUCH_DIR_NONE) {
                 Serial.printf(": %s", dir_names[gesture_event.direction]);
             }
-            Serial.printf(" at (%d, %d) = (%.1f%%, %.1f%%)\n",
+            Serial.printf(" at (%d, %d) = (%.1f%%, %.1f%%) [Screen: 536w x 240h]\n",
                           gesture_event.x_px, gesture_event.y_px,
                           gesture_event.x_percent * 100.0f,
                           gesture_event.y_percent * 100.0f);
+
+            // Edge debug: show which edges are close
+            if (gesture_event.type == TOUCH_EDGE_DRAG) {
+                Serial.printf("  Edge zones: LEFT(x<80) RIGHT(x>456) TOP(y<36) BOTTOM(y>204)\n");
+                Serial.printf("  Detected at: x=%d, y=%d → %s edge\n",
+                              gesture_event.x_px, gesture_event.y_px,
+                              dir_names[gesture_event.direction]);
+            }
         }
 
         // Debug: Track touch state changes for gesture engine diagnostics

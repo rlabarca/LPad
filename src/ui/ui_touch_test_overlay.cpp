@@ -161,26 +161,36 @@ void TouchTestOverlay::renderTextToBuffer() {
     constexpr uint16_t CHROMA_KEY = 0x0001;
     m_render_canvas->fillScreen(CHROMA_KEY);
 
-    // Set text properties (second largest font per spec)
-    m_render_canvas->setFont(theme->fonts.ui);  // 18pt UI font
+    // Set text properties - use smallest font to prevent overflow
+    m_render_canvas->setFont(theme->fonts.smallest);  // 9pt font (was 18pt - too large)
     m_render_canvas->setTextColor(RGB565_WHITE);
     m_render_canvas->setTextSize(1);
 
-    // Build text string
+    // Build text string - use safe snprintf to prevent buffer overflow
     char text_line1[64];
     char text_line2[64];
 
     const char* gesture_name = gestureTypeToString(m_last_type);
     const char* dir_name = directionToString(m_last_direction);
 
+    // Safety check: ensure pointers are valid
+    if (!gesture_name) gesture_name = "UNKNOWN";
+    if (!dir_name) dir_name = "";
+
     if (m_last_direction != TOUCH_DIR_NONE) {
         // Gesture with direction (swipe, edge drag)
         snprintf(text_line1, sizeof(text_line1), "%s: %s", gesture_name, dir_name);
-        snprintf(text_line2, sizeof(text_line2), "(%d, %d) %.0f%%", m_last_x, m_last_y, m_last_x_percent * 100.0f);
+        snprintf(text_line2, sizeof(text_line2), "(%d,%d) %.0f%%,%.0f%%",
+                 m_last_x, m_last_y,
+                 m_last_x_percent * 100.0f,
+                 m_last_y_percent * 100.0f);
     } else {
         // Gesture without direction (tap, hold, hold_drag)
         snprintf(text_line1, sizeof(text_line1), "%s", gesture_name);
-        snprintf(text_line2, sizeof(text_line2), "(%d, %d) %.0f%%", m_last_x, m_last_y, m_last_x_percent * 100.0f);
+        snprintf(text_line2, sizeof(text_line2), "(%d,%d) %.0f%%,%.0f%%",
+                 m_last_x, m_last_y,
+                 m_last_x_percent * 100.0f,
+                 m_last_y_percent * 100.0f);
     }
 
     // Get text dimensions
