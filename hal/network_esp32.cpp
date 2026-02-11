@@ -9,6 +9,7 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <Arduino.h>
+#include <esp_task_wdt.h>
 
 // Internal state
 static hal_network_status_t g_status = HAL_NETWORK_STATUS_DISCONNECTED;
@@ -137,22 +138,64 @@ bool hal_network_http_get(const char* url, char* response_buffer, size_t buffer_
 
     if (httpCode == HTTP_CODE_OK) {
         Serial.println("[hal_network_http_get] HTTP_CODE_OK received, getting payload...");
-        String payload = http.getString();
-        Serial.printf("[hal_network_http_get] Payload length: %d bytes\n", payload.length());
 
-        // Check if response fits in buffer
-        if (payload.length() >= buffer_size) {
+        // Get content length to check buffer size
+        int contentLength = http.getSize();
+        Serial.printf("[hal_network_http_get] Content-Length: %d bytes\n", contentLength);
+
+        if (contentLength > 0 && contentLength >= (int)buffer_size) {
             Serial.printf("[hal_network_http_get] ERROR: Response too large: %d bytes (buffer: %d)\n",
-                         payload.length(), buffer_size);
+                         contentLength, buffer_size);
             http.end();
             return false;
         }
 
-        // Copy response to buffer
-        strncpy(response_buffer, payload.c_str(), buffer_size - 1);
-        response_buffer[buffer_size - 1] = '\0';  // Ensure null termination
+        // Use streaming to read response in chunks and feed watchdog
+        WiFiClient *stream = http.getStreamPtr();
+        size_t bytes_read = 0;
+        unsigned long last_wdt_feed = millis();
 
-        Serial.printf("[hal_network_http_get] SUCCESS: %d bytes received and copied\n", payload.length());
+        Serial.println("[hal_network_http_get] Reading stream in chunks...");
+
+        while (http.connected() && (contentLength > 0 || contentLength == -1)) {
+            size_t available = stream->available();
+
+            if (available) {
+                // Read chunk (up to remaining buffer space)
+                size_t chunk_size = min(available, buffer_size - bytes_read - 1);
+                int c = stream->readBytes(response_buffer + bytes_read, chunk_size);
+
+                if (c > 0) {
+                    bytes_read += c;
+
+                    if (contentLength > 0) {
+                        contentLength -= c;
+                    }
+
+                    // Feed watchdog every 100ms to prevent timeout
+                    if (millis() - last_wdt_feed > 100) {
+                        esp_task_wdt_reset();
+                        last_wdt_feed = millis();
+                        Serial.printf("[hal_network_http_get] Read %d bytes (feeding watchdog)...\n", bytes_read);
+                    }
+                }
+            } else if (contentLength <= 0) {
+                break;  // All data received
+            } else {
+                delay(1);  // Wait for more data
+            }
+
+            // Check buffer overflow
+            if (bytes_read >= buffer_size - 1) {
+                Serial.printf("[hal_network_http_get] ERROR: Buffer overflow at %d bytes\n", bytes_read);
+                http.end();
+                return false;
+            }
+        }
+
+        response_buffer[bytes_read] = '\0';  // Ensure null termination
+        Serial.printf("[hal_network_http_get] SUCCESS: %d bytes received and copied\n", bytes_read);
+
         http.end();
         return true;
     } else {
