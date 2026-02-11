@@ -133,12 +133,11 @@ bool hal_touch_read(hal_touch_point_t* point) {
         transformed_x = scaled_x;
         transformed_y = scaled_y;
     #elif DISPLAY_ROTATION == 90
-        // Landscape 90° CW: Swap axes (no inversion needed)
+        // Landscape 90° CW: Swap axes and invert X
         // Coordinate system: (0,0) at top-left, (535, 239) at bottom-right
-        // Physical TOP → Screen LEFT
-        // Physical RIGHT → Screen TOP
-        transformed_x = scaled_y;  // Touch Y → Display X (horizontal)
-        transformed_y = scaled_x;  // Touch X → Display Y (vertical, NOT inverted)
+        // Physical panel mounted such that X-axis needs inversion
+        transformed_x = g_display_width - 1 - scaled_y;  // Touch Y → Display X (inverted)
+        transformed_y = scaled_x;  // Touch X → Display Y (not inverted)
     #elif DISPLAY_ROTATION == 180
         // Inverted portrait (180°)
         transformed_x = g_display_width - scaled_x;
@@ -172,23 +171,25 @@ void hal_touch_configure_gesture_engine(TouchGestureEngine* engine) {
     // Board-specific edge zone configuration
     #if defined(APP_DISPLAY_ROTATION)
         // T-Display S3 AMOLED Plus (1.91") with 90° rotation
-        // Touch panel has limited range in NEW coordinate system (0,0 at top-left):
-        //   X: ~18-227 (unchanged from old system)
+        // Touch panel has limited range with X-INVERTED coordinate system (0,0 at top-left):
+        //   X: ~308-517 (inverted from old 18-227: 535-227=308, 535-18=517)
         //   Y: ~2-214 (inverted from old 25-237 range)
         //
-        // Tuned thresholds for NEW coordinate system:
-        //   LEFT: x < 80   (easy to trigger - good sensitivity)
-        //   RIGHT: x > 215 (harder to trigger - prevents false positives)
-        //   TOP: y < 40    (REDUCED to avoid corner overlap with LEFT/RIGHT)
-        //   BOTTOM: y > 180 (REDUCED to be reachable within y=2-214 range)
+        // CRITICAL: X-axis is inverted (x = 535 - scaled_y)
+        // So LEFT/RIGHT zones are swapped in coordinate space:
+        //   - Visual LEFT edge (high X ≈517) triggers RIGHT zone (x > threshold)
+        //   - Visual RIGHT edge (low X ≈308) triggers LEFT zone (x < threshold)
         //
-        // These values ensure all 4 edges are reachable while maintaining
-        // good differentiation between edge drags and center swipes.
+        // Tuned thresholds for X-INVERTED coordinate system:
+        //   LEFT: x < 320 → detects visual RIGHT edge (x≈308)
+        //   RIGHT: x > 455 → detects visual LEFT edge (x≈517)
+        //   TOP: y < 40 → detects visual TOP edge (y≈2)
+        //   BOTTOM: y > 180 → detects visual BOTTOM edge (y≈214)
         engine->setEdgeZones(
-            80,   // LEFT threshold (unchanged)
-            215,  // RIGHT threshold (unchanged)
-            40,   // TOP threshold (reduced from 60)
-            180   // BOTTOM threshold (reduced from 215 to be reachable)
+            320,  // LEFT threshold (535-215=320, detects visual RIGHT edge)
+            455,  // RIGHT threshold (535-80=455, detects visual LEFT edge)
+            40,   // TOP threshold (unchanged)
+            180   // BOTTOM threshold (unchanged)
         );
     #else
         // ESP32-S3 AMOLED (1.8") - uses default percentage-based thresholds

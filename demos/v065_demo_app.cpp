@@ -80,22 +80,23 @@ void V065DemoApp::update(float deltaTime) {
 
         // If gesture detected, apply direction rotation and update overlay
         if (gesture_detected) {
-            // CRITICAL: When display is rotated 90° CW, directions are also rotated 90° CW
-            // We must rotate directions 90° CCW to map screen coords → physical device coords
-            // This applies to BOTH swipe directions AND edge names
+            // CRITICAL: When display is rotated 90° CW with X-INVERTED coordinates,
+            // directions must be rotated to map screen coords → physical device coords.
+            // With X-inversion, LEFT/RIGHT zones are swapped in coordinate space,
+            // so the rotation mapping for LEFT/RIGHT is also swapped.
             #if defined(APP_DISPLAY_ROTATION)  // T-Display S3 AMOLED Plus with 90° rotation
                 if (gesture_event.direction != TOUCH_DIR_NONE) {
-                    // Rotate direction 90° CCW (or equivalently, 270° CW)
-                    // Screen → Physical mapping:
+                    // Rotate direction 90° CCW, with LEFT/RIGHT swapped for X-inversion
+                    // Screen → Physical mapping (after X-inversion compensation):
                     //   LEFT (screen) → TOP (physical)
-                    //   DOWN (screen) → LEFT (physical)
+                    //   DOWN (screen) → RIGHT (physical)
                     //   RIGHT (screen) → BOTTOM (physical)
-                    //   UP (screen) → RIGHT (physical)
+                    //   UP (screen) → LEFT (physical)
                     switch (gesture_event.direction) {
                         case TOUCH_DIR_UP:    gesture_event.direction = TOUCH_DIR_RIGHT; break;
-                        case TOUCH_DIR_RIGHT: gesture_event.direction = TOUCH_DIR_DOWN;  break;
+                        case TOUCH_DIR_RIGHT: gesture_event.direction = TOUCH_DIR_UP;    break;  // SWAPPED
                         case TOUCH_DIR_DOWN:  gesture_event.direction = TOUCH_DIR_LEFT;  break;
-                        case TOUCH_DIR_LEFT:  gesture_event.direction = TOUCH_DIR_UP;    break;
+                        case TOUCH_DIR_LEFT:  gesture_event.direction = TOUCH_DIR_DOWN;  break;  // SWAPPED
                         default: break;
                     }
                 }
