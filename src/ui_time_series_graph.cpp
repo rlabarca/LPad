@@ -495,18 +495,32 @@ void TimeSeriesGraph::drawYTicks(RelativeDisplay* target) {
     std::vector<std::string> seen_labels;
     int tick_skip = 1;  // Show every tick initially
 
-    // First pass: check if default formatting produces duplicates
+    // First pass: generate "clean" tick values
+    // Per spec: ticks must be at exact clean values (e.g., 4.19000, not 4.18732 rounded to 4.19)
+    // Strategy: Round the first tick UP to a clean multiple of the increment, then step by clean increments
+
+    // Round y_min UP to next clean multiple of tick increment
+    double first_tick = ceil(y_min / y_tick_increment_) * y_tick_increment_;
+
+    // Generate clean tick values by stepping from first clean tick
     std::vector<std::pair<double, float>> all_ticks;  // Store tick_value and y_screen
     int suppressed_count = 0;
-    for (double tick_value = y_min + y_tick_increment_; tick_value <= y_max; tick_value += y_tick_increment_) {
+
+    for (double tick_value = first_tick; tick_value <= y_max; tick_value += y_tick_increment_) {
+        // Map this clean value to screen position
         float y_screen = mapYToScreen(tick_value, y_min, y_max);
+
+        // Origin suppression: skip ticks too close to X-axis
         if (fabsf(y_screen - x_axis_y) < 8.0f) {
             suppressed_count++;
-            continue;  // Origin suppression
+            continue;
         }
+
         all_ticks.push_back({tick_value, y_screen});
     }
+
     Serial.printf("[Graph] Generated %zu Y-ticks (suppressed %d near X-axis)\n", all_ticks.size(), suppressed_count);
+    Serial.printf("[Graph] Clean tick values: first=%.6f, increment=%.6f\n", first_tick, y_tick_increment_);
 
     // Check for duplicates in formatted labels
     std::vector<std::string> test_labels;
