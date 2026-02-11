@@ -92,6 +92,17 @@ void V065DemoApp::update(float deltaTime) {
                           gesture_event.y_percent * 100.0f);
         }
 
+        // Debug: Track touch state changes for gesture engine diagnostics
+        static bool last_pressed = false;
+        if (touch_point.is_pressed != last_pressed) {
+            if (touch_point.is_pressed) {
+                Serial.printf("[Touch] PRESS at (%d, %d)\n", touch_point.x, touch_point.y);
+            } else {
+                Serial.printf("[Touch] RELEASE\n");
+            }
+            last_pressed = touch_point.is_pressed;
+        }
+
         m_lastTouchPressed = touch_point.is_pressed;
     }
 

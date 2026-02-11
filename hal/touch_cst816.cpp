@@ -101,7 +101,14 @@ bool hal_touch_read(hal_touch_point_t* point) {
     }
 
     // Debug: Log raw coordinates from touch controller
-    Serial.printf("[HAL Touch] RAW: x=%d, y=%d, count=%d\n", x[0], y[0], point_count);
+    // NOTE: If x is always the same value (e.g., 600), the controller may be returning stale data
+    static int16_t last_x = -1, last_y = -1;
+    bool coords_changed = (x[0] != last_x || y[0] != last_y);
+    Serial.printf("[HAL Touch] RAW: x=%d, y=%d, count=%d %s\n",
+                  x[0], y[0], point_count,
+                  coords_changed ? "✓ NEW" : "⚠ STALE");
+    last_x = x[0];
+    last_y = y[0];
 
     // CRITICAL: The touch controller reports in a fixed resolution (e.g., 600x536)
     // that may differ from display pixel dimensions (e.g., 240x536).
