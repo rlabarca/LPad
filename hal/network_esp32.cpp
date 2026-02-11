@@ -153,12 +153,16 @@ bool hal_network_http_get(const char* url, char* response_buffer, size_t buffer_
         WiFiClient *stream = http.getStreamPtr();
         size_t bytes_read = 0;
 
+        // Initialize buffer to zeros to ensure clean state
+        memset(response_buffer, 0, buffer_size);
+
         Serial.println("[hal_network_http_get] Reading stream in chunks...");
 
         // Track time since last data received for timeout detection
         unsigned long last_data_time = millis();
         const unsigned long DATA_TIMEOUT_MS = 5000;  // 5 second timeout for data
         unsigned long last_progress_log = millis();
+        bool first_chunk = true;
 
         while (http.connected()) {
             size_t available = stream->available();
@@ -174,6 +178,21 @@ bool hal_network_http_get(const char* url, char* response_buffer, size_t buffer_
 
                     if (contentLength > 0) {
                         contentLength -= c;
+                    }
+
+                    // Debug first chunk
+                    if (first_chunk && bytes_read >= 50) {
+                        Serial.print("[hal_network_http_get] First 50 bytes: ");
+                        for (size_t i = 0; i < 50; i++) {
+                            Serial.printf("%02X ", (unsigned char)response_buffer[i]);
+                        }
+                        Serial.println();
+                        Serial.print("[hal_network_http_get] As text: ");
+                        for (size_t i = 0; i < 50; i++) {
+                            Serial.print(response_buffer[i]);
+                        }
+                        Serial.println();
+                        first_chunk = false;
                     }
 
                     // Log progress every 500ms
