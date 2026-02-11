@@ -80,19 +80,11 @@ void V065DemoApp::update(float deltaTime) {
 
         // If gesture detected, apply direction rotation and update overlay
         if (gesture_detected) {
-            // CRITICAL: When display is rotated 90° CW, directions are also rotated 90° CW
-            // We must rotate directions 90° CCW to map screen coords → physical device coords
+            // Touch controller is pre-rotated - directions are already correct!
+            // NO direction rotation needed since transform has no axis swap
             #if defined(APP_DISPLAY_ROTATION)  // T-Display S3 AMOLED Plus with 90° rotation
-                if (gesture_event.direction != TOUCH_DIR_NONE) {
-                    // Standard 90° CCW rotation (no swaps needed with simple axis swap transform)
-                    switch (gesture_event.direction) {
-                        case TOUCH_DIR_UP:    gesture_event.direction = TOUCH_DIR_RIGHT; break;
-                        case TOUCH_DIR_RIGHT: gesture_event.direction = TOUCH_DIR_DOWN;  break;
-                        case TOUCH_DIR_DOWN:  gesture_event.direction = TOUCH_DIR_LEFT;  break;
-                        case TOUCH_DIR_LEFT:  gesture_event.direction = TOUCH_DIR_UP;    break;
-                        default: break;
-                    }
-                }
+                // Direction rotation DISABLED - touch controller handles rotation
+                // Gesture directions already match physical device orientation
             #endif
 
             m_touchOverlay->update(gesture_event);
