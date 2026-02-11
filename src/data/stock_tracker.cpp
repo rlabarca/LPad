@@ -16,7 +16,8 @@
 #endif
 
 // Buffer size for HTTP response (Yahoo Finance responses can be large)
-static constexpr size_t HTTP_RESPONSE_BUFFER_SIZE = 32768;  // 32KB
+// 24-hour range returns ~35KB, so we need at least 40KB
+static constexpr size_t HTTP_RESPONSE_BUFFER_SIZE = 49152;  // 48KB
 
 StockTracker::StockTracker(const std::string& symbol,
                           uint32_t refresh_interval_seconds,
