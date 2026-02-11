@@ -160,8 +160,9 @@ bool StockTracker::fetchData() {
     std::vector<double> prices;
 
     if (!parseYahooFinanceResponse(response_buffer, timestamps, prices)) {
-        Serial.println("[StockTracker] Failed to parse response");
+        Serial.println("[StockTracker] Failed to parse response (may be non-trading hours)");
         free(response_buffer);
+        // Return false but don't treat as critical error - will retry on next interval
         return false;
     }
 
@@ -250,19 +251,44 @@ bool StockTracker::parseYahooFinanceResponse(const char* json_response,
         return false;
     }
 
-    JsonObject result = doc["chart"]["result"][0];
+    JsonArray result_array = doc["chart"]["result"].as<JsonArray>();
+    if (result_array.size() == 0) {
+        Serial.println("[StockTracker] Empty result array (likely non-trading hours)");
+        return false;
+    }
+
+    JsonObject result = result_array[0];
+
+    // Check if timestamp exists (may be missing during non-trading hours)
+    if (!result.containsKey("timestamp")) {
+        Serial.println("[StockTracker] No timestamp field (likely non-trading hours or no data)");
+
+        // Log what we do have
+        Serial.print("[StockTracker] Available keys: ");
+        for (JsonPair kv : result) {
+            Serial.printf("%s ", kv.key().c_str());
+        }
+        Serial.println();
+
+        return false;
+    }
 
     // Get timestamp array
     JsonArray timestamps_array = result["timestamp"].as<JsonArray>();
-    if (timestamps_array.isNull()) {
-        Serial.println("[StockTracker] Invalid JSON structure (no timestamp array)");
+    if (timestamps_array.isNull() || timestamps_array.size() == 0) {
+        Serial.println("[StockTracker] Empty or null timestamp array");
         return false;
     }
 
     // Get close price array
+    if (!result["indicators"]["quote"][0].containsKey("close")) {
+        Serial.println("[StockTracker] No close price data");
+        return false;
+    }
+
     JsonArray close_array = result["indicators"]["quote"][0]["close"].as<JsonArray>();
-    if (close_array.isNull()) {
-        Serial.println("[StockTracker] Invalid JSON structure (no close array)");
+    if (close_array.isNull() || close_array.size() == 0) {
+        Serial.println("[StockTracker] Empty or null close array");
         return false;
     }
 
