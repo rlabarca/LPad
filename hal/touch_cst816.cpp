@@ -133,11 +133,10 @@ bool hal_touch_read(hal_touch_point_t* point) {
         transformed_x = scaled_x;
         transformed_y = scaled_y;
     #elif DISPLAY_ROTATION == 90
-        // Landscape 90° CW: Swap axes and invert X
+        // Landscape 90° CW: Simple axis swap, no inversions
         // Coordinate system: (0,0) at top-left, (535, 239) at bottom-right
-        // Physical panel mounted such that X-axis needs inversion
-        transformed_x = g_display_width - 1 - scaled_y;  // Touch Y → Display X (inverted)
-        transformed_y = scaled_x;  // Touch X → Display Y (not inverted)
+        transformed_x = scaled_y;  // Touch Y → Display X
+        transformed_y = scaled_x;  // Touch X → Display Y
     #elif DISPLAY_ROTATION == 180
         // Inverted portrait (180°)
         transformed_x = g_display_width - scaled_x;
@@ -171,25 +170,22 @@ void hal_touch_configure_gesture_engine(TouchGestureEngine* engine) {
     // Board-specific edge zone configuration
     #if defined(APP_DISPLAY_ROTATION)
         // T-Display S3 AMOLED Plus (1.91") with 90° rotation
-        // Touch panel has limited range with X-INVERTED coordinate system (0,0 at top-left):
-        //   X: ~308-517 (inverted from old 18-227: 535-227=308, 535-18=517)
-        //   Y: ~2-214 (inverted from old 25-237 range)
+        // Coordinate system: (0,0) at top-left, simple axis swap (x=y, y=x)
         //
-        // CRITICAL: X-axis is inverted (x = 535 - scaled_y)
-        // So LEFT/RIGHT zones are swapped in coordinate space:
-        //   - Visual LEFT edge (high X ≈517) triggers RIGHT zone (x > threshold)
-        //   - Visual RIGHT edge (low X ≈308) triggers LEFT zone (x < threshold)
+        // Touch panel has limited range:
+        //   X: ~18-227 (from scaled_y range)
+        //   Y: ~2-214 (from scaled_x range, was 25-237 with old Y-inversion)
         //
-        // Tuned thresholds for X-INVERTED coordinate system:
-        //   LEFT: x < 320 → detects visual RIGHT edge (x≈308)
-        //   RIGHT: x > 455 → detects visual LEFT edge (x≈517)
-        //   TOP: y < 40 → detects visual TOP edge (y≈2)
-        //   BOTTOM: y > 180 → detects visual BOTTOM edge (y≈214)
+        // Edge zones avoid corner overlap while staying within touchable range:
+        //   LEFT: x < 80 → left edge (x≈18-79)
+        //   RIGHT: x > 215 → right edge (x≈216-227)
+        //   TOP: y < 40 → top edge (y≈2-39, reduced from 60 to avoid corners)
+        //   BOTTOM: y > 180 → bottom edge (y≈181-214, reduced from 215 to be reachable)
         engine->setEdgeZones(
-            320,  // LEFT threshold (535-215=320, detects visual RIGHT edge)
-            455,  // RIGHT threshold (535-80=455, detects visual LEFT edge)
-            40,   // TOP threshold (unchanged)
-            180   // BOTTOM threshold (unchanged)
+            80,   // LEFT threshold
+            215,  // RIGHT threshold
+            40,   // TOP threshold (reduced to avoid corner overlap)
+            180   // BOTTOM threshold (reduced to be reachable in new Y range)
         );
     #else
         // ESP32-S3 AMOLED (1.8") - uses default percentage-based thresholds

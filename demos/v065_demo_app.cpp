@@ -80,23 +80,22 @@ void V065DemoApp::update(float deltaTime) {
 
         // If gesture detected, apply direction rotation and update overlay
         if (gesture_detected) {
-            // CRITICAL: When display is rotated 90° CW with X-INVERTED coordinates,
-            // directions must be rotated to map screen coords → physical device coords.
-            // With X-inversion, LEFT/RIGHT zones are swapped in coordinate space,
-            // so the rotation mapping for LEFT/RIGHT is also swapped.
+            // CRITICAL: When display is rotated 90° CW, directions are also rotated 90° CW
+            // We must rotate directions 90° CCW to map screen coords → physical device coords
+            // This applies to BOTH swipe directions AND edge names
             #if defined(APP_DISPLAY_ROTATION)  // T-Display S3 AMOLED Plus with 90° rotation
                 if (gesture_event.direction != TOUCH_DIR_NONE) {
-                    // Rotate direction 90° CCW, with LEFT/RIGHT swapped for X-inversion
-                    // Screen → Physical mapping (after X-inversion compensation):
+                    // Rotate direction 90° CCW (or equivalently, 270° CW)
+                    // Screen → Physical mapping:
                     //   LEFT (screen) → TOP (physical)
-                    //   DOWN (screen) → RIGHT (physical)
+                    //   DOWN (screen) → LEFT (physical)
                     //   RIGHT (screen) → BOTTOM (physical)
-                    //   UP (screen) → LEFT (physical)
+                    //   UP (screen) → RIGHT (physical)
                     switch (gesture_event.direction) {
                         case TOUCH_DIR_UP:    gesture_event.direction = TOUCH_DIR_RIGHT; break;
-                        case TOUCH_DIR_RIGHT: gesture_event.direction = TOUCH_DIR_UP;    break;  // SWAPPED
+                        case TOUCH_DIR_RIGHT: gesture_event.direction = TOUCH_DIR_DOWN;  break;
                         case TOUCH_DIR_DOWN:  gesture_event.direction = TOUCH_DIR_LEFT;  break;
-                        case TOUCH_DIR_LEFT:  gesture_event.direction = TOUCH_DIR_DOWN;  break;  // SWAPPED
+                        case TOUCH_DIR_LEFT:  gesture_event.direction = TOUCH_DIR_UP;    break;
                         default: break;
                     }
                 }
@@ -126,7 +125,7 @@ void V065DemoApp::update(float deltaTime) {
             if (gesture_event.type == TOUCH_EDGE_DRAG) {
                 int16_t start_x, start_y;
                 m_gestureEngine->getStartPosition(&start_x, &start_y);
-                Serial.printf("  Edge zones (board-specific): LEFT(x<80) RIGHT(x>215) TOP(y<60) BOTTOM(y>215)\n");
+                Serial.printf("  Edge zones: LEFT(x<80) RIGHT(x>215) TOP(y<40) BOTTOM(y>180)\n");
                 Serial.printf("  Started at: (%d, %d) → %s edge (ended at %d, %d)\n",
                               start_x, start_y,
                               edge_names[gesture_event.direction],
