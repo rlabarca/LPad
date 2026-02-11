@@ -118,20 +118,12 @@ void demo_setup() {
 }
 
 void demo_loop() {
-    if (!g_demoApp || !g_ticker) {
-        return;
+    // Wait for next frame and get deltaTime
+    float deltaTime = g_ticker->waitForNextFrame();
+
+    // Update and render demo app
+    if (g_demoApp != nullptr) {
+        g_demoApp->update(deltaTime);
+        g_demoApp->render();
     }
-
-    // Wait for next frame
-    if (!g_ticker->shouldTick()) {
-        return;
-    }
-
-    float deltaTime = g_ticker->getDeltaTime();
-
-    // Update and render demo
-    g_demoApp->update(deltaTime);
-    g_demoApp->render();
-
-    g_ticker->markFrameComplete();
 }

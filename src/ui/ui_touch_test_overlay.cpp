@@ -7,7 +7,7 @@
 
 #include "ui_touch_test_overlay.h"
 #include "theme_manager.h"
-#include "hal/display.h"
+#include "../hal/display.h"
 #include <Arduino.h>
 #include <Arduino_GFX_Library.h>
 #include <cstdio>
