@@ -236,9 +236,12 @@
         #modal-body table tr:nth-child(2n) { background-color: #f6f8fa; }
 
         /* Highlight Styles */
-        .node.highlighted {
-            filter: brightness(0.9);
-            stroke-width: 3px !important;
+        .edgePath.hidden-edge path {
+            stroke: none !important;
+            fill: none !important;
+        }
+        .edgePath.hidden-edge .markerPath {
+            display: none !important;
         }
         .edgePath.highlighted path {
             stroke-width: 3px !important;
@@ -349,6 +352,14 @@
 
                     // Add Click Listeners to Nodes
                     addNodeClickListeners();
+
+                    // Hide layout edges (those connected to title nodes)
+                    document.querySelectorAll('.edgePath').forEach(edge => {
+                        const classes = edge.className.baseVal;
+                        if (classes.includes('LS-title_') || classes.includes('LE-title_')) {
+                            edge.classList.add('hidden-edge');
+                        }
+                    });
 
                     // Re-initialize pan-zoom
                     if (panZoom) panZoom.destroy();
