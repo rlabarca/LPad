@@ -177,20 +177,20 @@ void hal_touch_configure_gesture_engine(TouchGestureEngine* engine) {
         //   X: ~308-517 (inverted from scaled_y 18-227: 535-227=308, 535-18=517)
         //   Y: ~2-214 (from scaled_x range)
         //
-        // CRITICAL: Due to X-inversion, LEFT/RIGHT zones are swapped in coordinate space:
-        //   - Physical LEFT edge (high X ≈517) detected by RIGHT zone (x > threshold)
-        //   - Physical RIGHT edge (low X ≈308) detected by LEFT zone (x < threshold)
+        // With X-inversion, swap LEFT/RIGHT threshold values so semantic names match physical edges:
+        //   - Physical LEFT edge (low X after inversion ≈0) → use higher threshold for x<
+        //   - Physical RIGHT edge (high X after inversion ≈535) → use lower threshold for x>
         //
-        // Edge zones adjusted for inverted X coordinate system:
-        //   LEFT: x < 320 → detects physical RIGHT edge (x≈308)
-        //   RIGHT: x > 455 → detects physical LEFT edge (x≈517)
-        //   TOP: y < 40 → detects physical TOP edge (y≈2)
-        //   BOTTOM: y > 180 → detects physical BOTTOM edge (y≈181-214)
+        // Edge zones with SWAPPED left/right values for correct labeling:
+        //   LEFT: x < 455 (535-80) → detects physical LEFT edge ✓
+        //   RIGHT: x > 320 (535-215) → detects physical RIGHT edge ✓
+        //   TOP: y < 40 → detects physical TOP edge
+        //   BOTTOM: y > 180 → detects physical BOTTOM edge
         engine->setEdgeZones(
-            320,  // LEFT threshold: 535-215=320 (detects physical RIGHT edge)
-            455,  // RIGHT threshold: 535-80=455 (detects physical LEFT edge)
-            40,   // TOP threshold
-            180   // BOTTOM threshold
+            455,  // LEFT threshold: SWAPPED (was right threshold 535-80=455)
+            320,  // RIGHT threshold: SWAPPED (was left threshold 535-215=320)
+            40,   // TOP threshold (unchanged)
+            180   // BOTTOM threshold (unchanged)
         );
     #else
         // ESP32-S3 AMOLED (1.8") - uses default percentage-based thresholds
