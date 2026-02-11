@@ -497,16 +497,25 @@ void TimeSeriesGraph::drawYTicks(RelativeDisplay* target) {
 
     // First pass: generate "clean" tick values
     // Per spec: ticks must be at exact clean values (e.g., 4.19000, not 4.18732 rounded to 4.19)
-    // Strategy: Round the first tick UP to a clean multiple of the increment, then step by clean increments
+    // Strategy: Use integer multiples of increment to avoid floating-point accumulation errors
 
     // Round y_min UP to next clean multiple of tick increment
     double first_tick = ceil(y_min / y_tick_increment_) * y_tick_increment_;
 
-    // Generate clean tick values by stepping from first clean tick
+    // Calculate how many ticks to generate
+    int num_ticks = static_cast<int>((y_max - first_tick) / y_tick_increment_) + 1;
+
+    // Generate clean tick values using integer multiples (avoids floating-point drift)
     std::vector<std::pair<double, float>> all_ticks;  // Store tick_value and y_screen
     int suppressed_count = 0;
 
-    for (double tick_value = first_tick; tick_value <= y_max; tick_value += y_tick_increment_) {
+    for (int i = 0; i < num_ticks; i++) {
+        // Use integer multiple to ensure exact clean values
+        double tick_value = first_tick + (i * y_tick_increment_);
+
+        // Don't exceed y_max
+        if (tick_value > y_max + 1e-9) break;
+
         // Map this clean value to screen position
         float y_screen = mapYToScreen(tick_value, y_min, y_max);
 
@@ -520,7 +529,17 @@ void TimeSeriesGraph::drawYTicks(RelativeDisplay* target) {
     }
 
     Serial.printf("[Graph] Generated %zu Y-ticks (suppressed %d near X-axis)\n", all_ticks.size(), suppressed_count);
-    Serial.printf("[Graph] Clean tick values: first=%.6f, increment=%.6f\n", first_tick, y_tick_increment_);
+    Serial.printf("[Graph] Clean tick values: first=%.9f, increment=%.9f\n", first_tick, y_tick_increment_);
+
+    // Debug: log actual tick values and screen positions to verify uniform spacing
+    if (all_ticks.size() > 0) {
+        Serial.println("[Graph] Tick debug (value, screen_y, delta):");
+        for (size_t i = 0; i < all_ticks.size(); i++) {
+            float delta = (i > 0) ? (all_ticks[i].second - all_ticks[i-1].second) : 0.0f;
+            Serial.printf("  [%zu] value=%.9f, screen_y=%.3f, delta=%.3f\n",
+                          i, all_ticks[i].first, all_ticks[i].second, delta);
+        }
+    }
 
     // Check for duplicates in formatted labels
     std::vector<std::string> test_labels;
