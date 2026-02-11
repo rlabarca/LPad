@@ -53,6 +53,11 @@ bool TouchTestOverlay::begin() {
         return false;
     }
 
+    // Check alignment
+    if (reinterpret_cast<uintptr_t>(m_text_buffer) % 4 != 0) {
+        Serial.printf("[TouchTestOverlay] WARNING: m_text_buffer misaligned: %p\n", m_text_buffer);
+    }
+
     // Create reusable canvas for text rendering (prevents repeated allocation/deallocation)
     Arduino_GFX* gfx = static_cast<Arduino_GFX*>(hal_display_get_gfx());
     if (!gfx) {
@@ -196,7 +201,18 @@ void TouchTestOverlay::renderTextToBuffer() {
     m_render_canvas->print(text_line2);
 
     // Copy framebuffer to cached buffer
-    memcpy(m_text_buffer, m_render_canvas->getFramebuffer(), m_text_width * m_text_height * sizeof(uint16_t));
+    uint16_t* framebuffer = m_render_canvas->getFramebuffer();
+    if (!framebuffer) {
+        Serial.println("[TouchTestOverlay] ERROR: Canvas framebuffer is nullptr");
+        return;
+    }
+
+    // Check alignment
+    if (reinterpret_cast<uintptr_t>(framebuffer) % 4 != 0) {
+        Serial.printf("[TouchTestOverlay] WARNING: framebuffer misaligned: %p\n", framebuffer);
+    }
+
+    memcpy(m_text_buffer, framebuffer, m_text_width * m_text_height * sizeof(uint16_t));
 }
 
 const char* TouchTestOverlay::gestureTypeToString(touch_gesture_type_t type) const {

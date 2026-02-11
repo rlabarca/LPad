@@ -100,6 +100,9 @@ bool hal_touch_read(hal_touch_point_t* point) {
         return true;
     }
 
+    // Debug: Log raw coordinates from touch controller
+    Serial.printf("[HAL Touch] RAW: x=%d, y=%d, count=%d\n", x[0], y[0], point_count);
+
     // Apply coordinate transformation based on display rotation
     // The CST816 reports coordinates in the physical panel orientation,
     // but we need to match the logical display orientation set by the HAL
@@ -132,6 +135,11 @@ bool hal_touch_read(hal_touch_point_t* point) {
         transformed_y = y[0];
     #endif
 
+    // Debug: Log transformation
+    Serial.printf("[HAL Touch] TRANSFORM: disp=%dx%d, rot=%d, trans_x=%d, trans_y=%d\n",
+                  g_display_width, g_display_height, DISPLAY_ROTATION,
+                  transformed_x, transformed_y);
+
     // Clamp coordinates to display bounds
     if (transformed_x < 0) transformed_x = 0;
     if (transformed_x >= g_display_width) transformed_x = g_display_width - 1;
@@ -141,6 +149,8 @@ bool hal_touch_read(hal_touch_point_t* point) {
     point->x = transformed_x;
     point->y = transformed_y;
     point->is_pressed = true;
+
+    Serial.printf("[HAL Touch] FINAL: x=%d, y=%d\n", point->x, point->y);
 
     return true;
 }
