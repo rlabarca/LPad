@@ -110,7 +110,7 @@ The firmware is currently at **Milestone v0.65**.
 
 *   **Graph V2 Engine:** High-performance, thread-safe plotting engine with autonomous layout, collision avoidance, and significant-digit aware labeling.
 *   **Stock Tracker:** Real-time stock data tracking using the Yahoo Finance API (via WiFi).
-*   **Touch Interaction (New in v0.65):** Full gesture engine supporting Tap, Hold, Swipe, and Drag operations via the CST816 driver.
+*   **Touch Interaction (New in v0.65):** Full gesture engine supporting Tap, Hold, and Edge Drag operations via the CST816 driver.
 *   **UI Framework:** Themeable components, MiniLogo vector rendering, and persistent overlays.
 *   **Agentic CI/CD:** Automated verification of feature states via the CDD Monitor.
 
