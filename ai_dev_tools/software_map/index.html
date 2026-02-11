@@ -124,13 +124,16 @@
         }
         button:hover { background: #0056b3; }
         
-        .subgraph-title {
-            font-size: 54px !important;
+        /* Subgraph title node styling */
+        .node.subgraphTitle rect {
+            fill: none !important;
+            stroke: none !important;
+        }
+        .node.subgraphTitle .nodeLabel {
+            font-size: 32px !important;
             font-weight: bold !important;
-            white-space: nowrap !important;
-            display: inline-block !important;
-            padding-right: 60px !important;
-            color: #111;
+            color: #111 !important;
+            cursor: default !important;
         }
         
         /* Subgraph styling overrides */
@@ -287,7 +290,23 @@
         let lastMtime = 0;
         let panZoom = null;
 
+        function saveZoomState() {
+            if (panZoom) {
+                const state = {
+                    pan: panZoom.getPan(),
+                    zoom: panZoom.getZoom()
+                };
+                localStorage.setItem('lpad_software_map_zoom', JSON.stringify(state));
+            }
+        }
+
+        function getZoomState() {
+            const saved = localStorage.getItem('lpad_software_map_zoom');
+            return saved ? JSON.parse(saved) : null;
+        }
+
         function resetZoom() {
+            localStorage.removeItem('lpad_software_map_zoom');
             if (panZoom) {
                 panZoom.resize();
                 panZoom.fit();
@@ -305,6 +324,9 @@
                 if (data.mtime !== lastMtime) {
                     const output = document.getElementById('graph-output');
                     
+                    // Save current state before destroying
+                    saveZoomState();
+
                     // Store content for highlighting logic
                     window.currentGraphContent = data.content;
 
@@ -330,11 +352,19 @@
                         center: true,
                         minZoom: 0.05,
                         maxZoom: 10,
-                        dblClickZoomEnabled: false
+                        dblClickZoomEnabled: false,
+                        onZoom: saveZoomState,
+                        onPan: saveZoomState
                     });
 
-                    // Force an immediate fit/center
-                    resetZoom();
+                    // Restore state if available
+                    const savedState = getZoomState();
+                    if (savedState && savedState.pan && savedState.zoom) {
+                        panZoom.zoom(savedState.zoom);
+                        panZoom.pan(savedState.pan);
+                    } else {
+                        resetZoom();
+                    }
 
                     lastMtime = data.mtime;
                     document.getElementById('status').innerText = 'Live: ' + new Date().toLocaleTimeString();
@@ -382,6 +412,9 @@
 
             // 2. Add Listeners
             nodes.forEach(node => {
+                // Skip title nodes
+                if (node.classList.contains('subgraphTitle')) return;
+
                 node.style.cursor = 'pointer';
                 const coreId = getCoreId(node.id);
                 

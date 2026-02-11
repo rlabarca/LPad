@@ -62,6 +62,7 @@ def generate_mermaid_content(features):
     lines.append("    classDef ui fill:#f3e5f5,stroke:#7b1fa2,stroke-width:1px,color:black;")
     lines.append("    classDef app fill:#fff3e0,stroke:#e65100,stroke-width:1px,color:black;")
     lines.append("    classDef graphics fill:#e0f7fa,stroke:#006064,stroke-width:1px,color:black;")
+    lines.append("    classDef subgraphTitle fill:none,stroke:none,color:#111,font-size:32px,font-weight:bold;")
     lines.append("")
 
     grouped_categories = defaultdict(list)
@@ -69,9 +70,13 @@ def generate_mermaid_content(features):
         grouped_categories[data["category"]].append(node_id)
     
     for category, node_ids in sorted(grouped_categories.items()):
-        label = f"<div class='subgraph-title'>{category}</div><div style='height: 150px;'></div>"
-        lines.append(f"\n    subgraph {category.replace(' ', '_')} [\"{label}\"]")
+        category_id = category.replace(' ', '_')
+        lines.append(f"\n    subgraph {category_id} [ ]")
         lines.append(f"        direction TB")
+        
+        # Add a title node at the top
+        lines.append(f'        title_{category_id}("{category.upper()}"):::subgraphTitle')
+        
         for node_id in sorted(node_ids):
             data = features[node_id]
             clean_label = data["label"].replace('"', "'")
@@ -84,6 +89,8 @@ def generate_mermaid_content(features):
             elif "Graphics" in category: css_class = ":::graphics"
             
             lines.append(f'        {node_id}("**{clean_label}**<br/><small>{data["filename"]}</small>"){css_class}')
+            # Link title to node with invisible edge to force layout
+            lines.append(f'        title_{category_id} ~~~ {node_id}')
         lines.append("    end")
 
     lines.append("\n    %% Relationships")
@@ -137,9 +144,18 @@ def update_files():
     mmd_content = generate_mermaid_content(features)
     text_tree = generate_text_tree(features)
     
-    with open(MMD_FILE, 'w', encoding='utf-8') as f:
-        f.write(mmd_content)
-    print(f"Updated {MMD_FILE}")
+    # Only write MMD if changed
+    current_mmd = ""
+    if os.path.exists(MMD_FILE):
+        with open(MMD_FILE, 'r', encoding='utf-8') as f:
+            current_mmd = f.read()
+    
+    if mmd_content != current_mmd:
+        with open(MMD_FILE, 'w', encoding='utf-8') as f:
+            f.write(mmd_content)
+        print(f"Updated {MMD_FILE}")
+    else:
+        print(f"No changes to {MMD_FILE}")
     
     if os.path.exists(README_FILE):
         with open(README_FILE, 'r', encoding='utf-8') as f:
@@ -152,9 +168,12 @@ def update_files():
         
         if pattern.search(readme_content):
             new_readme_content = pattern.sub(new_block, readme_content)
-            with open(README_FILE, 'w', encoding='utf-8') as f:
-                f.write(new_readme_content)
-            print("Updated README.md with Mermaid graph.")
+            if new_readme_content != readme_content:
+                with open(README_FILE, 'w', encoding='utf-8') as f:
+                    f.write(new_readme_content)
+                print("Updated README.md with Mermaid graph.")
+            else:
+                print("No changes to README.md")
             
     print("\n" + "="*40)
     print("DEPENDENCY TREE FOR GEMINI")

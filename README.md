@@ -73,81 +73,130 @@ graph TD
     classDef ui fill:#f3e5f5,stroke:#7b1fa2,stroke-width:1px,color:black;
     classDef app fill:#fff3e0,stroke:#e65100,stroke-width:1px,color:black;
     classDef graphics fill:#e0f7fa,stroke:#006064,stroke-width:1px,color:black;
+    classDef subgraphTitle fill:none,stroke:none,color:#111,font-size:32px,font-weight:bold;
 
 
-    subgraph Application_Layer ["<div class='subgraph-title'>Application Layer</div><div style='height: 150px;'></div>"]
+    subgraph Application_Layer [ ]
         direction TB
+        title_Application_Layer("APPLICATION LAYER"):::subgraphTitle
         app_animation_ticker("**Animation Ticker Engine**<br/><small>app_animation_ticker.md</small>"):::app
+        title_Application_Layer ~~~ app_animation_ticker
         app_config_system("**Config Injection System**<br/><small>app_config_system.md</small>"):::app
+        title_Application_Layer ~~~ app_config_system
         touch_gesture_engine("**Touch Gesture Engine**<br/><small>touch_gesture_engine.md</small>"):::app
+        title_Application_Layer ~~~ touch_gesture_engine
         ui_logo_screen("**Logo Splash Screen**<br/><small>ui_logo_screen.md</small>"):::app
+        title_Application_Layer ~~~ ui_logo_screen
     end
 
-    subgraph Board_Drivers ["<div class='subgraph-title'>Board Drivers</div><div style='height: 150px;'></div>"]
+    subgraph Board_Drivers [ ]
         direction TB
+        title_Board_Drivers("BOARD DRIVERS"):::subgraphTitle
         display_esp32s3_amoled("**ESP32-S3 AMOLED Driver**<br/><small>display_esp32s3_amoled.md</small>")
+        title_Board_Drivers ~~~ display_esp32s3_amoled
         display_tdisplay_s3_plus("**T-Display S3+ Driver**<br/><small>display_tdisplay_s3_plus.md</small>")
+        title_Board_Drivers ~~~ display_tdisplay_s3_plus
     end
 
-    subgraph Data_Layer ["<div class='subgraph-title'>Data Layer</div><div style='height: 150px;'></div>"]
+    subgraph Data_Layer [ ]
         direction TB
+        title_Data_Layer("DATA LAYER"):::subgraphTitle
         data_layer_core("**Base Data Model**<br/><small>data_layer_core.md</small>")
+        title_Data_Layer ~~~ data_layer_core
         data_layer_stock_tracker("**Data Stock Tracker**<br/><small>data_layer_stock_tracker.md</small>")
+        title_Data_Layer ~~~ data_layer_stock_tracker
         data_layer_time_series("**Time Series Data Item**<br/><small>data_layer_time_series.md</small>")
+        title_Data_Layer ~~~ data_layer_time_series
     end
 
-    subgraph Graphics_Engine ["<div class='subgraph-title'>Graphics Engine</div><div style='height: 150px;'></div>"]
+    subgraph Graphics_Engine [ ]
         direction TB
+        title_Graphics_Engine("GRAPHICS ENGINE"):::subgraphTitle
         display_canvas_drawing("**Layered Canvas Drawing**<br/><small>display_canvas_drawing.md</small>"):::graphics
+        title_Graphics_Engine ~~~ display_canvas_drawing
         display_relative_drawing("**Relative Drawing**<br/><small>display_relative_drawing.md</small>"):::graphics
+        title_Graphics_Engine ~~~ display_relative_drawing
         ui_vector_assets("**Vector Asset Pipeline**<br/><small>ui_vector_assets.md</small>"):::graphics
+        title_Graphics_Engine ~~~ ui_vector_assets
     end
 
-    subgraph Hardware_Layer ["<div class='subgraph-title'>Hardware Layer</div><div style='height: 150px;'></div>"]
+    subgraph Hardware_Layer [ ]
         direction TB
+        title_Hardware_Layer("HARDWARE LAYER"):::subgraphTitle
         display_rotation_contract("**Rotation Contract**<br/><small>display_rotation_contract.md</small>"):::hardware
+        title_Hardware_Layer ~~~ display_rotation_contract
         display_target_rotation("**Target Rotation**<br/><small>display_target_rotation.md</small>"):::hardware
+        title_Hardware_Layer ~~~ display_target_rotation
         hal_core_contract("**HAL Core Contract**<br/><small>hal_core_contract.md</small>"):::hardware
+        title_Hardware_Layer ~~~ hal_core_contract
         hal_dma_blitting("**DMA Blitting**<br/><small>hal_dma_blitting.md</small>"):::hardware
+        title_Hardware_Layer ~~~ hal_dma_blitting
         hal_spec_display("**HAL Display Specification**<br/><small>hal_spec_display.md</small>"):::hardware
+        title_Hardware_Layer ~~~ hal_spec_display
         hal_spec_network("**HAL Network Specification**<br/><small>hal_spec_network.md</small>"):::hardware
+        title_Hardware_Layer ~~~ hal_spec_network
         hal_spec_timer("**HAL Timer Specification**<br/><small>hal_spec_timer.md</small>"):::hardware
+        title_Hardware_Layer ~~~ hal_spec_timer
         hal_spec_touch("**HAL: Touch Spec**<br/><small>hal_spec_touch.md</small>"):::hardware
+        title_Hardware_Layer ~~~ hal_spec_touch
         hal_timer_esp32("**ESP32 Timer**<br/><small>hal_timer_esp32.md</small>"):::hardware
+        title_Hardware_Layer ~~~ hal_timer_esp32
         touch_cst816_implementation("**HAL: CST816 Impl**<br/><small>touch_cst816_implementation.md</small>"):::hardware
+        title_Hardware_Layer ~~~ touch_cst816_implementation
     end
 
-    subgraph Release ["<div class='subgraph-title'>Release</div><div style='height: 150px;'></div>"]
+    subgraph Release [ ]
         direction TB
+        title_Release("RELEASE"):::subgraphTitle
         RELEASE_v0_65_touch_interaction("**Release v0.65 (Touch)**<br/><small>RELEASE_v0.65_touch_interaction.md</small>"):::release
+        title_Release ~~~ RELEASE_v0_65_touch_interaction
     end
 
-    subgraph Release_Demos ["<div class='subgraph-title'>Release Demos</div><div style='height: 150px;'></div>"]
+    subgraph Release_Demos [ ]
         direction TB
+        title_Release_Demos("RELEASE DEMOS"):::subgraphTitle
         demo_release_0_5("**Demo for Release v0.5**<br/><small>demo_release_0.5.md</small>"):::release
+        title_Release_Demos ~~~ demo_release_0_5
         demo_release_0_55("**Demo for Release v0.55**<br/><small>demo_release_0.55.md</small>"):::release
+        title_Release_Demos ~~~ demo_release_0_55
         demo_release_0_58("**Demo for Release v0.58**<br/><small>demo_release_0.58.md</small>"):::release
+        title_Release_Demos ~~~ demo_release_0_58
         demo_release_0_60("**Demo v0.60**<br/><small>demo_release_0.60.md</small>"):::release
+        title_Release_Demos ~~~ demo_release_0_60
     end
 
-    subgraph Releases ["<div class='subgraph-title'>Releases</div><div style='height: 150px;'></div>"]
+    subgraph Releases [ ]
         direction TB
+        title_Releases("RELEASES"):::subgraphTitle
         RELEASE_v0_55_connectivity_smoke_test("**Release v0.55 - Connectivity Smoke Test**<br/><small>RELEASE_v0.55_connectivity_smoke_test.md</small>"):::release
+        title_Releases ~~~ RELEASE_v0_55_connectivity_smoke_test
         RELEASE_v0_58_dynamic_visuals("**Release v0.58 - Dynamic Visuals**<br/><small>RELEASE_v0.58_dynamic_visuals.md</small>"):::release
+        title_Releases ~~~ RELEASE_v0_58_dynamic_visuals
         RELEASE_v0_5_display_drawing_ui_base("**Release v0.5 - Display, Drawing & UI Base**<br/><small>RELEASE_v0.5_display_drawing_ui_base.md</small>"):::release
+        title_Releases ~~~ RELEASE_v0_5_display_drawing_ui_base
         RELEASE_v0_60_initial_stock_tracker("**Release v0.60**<br/><small>RELEASE_v0.60_initial_stock_tracker.md</small>"):::release
+        title_Releases ~~~ RELEASE_v0_60_initial_stock_tracker
     end
 
-    subgraph UI_Framework ["<div class='subgraph-title'>UI Framework</div><div style='height: 150px;'></div>"]
+    subgraph UI_Framework [ ]
         direction TB
+        title_UI_Framework("UI FRAMEWORK"):::subgraphTitle
         ui_base("**Base UI Elements**<br/><small>ui_base.md</small>"):::ui
+        title_UI_Framework ~~~ ui_base
         ui_connectivity_status_screen("**Connectivity Status Screen**<br/><small>ui_connectivity_status_screen.md</small>"):::ui
+        title_UI_Framework ~~~ ui_connectivity_status_screen
         ui_live_indicator("**Animated Live Indicator**<br/><small>ui_live_indicator.md</small>"):::ui
+        title_UI_Framework ~~~ ui_live_indicator
         ui_mini_logo("**UI Mini Logo**<br/><small>ui_mini_logo.md</small>"):::ui
+        title_UI_Framework ~~~ ui_mini_logo
         ui_theme_support("**Theme Support**<br/><small>ui_theme_support.md</small>"):::ui
+        title_UI_Framework ~~~ ui_theme_support
         ui_themeable_time_series_graph("**Themeable Graph**<br/><small>ui_themeable_time_series_graph.md</small>"):::ui
+        title_UI_Framework ~~~ ui_themeable_time_series_graph
         ui_themeable_time_series_graph_v2("**UI Time Series Graph v2**<br/><small>ui_themeable_time_series_graph_v2.md</small>"):::ui
+        title_UI_Framework ~~~ ui_themeable_time_series_graph_v2
         ui_touch_test_overlay("**UI: Touch Overlay**<br/><small>ui_touch_test_overlay.md</small>"):::ui
+        title_UI_Framework ~~~ ui_touch_test_overlay
     end
 
     %% Relationships
