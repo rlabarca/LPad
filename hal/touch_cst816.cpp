@@ -123,7 +123,8 @@ bool hal_touch_read(hal_touch_point_t* point) {
     int16_t scaled_y = (y[0] * PHYSICAL_HEIGHT) / TOUCH_HEIGHT;
 
     // Apply coordinate transformation based on display rotation
-    // DIAGNOSTIC: Testing different rotation transforms
+    // CRITICAL: Touch panel coordinates may already be in display orientation!
+    // Testing NO rotation transform (touch panel pre-rotated by hardware/firmware)
     int16_t transformed_x, transformed_y;
 
     #if DISPLAY_ROTATION == 0
@@ -131,10 +132,10 @@ bool hal_touch_read(hal_touch_point_t* point) {
         transformed_x = scaled_x;
         transformed_y = scaled_y;
     #elif DISPLAY_ROTATION == 90
-        // DIAGNOSTIC MODE: Try 270° CCW (opposite of previous 90° CW)
-        // This is: rotate physical portrait panel 270° clockwise = 90° counter-clockwise
-        transformed_x = g_display_width - 1 - scaled_y;
-        transformed_y = g_display_height - 1 - scaled_x;
+        // HYPOTHESIS: Touch coordinates already match rotated display
+        // Try NO transformation - touch panel may be pre-rotated
+        transformed_x = scaled_y;  // Map touch Y to display X (landscape)
+        transformed_y = scaled_x;  // Map touch X to display Y (landscape)
     #elif DISPLAY_ROTATION == 180
         // Inverted portrait (180°)
         transformed_x = g_display_width - scaled_x;
