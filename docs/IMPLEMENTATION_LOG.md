@@ -2,6 +2,46 @@
 
 This document captures the "tribal knowledge" of the project: technical hurdles, why specific decisions were made, and what approaches were discarded.
 
+## [2026-02-11] Touch Coordinate Scaling: Controller Resolution vs Display Pixels
+
+### Problem
+Touch coordinates were consistently wrong - Y always reported as 0%:
+```
+RAW: x=600, y=120
+TRANSFORM: trans_y = 240 - 600 = -360
+FINAL: y=0 (clamped from negative)
+[Touch] TAP at (120, 0) = (22.4%, 0.0%)  ← Y always 0!
+```
+
+### Root Cause
+The CST816 touch controller reports coordinates in a **fixed resolution** (600×536) that differs from the physical display pixel dimensions (240×536). The rotation transformation was applying directly to raw coordinates without scaling:
+```cpp
+// WRONG: Using raw 0-599 range with 240-pixel display height
+transformed_y = g_display_height - x[0];  // 240 - 600 = -360!
+```
+
+### Solution
+Scale raw touch coordinates to physical display dimensions BEFORE applying rotation transform:
+```cpp
+// Touch controller resolution (hardware-specific)
+const int16_t TOUCH_WIDTH = 600;
+const int16_t TOUCH_HEIGHT = 536;
+
+// Physical display dimensions
+const int16_t PHYSICAL_WIDTH = 240;
+const int16_t PHYSICAL_HEIGHT = 536;
+
+// Scale first
+int16_t scaled_x = (x[0] * PHYSICAL_WIDTH) / TOUCH_WIDTH;   // 600 → 240
+int16_t scaled_y = (y[0] * PHYSICAL_HEIGHT) / TOUCH_HEIGHT; // 536 → 536
+
+// Then apply rotation transform
+transformed_y = g_display_height - scaled_x;  // Now in correct range!
+```
+
+### Lesson
+**Touch controller resolution ≠ Display pixel resolution**. Many touch controllers (especially capacitive) report in fixed resolutions (e.g., 600×600, 1024×1024) regardless of actual display size. Always check vendor datasheets and empirically verify the touch coordinate range, then scale to display dimensions before applying coordinate transformations.
+
 ## [2026-02-11] TouchTestOverlay Crash: Arduino_Canvas Requires Valid Parent Device
 
 ### Problem
