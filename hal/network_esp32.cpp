@@ -9,7 +9,6 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <Arduino.h>
-#include <esp_task_wdt.h>
 
 // Internal state
 static hal_network_status_t g_status = HAL_NETWORK_STATUS_DISCONNECTED;
@@ -150,16 +149,16 @@ bool hal_network_http_get(const char* url, char* response_buffer, size_t buffer_
             return false;
         }
 
-        // Use streaming to read response in chunks and feed watchdog
+        // Use streaming to read response in chunks
         WiFiClient *stream = http.getStreamPtr();
         size_t bytes_read = 0;
-        unsigned long last_wdt_feed = millis();
 
         Serial.println("[hal_network_http_get] Reading stream in chunks...");
 
         // Track time since last data received for timeout detection
         unsigned long last_data_time = millis();
         const unsigned long DATA_TIMEOUT_MS = 5000;  // 5 second timeout for data
+        unsigned long last_progress_log = millis();
 
         while (http.connected()) {
             size_t available = stream->available();
@@ -177,11 +176,10 @@ bool hal_network_http_get(const char* url, char* response_buffer, size_t buffer_
                         contentLength -= c;
                     }
 
-                    // Feed watchdog every 100ms to prevent timeout
-                    if (millis() - last_wdt_feed > 100) {
-                        esp_task_wdt_reset();
-                        last_wdt_feed = millis();
-                        Serial.printf("[hal_network_http_get] Read %zu bytes (feeding watchdog)...\n", bytes_read);
+                    // Log progress every 500ms
+                    if (millis() - last_progress_log > 500) {
+                        Serial.printf("[hal_network_http_get] Read %zu bytes...\n", bytes_read);
+                        last_progress_log = millis();
                     }
                 }
 
@@ -196,8 +194,7 @@ bool hal_network_http_get(const char* url, char* response_buffer, size_t buffer_
                     Serial.printf("[hal_network_http_get] Data timeout after %zu bytes\n", bytes_read);
                     break;
                 }
-                delay(10);  // Wait for more data
-                esp_task_wdt_reset();  // Feed watchdog during wait
+                delay(10);  // Wait for more data (yields to other tasks)
             }
 
             // Check buffer overflow
