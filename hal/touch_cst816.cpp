@@ -81,13 +81,10 @@ bool hal_touch_read(hal_touch_point_t* point) {
         return false;
     }
 
-    // Check if touch is pressed
-    if (!g_touch.isPressed()) {
-        point->is_pressed = false;
-        point->x = 0;
-        point->y = 0;
-        return true;  // Success, just not pressed
-    }
+    // CRITICAL: Do NOT use isPressed() - it creates a race condition
+    // The CST816 clears its interrupt flag after getPoint(), causing
+    // isPressed() to return false even when coordinates are valid.
+    // Instead, rely solely on point_count from getPoint().
 
     // Read touch coordinates
     int16_t x[1], y[1];
@@ -97,18 +94,17 @@ bool hal_touch_read(hal_touch_point_t* point) {
         point->is_pressed = false;
         point->x = 0;
         point->y = 0;
-        return true;
+        return true;  // Success, just not pressed
     }
 
-    // Debug: Log raw coordinates from touch controller
-    // NOTE: If x is always the same value (e.g., 600), the controller may be returning stale data
+    // Debug: Log raw coordinates (only on change to reduce noise)
     static int16_t last_x = -1, last_y = -1;
     bool coords_changed = (x[0] != last_x || y[0] != last_y);
-    Serial.printf("[HAL Touch] RAW: x=%d, y=%d, count=%d %s\n",
-                  x[0], y[0], point_count,
-                  coords_changed ? "✓ NEW" : "⚠ STALE");
-    last_x = x[0];
-    last_y = y[0];
+    if (coords_changed) {
+        Serial.printf("[HAL Touch] RAW: x=%d, y=%d\n", x[0], y[0]);
+        last_x = x[0];
+        last_y = y[0];
+    }
 
     // CRITICAL: The touch controller reports in a fixed resolution (e.g., 600x536)
     // that may differ from display pixel dimensions (e.g., 240x536).
@@ -126,12 +122,7 @@ bool hal_touch_read(hal_touch_point_t* point) {
     int16_t scaled_x = (x[0] * PHYSICAL_WIDTH) / TOUCH_WIDTH;
     int16_t scaled_y = (y[0] * PHYSICAL_HEIGHT) / TOUCH_HEIGHT;
 
-    Serial.printf("[HAL Touch] SCALED: x=%d, y=%d\n", scaled_x, scaled_y);
-
     // Apply coordinate transformation based on display rotation
-    // The CST816 reports coordinates in the physical panel orientation,
-    // but we need to match the logical display orientation set by the HAL
-
     int16_t transformed_x, transformed_y;
 
     #if DISPLAY_ROTATION == 0
@@ -140,10 +131,6 @@ bool hal_touch_read(hal_touch_point_t* point) {
         transformed_y = scaled_y;
     #elif DISPLAY_ROTATION == 90
         // Landscape mode (90° clockwise)
-        // Physical (0,0) at top-left → Logical (0,0) at top-left
-        // Physical (max,0) at top-right → Logical (0,max) at bottom-left
-        // Physical (0,max) at bottom-left → Logical (max,0) at top-right
-        // Physical (max,max) at bottom-right → Logical (max,max) at bottom-right
         transformed_x = scaled_y;
         transformed_y = g_display_height - scaled_x;
     #elif DISPLAY_ROTATION == 180
@@ -160,11 +147,6 @@ bool hal_touch_read(hal_touch_point_t* point) {
         transformed_y = scaled_y;
     #endif
 
-    // Debug: Log transformation
-    Serial.printf("[HAL Touch] TRANSFORM: disp=%dx%d, rot=%d, trans_x=%d, trans_y=%d\n",
-                  g_display_width, g_display_height, DISPLAY_ROTATION,
-                  transformed_x, transformed_y);
-
     // Clamp coordinates to display bounds
     if (transformed_x < 0) transformed_x = 0;
     if (transformed_x >= g_display_width) transformed_x = g_display_width - 1;
@@ -174,8 +156,6 @@ bool hal_touch_read(hal_touch_point_t* point) {
     point->x = transformed_x;
     point->y = transformed_y;
     point->is_pressed = true;
-
-    Serial.printf("[HAL Touch] FINAL: x=%d, y=%d\n", point->x, point->y);
 
     return true;
 }
