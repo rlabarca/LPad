@@ -80,22 +80,16 @@ void V065DemoApp::update(float deltaTime) {
 
         // If gesture detected, apply direction rotation and update overlay
         if (gesture_detected) {
-            // CRITICAL: When display is rotated 90° CW, directions are also rotated 90° CW
-            // We must rotate directions 90° CCW to map screen coords → physical device coords
-            // Edge zone thresholds are swapped to match physical edge names, so no additional swap needed
+            // CRITICAL: With X-inverted coordinates AND rotated screen,
+            // the direction rotation must compensate for the coordinate system
             #if defined(APP_DISPLAY_ROTATION)  // T-Display S3 AMOLED Plus with 90° rotation
                 if (gesture_event.direction != TOUCH_DIR_NONE) {
-                    // Rotate direction 90° CCW (or equivalently, 270° CW)
-                    // Physical edge → Detected as (correct name) → Rotated to → Displayed as
-                    //   LEFT → LEFT zone → UP → "TOP"
-                    //   RIGHT → RIGHT zone → DOWN → "BOTTOM"
-                    //   TOP → TOP zone → RIGHT → "RIGHT"
-                    //   BOTTOM → BOTTOM zone → LEFT → "LEFT"
+                    // Direction rotation with LEFT/RIGHT swapped for X-inversion compensation
                     switch (gesture_event.direction) {
                         case TOUCH_DIR_UP:    gesture_event.direction = TOUCH_DIR_RIGHT; break;
-                        case TOUCH_DIR_RIGHT: gesture_event.direction = TOUCH_DIR_DOWN;  break;
+                        case TOUCH_DIR_RIGHT: gesture_event.direction = TOUCH_DIR_UP;    break;  // SWAPPED
                         case TOUCH_DIR_DOWN:  gesture_event.direction = TOUCH_DIR_LEFT;  break;
-                        case TOUCH_DIR_LEFT:  gesture_event.direction = TOUCH_DIR_UP;    break;
+                        case TOUCH_DIR_LEFT:  gesture_event.direction = TOUCH_DIR_DOWN;  break;  // SWAPPED
                         default: break;
                     }
                 }
@@ -125,7 +119,8 @@ void V065DemoApp::update(float deltaTime) {
             if (gesture_event.type == TOUCH_EDGE_DRAG) {
                 int16_t start_x, start_y;
                 m_gestureEngine->getStartPosition(&start_x, &start_y);
-                Serial.printf("  Edge zones: LEFT(x<455) RIGHT(x>320) TOP(y<40) BOTTOM(y>180)\n");
+                Serial.printf("  Edge zones (rotated 90°): LEFT(x<320) RIGHT(x>455) TOP(y<180) BOTTOM(y>40)\n");
+                Serial.printf("  Note: Due to rotation, top/bottom params become visual left/right\n");
                 Serial.printf("  Started at: (%d, %d) → %s edge (ended at %d, %d)\n",
                               start_x, start_y,
                               edge_names[gesture_event.direction],
