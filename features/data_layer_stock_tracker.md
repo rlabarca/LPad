@@ -12,17 +12,20 @@ This feature defines a data provider that fetches, parses, and manages time-seri
 
 - **Given** a `StockTracker` instance configured for the "^TNX" symbol and a 1-minute refresh interval.
 - **When** the `StockTracker` is started.
-- **Then** it should perform an HTTP GET request to `https://query1.finance.yahoo.com/v8/finance/chart/%5ETNX?interval=5m&range=1d`.
+- **Then** it should perform an HTTP GET request to `https://query1.finance.yahoo.com/v8/finance/chart/%5ETNX?interval=1m&range=1d`.
 - **And** the JSON response should be parsed successfully.
-- **And** a `DataItemTimeSeries` instance should be created and populated with the last 30 minutes of data from the response.
+- **And** the `DataItemTimeSeries` should be initialized with a buffer capacity large enough to hold at least 24 hours of 1-minute data (minimum 1440 points).
+- **And** the `DataItemTimeSeries` should be populated with the full dataset from the response.
 - **And** the `DataItemTimeSeries` should be thread-safe.
 
 ### Scenario: Periodic Data Refresh
 
-- **Given** a `StockTracker` that has successfully performed an initial data fetch.
+- **Given** a `StockTracker` that has successfully performed an initial data fetch and populated the series.
 - **When** the 1-minute refresh interval has elapsed.
-- **Then** a new HTTP GET request is made to the Yahoo Finance API.
-- **And** the `DataItemTimeSeries` is cleared and repopulated with the full set of data points from the response (maintaining the 1-day range).
+- **Then** a new HTTP GET request is made to the Yahoo Finance API (optimally using a shorter range like `range=1h` to reduce payload, but matching the `interval=1m`).
+- **And** the response is parsed to identify data points with timestamps strictly newer than the latest timestamp currently in the `DataItemTimeSeries`.
+- **And** only these new data points are appended to the `DataItemTimeSeries`.
+- **And** existing data is NOT cleared.
 - **And** the `updated_at` timestamp of the `DataItemTimeSeries` is updated.
 
 ### Scenario: Threaded Operation
@@ -42,10 +45,11 @@ This feature defines a data provider that fetches, parses, and manages time-seri
   - It will own the `DataItemTimeSeries` instance.
   - It should provide a thread-safe method to get a pointer to the `DataItemTimeSeries` instance.
 
-- **Data Parsing:**
+- **Data Parsing & Management:**
   - A new JSON parsing implementation is required that can handle the Yahoo Finance API response format.
   - The parser should extract the timestamps and closing prices from the JSON response.
-  - Because the API returns a full day of data, the `StockTracker` should clear the `DataItemTimeSeries` before repopulating it with the new dataset to avoid duplication and ensure the graph reflects the latest state.
+  - **Buffer Management:** The `DataItemTimeSeries` must be statically or dynamically allocated with sufficient size to hold 24 hours of 1-minute data (approx 1440 points).
+  - **Append Logic:** The `StockTracker` must implement logic to check the timestamp of incoming data against the last stored timestamp in `DataItemTimeSeries`. Only newer points should be added.
   - The `DataItemTimeSeries` needs to be protected by a mutex or similar synchronization mechanism to ensure that the UI thread does not read the data while the network thread is writing to it. The `DataItemTimeSeries` should be extended to include this functionality.
 
 ## HAL Dependencies
