@@ -75,6 +75,49 @@ This pattern is used throughout the codebase (see `v060_demo_app.cpp:407`, HAL c
 
 **Never allocate large Arduino_Canvas objects on the stack** — always use heap allocation to prevent stack overflow crashes.
 
+### Third Crash: Double-Free from Repeated Canvas Allocation (CRITICAL)
+After fixing stack overflow, a **third crash occurred** - double-free assertion in memory allocator:
+```
+assert failed: tlsf_free tlsf.c:1120 (!block_is_free(block) && "block already marked as free")
+```
+
+**Root Cause:** Creating and destroying `Arduino_Canvas` on EVERY touch event (multiple times per second) caused heap corruption:
+```cpp
+void renderTextToBuffer() {
+    Arduino_Canvas* canvas = new Arduino_Canvas(...);  // Create
+    canvas->begin();
+    // ... use canvas ...
+    delete canvas;  // Delete
+}  // Called repeatedly - causes heap corruption!
+```
+
+The rapid allocation/deallocation cycle corrupted the heap allocator's metadata, leading to double-free errors on the 2nd-3rd touch event.
+
+**Final Solution: Create Canvas Once, Reuse Forever**
+```cpp
+class TouchTestOverlay {
+    Arduino_Canvas* m_render_canvas;  // Member variable, not temporary
+};
+
+bool begin() {
+    m_render_canvas = new Arduino_Canvas(...);
+    m_render_canvas->begin();
+    // Canvas lives for lifetime of overlay
+}
+
+~TouchTestOverlay() {
+    delete m_render_canvas;  // Clean up once at end
+}
+
+void renderTextToBuffer() {
+    // REUSE existing canvas, don't create/destroy
+    m_render_canvas->fillScreen(CHROMA_KEY);
+    // ... render ...
+}
+```
+
+**Critical Lesson:** For UI components that render frequently (touch overlays, animations, etc.), **NEVER create/destroy canvases in the render path**. Create them once during initialization and reuse them. This pattern is standard in the codebase (see `ui_time_series_graph.cpp` - canvases are members, not temporaries).
+
 ## [2026-02-11] Release v0.60 Final: Y-Axis Tick Spacing & Label Uniqueness
 
 ### Problem
