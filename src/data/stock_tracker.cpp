@@ -16,8 +16,8 @@
 #endif
 
 // Buffer size for HTTP response (Yahoo Finance responses can be large)
-// 24-hour range returns ~35KB, so we need at least 40KB
-static constexpr size_t HTTP_RESPONSE_BUFFER_SIZE = 49152;  // 48KB
+// 6-hour range returns ~10KB, so 20KB provides safe headroom
+static constexpr size_t HTTP_RESPONSE_BUFFER_SIZE = 20480;  // 20KB
 
 StockTracker::StockTracker(const std::string& symbol,
                           uint32_t refresh_interval_seconds,
@@ -25,7 +25,7 @@ StockTracker::StockTracker(const std::string& symbol,
     : m_symbol(symbol)
     , m_refresh_interval_seconds(refresh_interval_seconds)
     , m_history_minutes(history_minutes)
-    , m_data_series(symbol, 1500)  // Capacity for 24h of 1-min data: 1440 points + buffer
+    , m_data_series(symbol, 400)  // Capacity for 6h of 1-min data: 360 points + buffer
     , m_is_running(false)
     , m_is_first_fetch(true)
 #ifdef ARDUINO
@@ -93,10 +93,10 @@ std::string StockTracker::buildApiUrl() const {
     url += m_symbol;
     url += "?interval=1m&range=";
 
-    // Initial fetch: Get 24 hours of historical data (range=1d)
+    // Initial fetch: Get 6 hours of historical data (range=6h)
     // Subsequent fetches: Get last 1 hour for efficiency (range=1h)
     if (m_is_first_fetch) {
-        url += "1d";  // 24 hours for initial dataset
+        url += "6h";  // 6 hours for initial dataset
     } else {
         url += "1h";  // 1 hour for incremental updates
     }
@@ -178,7 +178,7 @@ bool StockTracker::fetchData() {
                 m_data_series.addDataPoint(timestamps[i], prices[i]);
             }
 
-            Serial.printf("[StockTracker] Initial fetch: Loaded %zu data points (24h history)\n", num_points);
+            Serial.printf("[StockTracker] Initial fetch: Loaded %zu data points (6h history)\n", num_points);
             m_is_first_fetch = false;  // Mark initial fetch as complete
         } else {
             // Incremental update: Append only NEW data points
