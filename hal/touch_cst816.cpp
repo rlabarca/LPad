@@ -108,20 +108,17 @@ bool hal_touch_read(hal_touch_point_t* point) {
     }
 
     // CRITICAL: The touch controller reports in a fixed resolution (e.g., 600x536)
-    // that may differ from display pixel dimensions (e.g., 240x536).
-    // We must scale to display dimensions BEFORE applying rotation transform.
+    // that may differ from display pixel dimensions.
+    // For rotated displays, we must scale to POST-ROTATION dimensions!
 
     // Touch controller resolution (empirically determined from hardware)
     const int16_t TOUCH_WIDTH = 600;   // Touch X range: 0-599
     const int16_t TOUCH_HEIGHT = 536;  // Touch Y range: 0-535
 
-    // Physical display dimensions (before rotation)
-    const int16_t PHYSICAL_WIDTH = 240;
-    const int16_t PHYSICAL_HEIGHT = 536;
-
-    // Scale raw touch coordinates to physical display pixels
-    int16_t scaled_x = (x[0] * PHYSICAL_WIDTH) / TOUCH_WIDTH;
-    int16_t scaled_y = (y[0] * PHYSICAL_HEIGHT) / TOUCH_HEIGHT;
+    // Scale raw touch coordinates to POST-ROTATION display dimensions
+    // After 90° rotation: display is 536w x 240h (swapped from 240w x 536h)
+    int16_t scaled_x = (x[0] * g_display_width) / TOUCH_WIDTH;   // 536w after rotation
+    int16_t scaled_y = (y[0] * g_display_height) / TOUCH_HEIGHT; // 240h after rotation
 
     // Apply coordinate transformation based on display rotation
     // CRITICAL: Touch panel coordinates may already be in display orientation!
