@@ -172,21 +172,23 @@ void hal_touch_configure_gesture_engine(TouchGestureEngine* engine) {
     // Board-specific edge zone configuration
     #if defined(APP_DISPLAY_ROTATION)
         // T-Display S3 AMOLED Plus (1.91") with 90° rotation
-        // Touch panel has limited range: x: ~18-227, y: ~25-237 (screen coords after transform)
+        // Touch panel has limited range in NEW coordinate system (0,0 at top-left):
+        //   X: ~18-227 (unchanged from old system)
+        //   Y: ~2-214 (inverted from old 25-237 range)
         //
-        // Tuned thresholds based on actual hardware testing:
+        // Tuned thresholds for NEW coordinate system:
         //   LEFT: x < 80   (easy to trigger - good sensitivity)
         //   RIGHT: x > 215 (harder to trigger - prevents false positives)
-        //   TOP: y < 60    (easy to trigger - good sensitivity)
-        //   BOTTOM: y > 215 (harder to trigger - prevents false positives)
+        //   TOP: y < 40    (REDUCED to avoid corner overlap with LEFT/RIGHT)
+        //   BOTTOM: y > 180 (REDUCED to be reachable within y=2-214 range)
         //
         // These values ensure all 4 edges are reachable while maintaining
         // good differentiation between edge drags and center swipes.
         engine->setEdgeZones(
-            80,   // LEFT threshold
-            215,  // RIGHT threshold
-            60,   // TOP threshold
-            215   // BOTTOM threshold
+            80,   // LEFT threshold (unchanged)
+            215,  // RIGHT threshold (unchanged)
+            40,   // TOP threshold (reduced from 60)
+            180   // BOTTOM threshold (reduced from 215 to be reachable)
         );
     #else
         // ESP32-S3 AMOLED (1.8") - uses default percentage-based thresholds
