@@ -18,7 +18,8 @@ The demo for this release will have the following flow:
     - The graph of the ^TNX stock is displayed.
     - The mini logo remains in the top-right corner.
     - The text "DEMO v0.60" is displayed in the top-left corner.
-    - The graph is initialized with the past 24 hours of data and updated every minute with new data fetched from the Yahoo Finance API.
+    - The graph is initialized with the past 6 hours of trading data and updated every minute with new data fetched from the Yahoo Finance API.
+    - **Note:** "6 hours of trading data" refers to the last 6 hours when the market was open, not wall-clock time. During non-trading hours, this data will have timestamps from the previous trading session (e.g., 20+ real-world hours ago), and the X-axis will correctly display "Hours Prior" relative to those timestamps.
 
 ## Validation Criteria
 

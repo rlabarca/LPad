@@ -14,7 +14,8 @@ This feature defines a data provider that fetches, parses, and manages time-seri
 - **When** the `StockTracker` is started.
 - **Then** it should perform an HTTP GET request to `https://query1.finance.yahoo.com/v8/finance/chart/%5ETNX?interval=1m&range=1d`.
 - **And** the JSON response should be parsed successfully.
-- **And** the `DataItemTimeSeries` should be initialized with a buffer capacity large enough to hold at least 24 hours of 1-minute data (minimum 1440 points, recommended 1500).
+- **And** the `DataItemTimeSeries` should be initialized with a buffer capacity large enough to hold at least 6 hours of 1-minute trading data (minimum 360 points, recommended 400).
+- **Note:** "Trading data" means data points when the market is open. During non-trading hours, the 6 hours of data will have timestamps from the previous trading session.
 - **And** the `DataItemTimeSeries` should be populated with the full dataset from the response.
 - **And** the `DataItemTimeSeries` should be thread-safe.
 
@@ -48,7 +49,7 @@ This feature defines a data provider that fetches, parses, and manages time-seri
 - **Data Parsing & Management:**
   - A new JSON parsing implementation is required that can handle the Yahoo Finance API response format.
   - The parser should extract the timestamps and closing prices from the JSON response.
-  - **Buffer Management:** The `DataItemTimeSeries` must be statically or dynamically allocated with sufficient size to hold 24 hours of 1-minute data (approx 1440-1500 points).
+  - **Buffer Management:** The `DataItemTimeSeries` must be statically or dynamically allocated with sufficient size to hold 6 hours of 1-minute trading data (approx 360-400 points). The term "trading data" refers to data collected during market hours, which may span a larger real-world time period during non-trading hours.
   - **Append Logic:** The `StockTracker` must implement logic to check the timestamp of incoming data against the last stored timestamp in `DataItemTimeSeries`. Only newer points should be added.
   - The `DataItemTimeSeries` needs to be protected by a mutex or similar synchronization mechanism to ensure that the UI thread does not read the data while the network thread is writing to it. The `DataItemTimeSeries` should be extended to include this functionality.
 

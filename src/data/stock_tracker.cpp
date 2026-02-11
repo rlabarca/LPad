@@ -25,7 +25,7 @@ StockTracker::StockTracker(const std::string& symbol,
     : m_symbol(symbol)
     , m_refresh_interval_seconds(refresh_interval_seconds)
     , m_history_minutes(history_minutes)
-    , m_data_series(symbol, 1500)  // Capacity for 24h of 1-min data: 1440 points + buffer
+    , m_data_series(symbol, 400)  // Capacity for 6h of 1-min trading data: 360 points + buffer
     , m_is_running(false)
     , m_is_first_fetch(true)
 #ifdef ARDUINO
@@ -88,15 +88,15 @@ void StockTracker::stop() {
 std::string StockTracker::buildApiUrl() const {
     // Yahoo Finance API endpoint
     // interval=1m for 1-minute candles (best granularity)
-    // range=1d (24 hours) for both initial and incremental fetches
+    // range=6h for both initial and incremental fetches
     //
-    // Note: During non-trading hours, shorter ranges may return no data
-    // (if the range is entirely outside trading hours).
-    // Using range=1d ensures we get the last trading session data.
-    // Incremental logic filters duplicates, so this is safe.
+    // Note: "6h" means "last 6 hours of trading data", not wall-clock time.
+    // During non-trading hours, this returns data from the last trading session,
+    // which may have timestamps 20+ real-world hours ago.
+    // Incremental logic filters duplicates, so repeated 6h requests are safe.
     std::string url = "https://query1.finance.yahoo.com/v8/finance/chart/";
     url += m_symbol;
-    url += "?interval=1m&range=1d";
+    url += "?interval=1m&range=6h";
 
     return url;
 }
@@ -176,7 +176,7 @@ bool StockTracker::fetchData() {
                 m_data_series.addDataPoint(timestamps[i], prices[i]);
             }
 
-            Serial.printf("[StockTracker] Initial fetch: Loaded %zu data points (24h history)\n", num_points);
+            Serial.printf("[StockTracker] Initial fetch: Loaded %zu data points (6h trading data)\n", num_points);
             m_is_first_fetch = false;  // Mark initial fetch as complete
         } else {
             // Incremental update: Append only NEW data points
