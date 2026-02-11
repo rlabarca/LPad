@@ -148,7 +148,8 @@
         }
         
         /* Nested inner subgraphs should be transparent and borderless */
-        [id$="_inner"] rect {
+        /* We target the cluster rects that contain '_inner' in their ID path */
+        [id*="_inner"] rect, [id*="-inner-"] rect, .cluster[id*="_inner"] rect {
             fill: none !important;
             stroke: none !important;
         }
@@ -236,13 +237,31 @@
         #modal-body table tr:nth-child(2n) { background-color: #f6f8fa; }
 
         /* Highlight Styles */
-        .edgePath.hidden-edge path {
+        .node.highlighted {
+            filter: brightness(0.9);
+            stroke-width: 3px !important;
+        }
+
+        /* Hide ALL edges connected to title nodes (Layout Helpers) */
+        /* Mermaid adds LS-<id> and LE-<id> classes to edge paths */
+        [class*="LS-title_"] path, 
+        [class*="LE-title_"] path,
+        [class*="LS-title_"] .path,
+        [class*="LE-title_"] .path {
+            stroke-width: 0 !important;
             stroke: none !important;
+            opacity: 0 !important;
             fill: none !important;
         }
-        .edgePath.hidden-edge .markerPath {
+        
+        [class*="LS-title_"] .markerPath, 
+        [class*="LE-title_"] .markerPath,
+        [class*="LS-title_"] marker,
+        [class*="LE-title_"] marker {
             display: none !important;
+            opacity: 0 !important;
         }
+
         .edgePath.highlighted path {
             stroke-width: 3px !important;
             stroke: #007bff !important;
@@ -352,14 +371,6 @@
 
                     // Add Click Listeners to Nodes
                     addNodeClickListeners();
-
-                    // Hide layout edges (those connected to title nodes)
-                    document.querySelectorAll('.edgePath').forEach(edge => {
-                        const classes = edge.className.baseVal;
-                        if (classes.includes('LS-title_') || classes.includes('LE-title_')) {
-                            edge.classList.add('hidden-edge');
-                        }
-                    });
 
                     // Re-initialize pan-zoom
                     if (panZoom) panZoom.destroy();

@@ -55,43 +55,43 @@ def parse_features():
 
 def generate_mermaid_content(features):
     lines = ["graph TD"]
-    lines.append("    %% Styling")
-    lines.append("    classDef default fill:#e1f5fe,stroke:#01579b,stroke-width:1px,color:black;")
-    lines.append("    classDef release fill:#f96,stroke:#333,stroke-width:2px,color:black,font-weight:bold;")
-    lines.append("    classDef hardware fill:#e8f5e9,stroke:#2e7d32,stroke-width:1px,color:black;")
-    lines.append("    classDef ui fill:#f3e5f5,stroke:#7b1fa2,stroke-width:1px,color:black;")
-    lines.append("    classDef app fill:#fff3e0,stroke:#e65100,stroke-width:1px,color:black;")
-    lines.append("    classDef graphics fill:#e0f7fa,stroke:#006064,stroke-width:1px,color:black;")
-    lines.append("    classDef subgraphTitle fill:none,stroke:none,color:#111,font-size:32px,font-weight:bold;")
     lines.append("")
 
     grouped_categories = defaultdict(list)
     for node_id, data in features.items():
         grouped_categories[data["category"]].append(node_id)
     
+    # Store style applications to add at the end
+    style_apps = []
+
     for category, node_ids in sorted(grouped_categories.items()):
         category_id = category.replace(' ', '_')
-        lines.append(f"\n    subgraph {category_id}")
+        # Use [" "] to explicitly hide the default subgraph label
+        lines.append(f'\n    subgraph {category_id} [" "]')
         lines.append(f"        direction TB")
         
         # Add a title node at the top
-        title_text = f"        {category.upper()}        "
-        lines.append(f'        title_{category_id}("{title_text}"):::subgraphTitle')
+        title_id = f"title_{category_id}"
+        lines.append(f'        {title_id}["{category.upper()}"]')
+        style_apps.append(f"    class {title_id} subgraphTitle;")
         
         for node_id in sorted(node_ids):
             data = features[node_id]
             clean_label = data["label"].replace('"', "'")
             
             css_class = ""
-            if "Release" in category: css_class = ":::release"
-            elif "Hardware" in category: css_class = ":::hardware"
-            elif "UI" in category: css_class = ":::ui"
-            elif "Application" in category: css_class = ":::app"
-            elif "Graphics" in category: css_class = ":::graphics"
+            if "Release" in category: css_class = "release"
+            elif "Hardware" in category: css_class = "hardware"
+            elif "UI" in category: css_class = "ui"
+            elif "Application" in category: css_class = "app"
+            elif "Graphics" in category: css_class = "graphics"
             
-            lines.append(f'        {node_id}("**{clean_label}**<br/><small>{data["filename"]}</small>"){css_class}')
-            # Use standard invisible link if needed, but declaration order + direction TB often works
-            lines.append(f'        title_{category_id} --- {node_id}')
+            lines.append(f'        {node_id}["{clean_label}"]')
+            if css_class:
+                style_apps.append(f"    class {node_id} {css_class};")
+            
+            # Link title to node for layout order (these will be hidden via CSS)
+            lines.append(f'        {title_id} --- {node_id}')
         lines.append("    end")
 
     lines.append("\n    %% Relationships")
@@ -101,7 +101,19 @@ def generate_mermaid_content(features):
             if prereq_id in features:
                 lines.append(f"    {prereq_id} --> {node_id}")
             else:
-                lines.append(f"    {prereq_id}[{prereq_id}?] -.-> {node_id}")
+                lines.append(f'    {prereq_id}["{prereq_id}?"] -.-> {node_id}')
+    
+    lines.append("\n    %% Styling Definitions")
+    lines.append("    classDef default fill:#e1f5fe,stroke:#01579b,stroke-width:1px,color:black;")
+    lines.append("    classDef release fill:#f96,stroke:#333,stroke-width:2px,color:black,font-weight:bold;")
+    lines.append("    classDef hardware fill:#e8f5e9,stroke:#2e7d32,stroke-width:1px,color:black;")
+    lines.append("    classDef ui fill:#f3e5f5,stroke:#7b1fa2,stroke-width:1px,color:black;")
+    lines.append("    classDef app fill:#fff3e0,stroke:#e65100,stroke-width:1px,color:black;")
+    lines.append("    classDef graphics fill:#e0f7fa,stroke:#006064,stroke-width:1px,color:black;")
+    lines.append("    classDef subgraphTitle fill:none,stroke:none,color:#111,font-size:32px,font-weight:bold;")
+    
+    lines.append("\n    %% Style Applications")
+    lines.extend(style_apps)
     
     return "\n".join(lines)
 
