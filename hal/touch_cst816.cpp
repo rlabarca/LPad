@@ -103,6 +103,24 @@ bool hal_touch_read(hal_touch_point_t* point) {
     // Debug: Log raw coordinates from touch controller
     Serial.printf("[HAL Touch] RAW: x=%d, y=%d, count=%d\n", x[0], y[0], point_count);
 
+    // CRITICAL: The touch controller reports in a fixed resolution (e.g., 600x536)
+    // that may differ from display pixel dimensions (e.g., 240x536).
+    // We must scale to display dimensions BEFORE applying rotation transform.
+
+    // Touch controller resolution (empirically determined from hardware)
+    const int16_t TOUCH_WIDTH = 600;   // Touch X range: 0-599
+    const int16_t TOUCH_HEIGHT = 536;  // Touch Y range: 0-535
+
+    // Physical display dimensions (before rotation)
+    const int16_t PHYSICAL_WIDTH = 240;
+    const int16_t PHYSICAL_HEIGHT = 536;
+
+    // Scale raw touch coordinates to physical display pixels
+    int16_t scaled_x = (x[0] * PHYSICAL_WIDTH) / TOUCH_WIDTH;
+    int16_t scaled_y = (y[0] * PHYSICAL_HEIGHT) / TOUCH_HEIGHT;
+
+    Serial.printf("[HAL Touch] SCALED: x=%d, y=%d\n", scaled_x, scaled_y);
+
     // Apply coordinate transformation based on display rotation
     // The CST816 reports coordinates in the physical panel orientation,
     // but we need to match the logical display orientation set by the HAL
@@ -111,28 +129,28 @@ bool hal_touch_read(hal_touch_point_t* point) {
 
     #if DISPLAY_ROTATION == 0
         // Portrait mode (no transformation)
-        transformed_x = x[0];
-        transformed_y = y[0];
+        transformed_x = scaled_x;
+        transformed_y = scaled_y;
     #elif DISPLAY_ROTATION == 90
         // Landscape mode (90° clockwise)
         // Physical (0,0) at top-left → Logical (0,0) at top-left
         // Physical (max,0) at top-right → Logical (0,max) at bottom-left
         // Physical (0,max) at bottom-left → Logical (max,0) at top-right
         // Physical (max,max) at bottom-right → Logical (max,max) at bottom-right
-        transformed_x = y[0];
-        transformed_y = g_display_height - x[0];
+        transformed_x = scaled_y;
+        transformed_y = g_display_height - scaled_x;
     #elif DISPLAY_ROTATION == 180
         // Inverted portrait (180°)
-        transformed_x = g_display_width - x[0];
-        transformed_y = g_display_height - y[0];
+        transformed_x = g_display_width - scaled_x;
+        transformed_y = g_display_height - scaled_y;
     #elif DISPLAY_ROTATION == 270
         // Landscape mode (270° clockwise / 90° counter-clockwise)
-        transformed_x = g_display_width - y[0];
-        transformed_y = x[0];
+        transformed_x = g_display_width - scaled_y;
+        transformed_y = scaled_x;
     #else
         // Default: no transformation
-        transformed_x = x[0];
-        transformed_y = y[0];
+        transformed_x = scaled_x;
+        transformed_y = scaled_y;
     #endif
 
     // Debug: Log transformation
