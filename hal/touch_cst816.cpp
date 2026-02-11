@@ -132,10 +132,10 @@ bool hal_touch_read(hal_touch_point_t* point) {
         transformed_x = scaled_x;
         transformed_y = scaled_y;
     #elif DISPLAY_ROTATION == 90
-        // HYPOTHESIS: Touch coordinates already match rotated display
-        // Try NO transformation - touch panel may be pre-rotated
-        transformed_x = scaled_y;  // Map touch Y to display X (landscape)
-        transformed_y = scaled_x;  // Map touch X to display Y (landscape)
+        // Final attempt: X↔Y swap + invert Y axis
+        // Physical LEFT edge (touch x≈0) should map to logical LEFT edge (display x≈0)
+        transformed_x = g_display_height - 1 - scaled_x;  // Invert touch X → display X
+        transformed_y = scaled_y;  // Touch Y → display Y directly
     #elif DISPLAY_ROTATION == 180
         // Inverted portrait (180°)
         transformed_x = g_display_width - scaled_x;
