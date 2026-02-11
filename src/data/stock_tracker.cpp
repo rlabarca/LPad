@@ -168,13 +168,13 @@ bool StockTracker::fetchData() {
             long latest_existing_timestamp = 0;
 
             // Get the latest timestamp currently in the series
-            if (m_data_series.getSize() > 0) {
+            if (m_data_series.getLength() > 0) {
                 // Access the last timestamp in the series
                 // Note: DataItemTimeSeries doesn't expose direct timestamp access,
                 // so we need to export and check the last value
-                TimeSeriesGraphData temp_data = m_data_series.exportToGraphData();
-                if (temp_data.num_points > 0) {
-                    latest_existing_timestamp = temp_data.x_values[temp_data.num_points - 1];
+                GraphData temp_data = m_data_series.getGraphData();
+                if (!temp_data.x_values.empty()) {
+                    latest_existing_timestamp = temp_data.x_values.back();
                 }
             }
 
@@ -188,7 +188,7 @@ bool StockTracker::fetchData() {
             }
 
             Serial.printf("[StockTracker] Incremental update: Added %zu new data points (total: %zu)\n",
-                          added_count, m_data_series.getSize());
+                          added_count, m_data_series.getLength());
         }
 
         return true;
