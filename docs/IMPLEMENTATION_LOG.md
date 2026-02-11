@@ -2,6 +2,201 @@
 
 This document captures the "tribal knowledge" of the project: technical hurdles, why specific decisions were made, and what approaches were discarded.
 
+## [2026-02-11] Touch Coordinate System: The Great Debugging Odyssey (Part 2)
+
+### Problem Statement
+After fixing initial gesture detection, Release v0.65 touch coordinates were completely broken on T-Display S3 AMOLED Plus:
+- Top-left corner (0,0) reported as (507, 0) - 95% across screen!
+- Y-axis seemed correct for top/bottom, but X-axis completely wrong
+- LEFT/RIGHT edges swapped when trying to fix
+- BOTTOM edge unreachable (coordinates compressed)
+
+### The Debugging Journey: A Comedy of Errors
+
+#### Attempt 1: X-Axis Inversion (WRONG)
+**Assumption:** Since LEFT/RIGHT were swapped, invert X coordinate.
+```cpp
+transformed_x = 535 - scaled_y;  // Invert X
+transformed_y = scaled_x;
+```
+**Result:** Made everything worse. Top-left became (509, 0) instead of closer to (0, 0).
+**Lesson:** Don't guess at transforms without empirical data.
+
+#### Attempt 2: Swap Edge Zone Thresholds (WRONG)
+**Assumption:** Maybe the zone thresholds need swapping, not coordinates.
+```cpp
+setEdgeZones(455, 320, 40, 180);  // Swapped LEFT/RIGHT
+```
+**Result:** Semantic confusion. LEFT zone detected RIGHT edge, required compensation in direction rotation. Fragile.
+**Lesson:** Swapping thresholds to compensate for wrong coordinates is a band-aid, not a fix.
+
+#### Attempt 3: "It's Rotated 90°, Swap the OTHER Pair!" (WRONG)
+**User insight:** Screen is rotated 90°, so what you think is LEFT/RIGHT is actually TOP/BOTTOM!
+**Action:** Swapped TOP/BOTTOM thresholds instead of LEFT/RIGHT.
+```cpp
+setEdgeZones(320, 455, 180, 40);  // Swapped TOP/BOTTOM
+```
+**Result:** Still wrong. Fundamental misunderstanding of coordinate system.
+**Lesson:** Rotation affects coordinate INTERPRETATION, not just threshold parameters.
+
+#### Attempt 4: Remove X-Inversion, Use Simple Swap (PARTIAL SUCCESS)
+**HIL Evidence:** Corner tap data showed X and Y were BACKWARDS.
+```
+Top-left: expected (0,0), got (47, 4) with axis swap
+Top-right: expected (535,0), got (56, 214) with axis swap
+```
+**Action:** Removed X-inversion, used simple axis swap.
+```cpp
+transformed_x = scaled_y;
+transformed_y = scaled_x;
+```
+**Result:** Axes were swapped when they shouldn't be! Still wrong.
+**Lesson:** Don't assume rotation needs axis swap - verify empirically.
+
+#### Attempt 5: NO Axis Swap! (BREAKTHROUGH)
+**Discovery:** Touch controller already reports in ROTATED coordinates!
+```cpp
+// Remove the swap:
+transformed_x = scaled_x;  // NO swap!
+transformed_y = scaled_y;  // NO swap!
+```
+**Result:** Coordinates much closer! Top-left (2, 46) vs expected (0, 0).
+**Lesson:** Touch firmware may pre-rotate coordinates to match display orientation.
+
+#### Attempt 6: Disable Direction Rotation (CORRECT)
+**Problem:** Physical LEFT edge reported as "TOP" edge.
+**Realization:** Since touch is pre-rotated, gesture directions are already correct!
+**Action:** Disabled all direction rotation.
+```cpp
+// NO rotation needed - touch controller handles it
+```
+**Result:** Edge names finally correct! ✓
+
+#### Attempt 7: Post-Rotation Scaling (WRONG)
+**Problem:** RIGHT edge unreachable. RAW (600, 120) → screen (240, 120) - only 45% across!
+**Assumption:** Need to scale to post-rotation dimensions (536×240).
+```cpp
+scaled_x = (raw_x * 536) / 600;
+scaled_y = (raw_y * 240) / 536;
+```
+**Result:** Better, but BOTTOM edge still wrong. RAW (284, 189) → screen (253, 84).
+**Lesson:** Scaling formula was still incorrect.
+
+#### Attempt 8: NO Scaling! (FINAL SOLUTION)
+**Critical Discovery from HIL Data:**
+```
+Corner taps show:
+  RAW X range: 2-536   → MATCHES display width 536!
+  RAW Y range: 46-239  → MATCHES display height 240!
+```
+**Realization:** Touch controller reports DISPLAY COORDINATES directly!
+**Final Transform:**
+```cpp
+// NO rotation, NO scaling - touch controller does everything!
+transformed_x = raw_x;
+transformed_y = raw_y;
+```
+**Result:** ALL edges work correctly! ✓✓✓
+
+### Final Working Configuration
+
+```cpp
+// Touch coordinate transform (hal/touch_cst816.cpp)
+int16_t scaled_x = x[0];  // Direct pass-through
+int16_t scaled_y = y[0];  // Direct pass-through
+transformed_x = scaled_x; // No axis swap
+transformed_y = scaled_y; // No inversion
+
+// Direction rotation (demos/v065_demo_app.cpp)
+// DISABLED - touch controller pre-rotated
+
+// Edge zones (hal/touch_cst816.cpp)
+setEdgeZones(80, 215, 40, 180);  // Original values
+// LEFT: x<80, RIGHT: x>215, TOP: y<40, BOTTOM: y>180
+```
+
+### Key Lessons Learned
+
+1. **NEVER assume coordinate system behavior - always verify with HIL corner taps**
+   - Tap all 4 corners and compare expected vs actual coordinates
+   - Don't trust vendor documentation - test the actual hardware
+
+2. **Touch controllers may be "smart" and pre-process coordinates**
+   - The CST816 on T-Display S3 AMOLED Plus:
+     - Pre-rotates to match display orientation (no axis swap needed)
+     - Pre-scales to display resolution (no scaling needed)
+     - This is firmware behavior, not documented in datasheets!
+
+3. **Don't stack transforms to fix symptoms**
+   - X-inversion to fix LEFT/RIGHT swap = wrong approach
+   - Threshold swaps to compensate for wrong coordinates = band-aid
+   - Each "fix" creates new problems and fragile dependencies
+
+4. **The simplest solution is usually correct**
+   - Final solution: x=x, y=y (direct pass-through)
+   - All the complex rotation/scaling/inversion logic was WRONG
+   - Occam's Razor applies to coordinate transforms
+
+5. **Screen rotation ≠ Touch rotation**
+   - Display ROTATION=90 setting rotates the DISPLAY framebuffer
+   - Touch controller may independently handle its own rotation
+   - These are separate subsystems - don't assume they coordinate
+
+6. **Edge zones must match actual touchable range**
+   - T-Display touchable area: X=2-536, Y=46-239 (not full screen)
+   - BOTTOM zone (y>180) works because touch goes up to Y=239
+   - Would fail if we expected full 0-240 range
+
+7. **Empirical data beats assumptions**
+   - Every failed attempt was based on logical assumptions
+   - Success came from following the actual measured coordinates
+   - When debugging touch: TAP THE CORNERS, log RAW values, compare to expected
+
+### Debugging Protocol for Future Touch Issues
+
+1. **Collect corner tap data** (all 4 corners):
+   ```
+   Top-left:     RAW (?, ?) → screen (?, ?) expect (0, 0)
+   Top-right:    RAW (?, ?) → screen (?, ?) expect (W-1, 0)
+   Bottom-left:  RAW (?, ?) → screen (?, ?) expect (0, H-1)
+   Bottom-right: RAW (?, ?) → screen (?, ?) expect (W-1, H-1)
+   ```
+
+2. **Analyze the pattern**:
+   - Are axes swapped? (screen X correlates with raw Y or raw X?)
+   - Are axes inverted? (low raw → high screen or low raw → low screen?)
+   - What's the scaling factor? (raw range vs screen range)
+
+3. **Test edge drags** (all 4 edges):
+   - Does detected edge name match physical edge?
+   - If not, direction rotation may be needed
+   - If coordinates are wrong but names right, transform is wrong
+
+4. **Start with simplest transform** (x=x, y=y):
+   - Only add complexity if corner data proves it's needed
+   - Test each transform element independently
+
+5. **Document the actual behavior**:
+   - "Touch controller pre-rotates to match DISPLAY_ROTATION=90"
+   - "Touch controller reports in display coordinates (no scaling)"
+   - Future you will thank present you
+
+### Hardware-Specific Behavior: T-Display S3 AMOLED Plus
+
+**Touch Controller:** CST816 (via SensorLib TouchDrvCSTXXX)
+**Display Rotation:** 90° CW (DISPLAY_ROTATION=90)
+**Touch Behavior:**
+- ✓ Pre-rotated to match display orientation
+- ✓ Pre-scaled to display resolution (536×240)
+- ✓ Reports coordinates directly in display space
+- ✗ Touchable area smaller than screen (X: 2-536, Y: 46-239)
+
+**Required Transform:** NONE (direct pass-through)
+**Required Direction Rotation:** NONE (pre-rotated)
+**Required Scaling:** NONE (pre-scaled)
+
+This is NOT standard behavior - other touch controllers may require full rotation/scaling!
+
 ## [2026-02-11] Touch Rotation & Gesture Tuning: The Coordinate Transform Odyssey
 
 ### Problem
