@@ -41,12 +41,39 @@ canvas.fillScreen(CHROMA_KEY);  // NOW SAFE
 
 The HAL provides `hal_display_get_gfx()` for the parent device. See `hal/display_tdisplay_s3_plus.cpp:278` and `ui_time_series_graph.cpp:118` for reference patterns.
 
-### Lesson
-**Arduino_Canvas requires two-step initialization:**
-1. Construct with valid parent device: `Arduino_Canvas(width, height, gfx)`
-2. **Call `begin(GFX_SKIP_OUTPUT_BEGIN)` to allocate framebuffer** before ANY drawing operations
+### Lesson Learned: Stack vs Heap Allocation (CRITICAL)
+After fixing the null pointer crash, a **second crash occurred** - "Double exception" with corrupted backtrace. This indicated **stack overflow**.
 
-Missing `begin()` causes immediate null pointer crashes on first draw call. All existing canvas code in the project follows this pattern — TouchTestOverlay was the outlier.
+**Root Cause (Secondary):** The canvas was initially allocated on the stack:
+```cpp
+Arduino_Canvas canvas(m_text_width, m_text_height, gfx);  // STACK - WRONG for large canvases
+```
+
+Even with the framebuffer heap-allocated by `begin()`, the `Arduino_Canvas` object itself is large enough to cause stack overflow when created as a local variable, especially during interrupt-driven touch event handling.
+
+**Final Solution:**
+```cpp
+// Allocate canvas on HEAP, not stack
+Arduino_Canvas* canvas = new Arduino_Canvas(m_text_width, m_text_height, gfx);
+if (canvas == nullptr || !canvas->begin(GFX_SKIP_OUTPUT_BEGIN)) {
+    delete canvas;
+    return;
+}
+
+// Use canvas...
+
+delete canvas;  // Clean up when done
+```
+
+This pattern is used throughout the codebase (see `v060_demo_app.cpp:407`, HAL canvas functions) and MUST be followed for all temporary canvas creation.
+
+### Complete Arduino_Canvas Initialization Pattern
+1. **Heap allocate:** `Arduino_Canvas* canvas = new Arduino_Canvas(width, height, gfx)`
+2. **Initialize framebuffer:** `canvas->begin(GFX_SKIP_OUTPUT_BEGIN)`
+3. **Use canvas:** `canvas->fillScreen()`, `canvas->print()`, etc.
+4. **Clean up:** `delete canvas;`
+
+**Never allocate large Arduino_Canvas objects on the stack** — always use heap allocation to prevent stack overflow crashes.
 
 ## [2026-02-11] Release v0.60 Final: Y-Axis Tick Spacing & Label Uniqueness
 
