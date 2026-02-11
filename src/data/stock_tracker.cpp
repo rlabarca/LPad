@@ -246,6 +246,15 @@ bool StockTracker::parseYahooFinanceResponse(const char* json_response,
     // chart -> result[0] -> timestamp[]
     // chart -> result[0] -> indicators -> quote[0] -> close[]
 
+    // Check for API errors first
+    if (doc["chart"]["error"].is<JsonObject>()) {
+        JsonObject error = doc["chart"]["error"];
+        Serial.println("[StockTracker] Yahoo Finance API Error:");
+        Serial.printf("  code: %s\n", error["code"].as<const char*>());
+        Serial.printf("  description: %s\n", error["description"].as<const char*>());
+        return false;
+    }
+
     if (!doc["chart"]["result"].is<JsonArray>()) {
         Serial.println("[StockTracker] Invalid JSON structure (no result array)");
         return false;
@@ -269,6 +278,23 @@ bool StockTracker::parseYahooFinanceResponse(const char* json_response,
             Serial.printf("%s ", kv.key().c_str());
         }
         Serial.println();
+
+        // Log meta information
+        if (result["meta"].is<JsonObject>()) {
+            JsonObject meta = result["meta"];
+            Serial.println("[StockTracker] Meta info:");
+            Serial.printf("  regularMarketTime: %ld\n", meta["regularMarketTime"].as<long>());
+            Serial.printf("  symbol: %s\n", meta["symbol"].as<const char*>());
+            Serial.printf("  exchangeName: %s\n", meta["exchangeName"].as<const char*>());
+
+            // Check if there's an error field in the response
+            if (doc["chart"]["error"].is<JsonObject>()) {
+                JsonObject error = doc["chart"]["error"];
+                Serial.println("[StockTracker] Yahoo Finance API Error:");
+                Serial.printf("  code: %s\n", error["code"].as<const char*>());
+                Serial.printf("  description: %s\n", error["description"].as<const char*>());
+            }
+        }
 
         return false;
     }

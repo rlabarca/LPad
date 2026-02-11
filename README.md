@@ -79,6 +79,7 @@ graph TD
         direction TB
         app_animation_ticker("**Animation Ticker Engine**<br/><small>app_animation_ticker.md</small>"):::app
         app_config_system("**Config Injection System**<br/><small>app_config_system.md</small>"):::app
+        touch_gesture_engine("**Touch Gesture Engine**<br/><small>touch_gesture_engine.md</small>"):::app
         ui_logo_screen("**Logo Splash Screen**<br/><small>ui_logo_screen.md</small>"):::app
     end
 
@@ -111,7 +112,14 @@ graph TD
         hal_spec_display("**HAL Display Specification**<br/><small>hal_spec_display.md</small>"):::hardware
         hal_spec_network("**HAL Network Specification**<br/><small>hal_spec_network.md</small>"):::hardware
         hal_spec_timer("**HAL Timer Specification**<br/><small>hal_spec_timer.md</small>"):::hardware
+        hal_spec_touch("**HAL: Touch Spec**<br/><small>hal_spec_touch.md</small>"):::hardware
         hal_timer_esp32("**ESP32 Timer**<br/><small>hal_timer_esp32.md</small>"):::hardware
+        touch_cst816_implementation("**HAL: CST816 Impl**<br/><small>touch_cst816_implementation.md</small>"):::hardware
+    end
+
+    subgraph Release ["<div class='subgraph-title'>Release</div><div style='height: 150px;'></div>"]
+        direction TB
+        RELEASE_v0_65_touch_interaction("**Release v0.65 (Touch)**<br/><small>RELEASE_v0.65_touch_interaction.md</small>"):::release
     end
 
     subgraph Release_Demos ["<div class='subgraph-title'>Release Demos</div><div style='height: 150px;'></div>"]
@@ -139,6 +147,7 @@ graph TD
         ui_theme_support("**Theme Support**<br/><small>ui_theme_support.md</small>"):::ui
         ui_themeable_time_series_graph("**Themeable Graph**<br/><small>ui_themeable_time_series_graph.md</small>"):::ui
         ui_themeable_time_series_graph_v2("**UI Time Series Graph v2**<br/><small>ui_themeable_time_series_graph_v2.md</small>"):::ui
+        ui_touch_test_overlay("**UI: Touch Overlay**<br/><small>ui_touch_test_overlay.md</small>"):::ui
     end
 
     %% Relationships
@@ -169,6 +178,7 @@ graph TD
     demo_release_0_5 --> RELEASE_v0_5_display_drawing_ui_base
     RELEASE_v0_58_dynamic_visuals --> RELEASE_v0_60_initial_stock_tracker
     demo_release_0_60 --> RELEASE_v0_60_initial_stock_tracker
+    ui_touch_test_overlay --> RELEASE_v0_65_touch_interaction
     hal_spec_timer --> app_animation_ticker
     hal_core_contract --> data_layer_core
     data_layer_time_series --> data_layer_stock_tracker
@@ -187,7 +197,10 @@ graph TD
     hal_core_contract --> hal_spec_display
     hal_core_contract --> hal_spec_network
     hal_core_contract --> hal_spec_timer
+    hal_core_contract --> hal_spec_touch
     hal_spec_timer --> hal_timer_esp32
+    hal_spec_touch --> touch_cst816_implementation
+    hal_spec_touch --> touch_gesture_engine
     hal_spec_network --> ui_connectivity_status_screen
     ui_base --> ui_connectivity_status_screen
     ui_vector_assets --> ui_logo_screen
@@ -195,6 +208,7 @@ graph TD
     ui_logo_screen --> ui_mini_logo
     display_canvas_drawing --> ui_theme_support
     ui_themeable_time_series_graph --> ui_themeable_time_series_graph_v2
+    touch_gesture_engine --> ui_touch_test_overlay
     display_relative_drawing --> ui_vector_assets
 ```
 <!-- MERMAID_END -->
