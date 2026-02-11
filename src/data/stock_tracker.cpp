@@ -86,11 +86,20 @@ void StockTracker::stop() {
 std::string StockTracker::buildApiUrl() const {
     // Yahoo Finance API endpoint
     // interval=1m for 1-minute candles (best granularity)
-    // range=1d (Yahoo Finance only reliably supports 1d for intraday data)
-    // We'll filter the results to m_history_minutes after fetching
+    // range= based on m_history_minutes (request only what we need)
     std::string url = "https://query1.finance.yahoo.com/v8/finance/chart/";
     url += m_symbol;
-    url += "?interval=1m&range=1d";
+    url += "?interval=1m&range=";
+
+    // Convert history_minutes to Yahoo Finance range format
+    // Use hours if >= 60 minutes, otherwise use minutes
+    if (m_history_minutes >= 60) {
+        uint32_t hours = m_history_minutes / 60;
+        url += std::to_string(hours) + "h";
+    } else {
+        url += std::to_string(m_history_minutes) + "m";
+    }
+
     return url;
 }
 
