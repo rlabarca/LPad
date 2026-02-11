@@ -2,6 +2,38 @@
 
 This document captures the "tribal knowledge" of the project: technical hurdles, why specific decisions were made, and what approaches were discarded.
 
+## [2026-02-11] TouchTestOverlay Crash: Arduino_Canvas Requires Valid Parent Device
+
+### Problem
+Release v0.65 crashed immediately upon detecting the first touch tap gesture:
+```
+[Touch] TAP at (120, 0) = (22.4%, 0.0%)
+Guru Meditation Error: Core  1 panic'ed (StoreProhibited). Exception was unhandled.
+EXCVADDR: 0x00000000
+```
+
+A `StoreProhibited` exception (0x1d) indicated a null pointer dereference in the TouchTestOverlay's render path.
+
+### Root Cause
+In `ui_touch_test_overlay.cpp:99`, the temporary canvas was created with `nullptr` as the parent device:
+```cpp
+Arduino_Canvas canvas(m_text_width, m_text_height, nullptr);  // WRONG
+```
+
+While `Arduino_Canvas` accepts `nullptr` without compile error, **operations like `getTextBounds()`, `setFont()`, or text rendering internally dereference the parent device pointer**, causing a crash at runtime.
+
+### Solution
+Always provide a valid parent display device to `Arduino_Canvas`:
+```cpp
+Arduino_GFX* gfx = static_cast<Arduino_GFX*>(hal_display_get_gfx());
+Arduino_Canvas canvas(m_text_width, m_text_height, gfx);  // CORRECT
+```
+
+The HAL provides `hal_display_get_gfx()` specifically for this purpose. See `hal/display_tdisplay_s3_plus.cpp:278` for the reference pattern used in canvas creation.
+
+### Lesson
+**Never pass `nullptr` to `Arduino_Canvas` constructor** — even though it compiles, text and font operations require a valid parent device. Always use `hal_display_get_gfx()` when creating canvases outside of HAL canvas management functions.
+
 ## [2026-02-11] Release v0.60 Final: Y-Axis Tick Spacing & Label Uniqueness
 
 ### Problem

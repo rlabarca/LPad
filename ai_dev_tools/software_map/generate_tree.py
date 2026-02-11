@@ -74,9 +74,14 @@ def generate_mermaid_content(features):
         lines.append(f"\n    subgraph {category_id} [ ]")
         lines.append(f"        direction TB")
         
-        # Add a title node at the top
-        lines.append(f'        title_{category_id}("{category.upper()}"):::subgraphTitle')
+        # Add a title node at the top of the outer subgraph
+        # Adding non-breaking spaces for a bit of extra width to help centering
+        title_text = f"&nbsp;&nbsp;&nbsp;&nbsp;{category.upper()}&nbsp;&nbsp;&nbsp;&nbsp;"
+        lines.append(f'        title_{category_id}("{title_text}"):::subgraphTitle')
         
+        # Inner subgraph for the actual content nodes
+        lines.append(f"        subgraph {category_id}_inner [ ]")
+        lines.append(f"            direction TB")
         for node_id in sorted(node_ids):
             data = features[node_id]
             clean_label = data["label"].replace('"', "'")
@@ -88,9 +93,11 @@ def generate_mermaid_content(features):
             elif "Application" in category: css_class = ":::app"
             elif "Graphics" in category: css_class = ":::graphics"
             
-            lines.append(f'        {node_id}("**{clean_label}**<br/><small>{data["filename"]}</small>"){css_class}')
-            # Link title to node with invisible edge to force layout
-            lines.append(f'        title_{category_id} ~~~ {node_id}')
+            lines.append(f'            {node_id}("**{clean_label}**<br/><small>{data["filename"]}</small>"){css_class}')
+        lines.append("        end")
+        
+        # Link title to inner subgraph to ensure layout order
+        lines.append(f'        title_{category_id} ~~~ {category_id}_inner')
         lines.append("    end")
 
     lines.append("\n    %% Relationships")
