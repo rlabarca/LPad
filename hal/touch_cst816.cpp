@@ -133,10 +133,10 @@ bool hal_touch_read(hal_touch_point_t* point) {
         transformed_x = scaled_x;
         transformed_y = scaled_y;
     #elif DISPLAY_ROTATION == 90
-        // Landscape 90° CW: Swap axes and invert X
+        // Landscape 90° CW: Simple axis swap, NO inversion
         // Coordinate system: (0,0) at top-left, (535, 239) at bottom-right
-        // X must be inverted due to physical panel orientation
-        transformed_x = g_display_width - 1 - scaled_y;  // Touch Y → Display X (INVERTED)
+        // Based on HIL corner tap data showing X-inversion causes wrong mapping
+        transformed_x = scaled_y;  // Touch Y → Display X (NOT inverted)
         transformed_y = scaled_x;  // Touch X → Display Y
     #elif DISPLAY_ROTATION == 180
         // Inverted portrait (180°)
@@ -177,13 +177,13 @@ void hal_touch_configure_gesture_engine(TouchGestureEngine* engine) {
         //   X: ~308-517 (inverted from scaled_y 18-227: 535-227=308, 535-18=517)
         //   Y: ~2-214 (from scaled_x range)
         //
-        // CRITICAL: Screen is rotated 90° AND X is inverted!
-        // Need to swap BOTH pairs of thresholds to correct all edges:
+        // Simple axis swap with no X-inversion
+        // Edge zones back to original values for new Y-coordinate system:
         engine->setEdgeZones(
-            455,  // left_threshold: SWAPPED (535-80=455)
-            320,  // right_threshold: SWAPPED (535-215=320)
-            40,   // top_threshold: REVERTED to original
-            180   // bottom_threshold: REVERTED to original
+            80,   // left_threshold: x < 80
+            215,  // right_threshold: x > 215
+            40,   // top_threshold: y < 40 (reduced from 60 for new Y range)
+            180   // bottom_threshold: y > 180 (reduced from 215 for new Y range)
         );
     #else
         // ESP32-S3 AMOLED (1.8") - uses default percentage-based thresholds
