@@ -177,7 +177,8 @@ This dependency-driven prompting ensures the project is built layer by layer, in
 
 **CURRENT PROJECT STATE (Milestone v0.60):**
 - **v0.60 HIL Verified [DONE]:** Milestone v0.60 (Initial Stock Tracker) is fully implemented and hardware-verified.
-- **Graph v2 Engine:** Supports autonomous layout, collision avoidance between axes/labels, unique Y-axis labels (significant digit aware), and origin suppression.
-- **Stock Tracking:** Yahoo Finance API integration is stable using thread-safe `DataItemTimeSeries` and a background FreeRTOS task.
+- **Data Engine:** Optimized for 6-hour history (initial fetch) with 1-minute periodic updates using thread-safe append-only logic.
+- **Graph v2 Engine:** Supports autonomous layout, collision avoidance, and "Hours Prior" X-axis labels with logical hour intervals.
+- **Stock Tracking:** Yahoo Finance API integration is stable using `DataItemTimeSeries` and a background FreeRTOS task.
 - **UI Framework:** MiniLogo integration, persistent title overlays, and themeable components are fully functional.
 - **System Readiness:** All feature files are synchronized with the audited code base. The project is ready for the next capability expansion.
