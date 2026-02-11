@@ -60,9 +60,6 @@ bool hal_touch_init(void) {
     // Initialize I2C bus
     Wire.begin(TOUCH_SDA, TOUCH_SCL);
 
-    // Configure INT pin as input for polling optimization
-    pinMode(TOUCH_INT, INPUT);
-
     // Initialize touch controller
     g_touch.setPins(TOUCH_RST, TOUCH_INT);
     if (!g_touch.begin(Wire, TOUCH_ADDR, TOUCH_SDA, TOUCH_SCL)) {
@@ -84,17 +81,6 @@ bool hal_touch_read(hal_touch_point_t* point) {
         return false;
     }
 
-    // OPTIMIZATION: Check INT pin first to avoid unnecessary I2C reads
-    // INT pin (GPIO 21) goes LOW when touch data is ready
-    // If HIGH, no touch event is pending - skip I2C transaction
-    if (digitalRead(TOUCH_INT) == HIGH) {
-        point->is_pressed = false;
-        point->x = 0;
-        point->y = 0;
-        return true;  // Success, just not pressed (fast path - no I2C)
-    }
-
-    // INT pin is LOW - touch data available, proceed with I2C read
     // Check if touch is pressed
     if (!g_touch.isPressed()) {
         point->is_pressed = false;

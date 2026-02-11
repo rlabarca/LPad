@@ -46,9 +46,9 @@ bool TouchTestOverlay::begin() {
     // Allocate buffer for text rendering
     // Sized to fit full gesture text: "EDGE_DRAG: RIGHT" + "(240, 536) 100%" with 18pt font
     // 18pt font ≈ 12px/char width, ~35 chars max = 420px + margins = 300px width
-    // 18pt font ≈ 18px height, 2 lines + spacing + box padding = 80px height
+    // 18pt font ≈ 24px actual height (font metrics), 2 lines + spacing + box padding = 100px height
     m_text_width = 300;
-    m_text_height = 80;
+    m_text_height = 100;
 
     m_text_buffer = static_cast<uint16_t*>(malloc(m_text_width * m_text_height * sizeof(uint16_t)));
     if (!m_text_buffer) {
@@ -192,7 +192,7 @@ void TouchTestOverlay::renderTextToBuffer() {
     m_render_canvas->getTextBounds(text_line2, 0, 0, &text2_x, &text2_y, &text2_w, &text2_h);
 
     uint16_t max_w = (text1_w > text2_w) ? text1_w : text2_w;
-    uint16_t total_h = text1_h + text2_h + 10;  // 10px spacing
+    uint16_t total_h = text1_h + text2_h + 10;  // 10px spacing between lines
 
     int16_t box_x = (m_text_width - max_w) / 2 - 5;
     int16_t box_y = (m_text_height - total_h) / 2 - 5;
@@ -201,14 +201,15 @@ void TouchTestOverlay::renderTextToBuffer() {
 
     m_render_canvas->fillRect(box_x, box_y, box_w, box_h, theme->colors.background);
 
-    // Draw text (centered)
+    // Draw text (centered) - account for baseline offset from getTextBounds
+    // text1_y is the offset from baseline to top of bounding box (usually negative)
     int16_t text1_pos_x = (m_text_width - text1_w) / 2;
-    int16_t text1_pos_y = (m_text_height - total_h) / 2;
+    int16_t text1_pos_y = (m_text_height - total_h) / 2 - text1_y;  // Subtract negative offset
     m_render_canvas->setCursor(text1_pos_x, text1_pos_y);
     m_render_canvas->print(text_line1);
 
     int16_t text2_pos_x = (m_text_width - text2_w) / 2;
-    int16_t text2_pos_y = text1_pos_y + text1_h + 5;
+    int16_t text2_pos_y = text1_pos_y + text1_h + 10;  // text1_h includes baseline, add spacing
     m_render_canvas->setCursor(text2_pos_x, text2_pos_y);
     m_render_canvas->print(text_line2);
 
