@@ -88,18 +88,15 @@ void StockTracker::stop() {
 std::string StockTracker::buildApiUrl() const {
     // Yahoo Finance API endpoint
     // interval=1m for 1-minute candles (best granularity)
-    // range= based on whether this is initial fetch or update
+    // range=6h for both initial and incremental fetches
+    //
+    // Note: During non-trading hours, range=1h may return no data
+    // (if the past hour is entirely outside trading hours).
+    // Using range=6h ensures we get the last trading session data.
+    // Incremental logic filters duplicates, so this is safe.
     std::string url = "https://query1.finance.yahoo.com/v8/finance/chart/";
     url += m_symbol;
-    url += "?interval=1m&range=";
-
-    // Initial fetch: Get 6 hours of historical data (range=6h)
-    // Subsequent fetches: Get last 1 hour for efficiency (range=1h)
-    if (m_is_first_fetch) {
-        url += "6h";  // 6 hours for initial dataset
-    } else {
-        url += "1h";  // 1 hour for incremental updates
-    }
+    url += "?interval=1m&range=6h";
 
     return url;
 }
