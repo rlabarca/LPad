@@ -547,28 +547,38 @@ void TimeSeriesGraph::drawYTicks(RelativeDisplay* target) {
         }
     }
 
-    // Check for duplicates in formatted labels
-    std::vector<std::string> test_labels;
-    for (const auto& tick : all_ticks) {
-        char label[16];
-        format_3_sig_digits(tick.first, label, sizeof(label));
-        test_labels.push_back(std::string(label));
+    // CRITICAL FIX: Iteratively increase tick_skip until all labels are unique
+    // Problem: tick increment (e.g., 0.002) may be too fine for 3-sig-fig display
+    // Solution: Skip ticks until remaining labels are distinct
+    bool has_duplicates = true;
+    while (has_duplicates && tick_skip < static_cast<int>(all_ticks.size())) {
+        // Generate labels for ticks at current skip level
+        std::vector<std::string> test_labels;
+        for (size_t idx = 0; idx < all_ticks.size(); idx += tick_skip) {
+            char label[16];
+            format_3_sig_digits(all_ticks[idx].first, label, sizeof(label));
+            test_labels.push_back(std::string(label));
+        }
+
+        // Check for duplicates
+        has_duplicates = false;
+        for (size_t i = 0; i < test_labels.size(); i++) {
+            for (size_t j = i + 1; j < test_labels.size(); j++) {
+                if (test_labels[i] == test_labels[j]) {
+                    has_duplicates = true;
+                    break;
+                }
+            }
+            if (has_duplicates) break;
+        }
+
+        if (has_duplicates) {
+            tick_skip++;
+        }
     }
 
-    // If duplicates found, increase tick skip factor to reduce density
-    bool found_duplicates = false;
-    for (size_t i = 0; i < test_labels.size(); i++) {
-        for (size_t j = i + 1; j < test_labels.size(); j++) {
-            if (test_labels[i] == test_labels[j]) {
-                tick_skip = 2;  // Show every 2nd tick
-                found_duplicates = true;
-                break;
-            }
-        }
-        if (tick_skip > 1) break;
-    }
-    if (found_duplicates) {
-        Serial.printf("[Graph] Duplicate labels detected, tick_skip increased to %d\n", tick_skip);
+    if (tick_skip > 1) {
+        Serial.printf("[Graph] Duplicate labels detected, tick_skip increased to %d for unique labels\n", tick_skip);
     }
 
     // Second pass: render ticks with adjusted density
@@ -663,8 +673,20 @@ void TimeSeriesGraph::drawXTicks(RelativeDisplay* target) {
     // Track previous label to skip duplicates (happens when data points are very close in time)
     long prev_hours_prior = -999;  // Initialize to impossible value
 
-    // Skip first tick near Y-axis
+    // Collect tick indices to draw (skip first tick near Y-axis, always include last)
+    std::vector<size_t> tick_indices;
     for (size_t i = tick_interval; i < num_points; i += tick_interval) {
+        tick_indices.push_back(i);
+    }
+
+    // FIX: Always ensure the last data point (NOW = 0 hours) is included
+    size_t last_index = num_points - 1;
+    if (tick_indices.empty() || tick_indices.back() != last_index) {
+        tick_indices.push_back(last_index);
+    }
+
+    // Draw all ticks
+    for (size_t i : tick_indices) {
         float x_screen = mapXToScreen(i, num_points);
 
         char label[16];
