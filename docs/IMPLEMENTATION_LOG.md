@@ -15,24 +15,38 @@ EXCVADDR: 0x00000000
 A `StoreProhibited` exception (0x1d) indicated a null pointer dereference in the TouchTestOverlay's render path.
 
 ### Root Cause
-In `ui_touch_test_overlay.cpp:99`, the temporary canvas was created with `nullptr` as the parent device:
+In `ui_touch_test_overlay.cpp:99`, the temporary canvas was created with `nullptr` as the parent device AND the critical `begin()` initialization was missing:
 ```cpp
-Arduino_Canvas canvas(m_text_width, m_text_height, nullptr);  // WRONG
+Arduino_Canvas canvas(m_text_width, m_text_height, nullptr);  // TWO BUGS
+canvas.fillScreen(CHROMA_KEY);  // CRASH: framebuffer not allocated
 ```
 
-While `Arduino_Canvas` accepts `nullptr` without compile error, **operations like `getTextBounds()`, `setFont()`, or text rendering internally dereference the parent device pointer**, causing a crash at runtime.
+**Bug 1:** Passing `nullptr` as parent device (though after testing, this alone might not crash)
+**Bug 2 (PRIMARY):** Missing `canvas.begin(GFX_SKIP_OUTPUT_BEGIN)` call — **this allocates the internal framebuffer**. Without it, all drawing operations dereference a null framebuffer pointer.
 
 ### Solution
-Always provide a valid parent display device to `Arduino_Canvas`:
+Always provide a valid parent display device AND call `begin()` before any drawing operations:
 ```cpp
 Arduino_GFX* gfx = static_cast<Arduino_GFX*>(hal_display_get_gfx());
-Arduino_Canvas canvas(m_text_width, m_text_height, gfx);  // CORRECT
+Arduino_Canvas canvas(m_text_width, m_text_height, gfx);
+
+// CRITICAL: Initialize canvas framebuffer before drawing
+if (!canvas.begin(GFX_SKIP_OUTPUT_BEGIN)) {
+    Serial.println("[ERROR] Canvas begin() failed");
+    return;
+}
+
+canvas.fillScreen(CHROMA_KEY);  // NOW SAFE
 ```
 
-The HAL provides `hal_display_get_gfx()` specifically for this purpose. See `hal/display_tdisplay_s3_plus.cpp:278` for the reference pattern used in canvas creation.
+The HAL provides `hal_display_get_gfx()` for the parent device. See `hal/display_tdisplay_s3_plus.cpp:278` and `ui_time_series_graph.cpp:118` for reference patterns.
 
 ### Lesson
-**Never pass `nullptr` to `Arduino_Canvas` constructor** — even though it compiles, text and font operations require a valid parent device. Always use `hal_display_get_gfx()` when creating canvases outside of HAL canvas management functions.
+**Arduino_Canvas requires two-step initialization:**
+1. Construct with valid parent device: `Arduino_Canvas(width, height, gfx)`
+2. **Call `begin(GFX_SKIP_OUTPUT_BEGIN)` to allocate framebuffer** before ANY drawing operations
+
+Missing `begin()` causes immediate null pointer crashes on first draw call. All existing canvas code in the project follows this pattern — TouchTestOverlay was the outlier.
 
 ## [2026-02-11] Release v0.60 Final: Y-Axis Tick Spacing & Label Uniqueness
 
