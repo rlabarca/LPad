@@ -111,7 +111,7 @@ void V065DemoApp::update(float deltaTime) {
             if (gesture_event.type == TOUCH_EDGE_DRAG) {
                 int16_t start_x, start_y;
                 m_gestureEngine->getStartPosition(&start_x, &start_y);
-                Serial.printf("  Edge zones: LEFT(x<80) RIGHT(x>215) TOP(y<40) BOTTOM(y>180)\n");
+                Serial.printf("  Edge zones: LEFT(x<80) RIGHT(x>215) TOP(y<80) BOTTOM(y>180)\n");
                 Serial.printf("  Started at: (%d, %d) → %s edge (ended at %d, %d)\n",
                               start_x, start_y,
                               edge_names[gesture_event.direction],
@@ -134,8 +134,8 @@ void V065DemoApp::update(float deltaTime) {
                 const char* zone = "CENTER";
                 if (touch_point.x < 80) zone = "LEFT";        // Catches x=18
                 else if (touch_point.x > 215) zone = "RIGHT";  // Harder to trigger
-                else if (touch_point.y < 60) zone = "TOP";     // Catches y=25, y=31
-                else if (touch_point.y > 215) zone = "BOTTOM"; // Harder to trigger
+                else if (touch_point.y < 80) zone = "TOP";     // More forgiving (33% of height)
+                else if (touch_point.y > 180) zone = "BOTTOM"; // 25% from bottom
 
                 Serial.printf("[Touch] PRESS at (%d, %d) in %s zone\n",
                               touch_point.x, touch_point.y, zone);

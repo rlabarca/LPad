@@ -107,6 +107,17 @@ bool hal_touch_read(hal_touch_point_t* point) {
         last_y = y[0];
     }
 
+    // CRITICAL: Validate raw coordinates before processing
+    // Touch controller occasionally returns garbage data (e.g., x=600 at boot)
+    // Valid ranges from HIL testing: X: 0-540, Y: 0-250 (with margin)
+    if (x[0] < 0 || x[0] > 540 || y[0] < 0 || y[0] > 250) {
+        Serial.printf("[HAL Touch] WARNING: Out-of-range RAW coordinates rejected: x=%d, y=%d\n", x[0], y[0]);
+        point->is_pressed = false;
+        point->x = 0;
+        point->y = 0;
+        return true;  // Reject invalid touch, treat as not pressed
+    }
+
     // CRITICAL: Touch controller appears to report in near-display coordinates!
     // HIL testing shows:
     //   - RAW X range: 2-536 (matches display width 536!)
@@ -172,12 +183,12 @@ void hal_touch_configure_gesture_engine(TouchGestureEngine* engine) {
         //   Y: ~2-214 (from scaled_x range)
         //
         // Simple axis swap with no X-inversion
-        // Edge zones back to original values for new Y-coordinate system:
+        // Edge zones tuned for comfortable edge drag detection:
         engine->setEdgeZones(
-            80,   // left_threshold: x < 80
-            215,  // right_threshold: x > 215
-            40,   // top_threshold: y < 40 (reduced from 60 for new Y range)
-            180   // bottom_threshold: y > 180 (reduced from 215 for new Y range)
+            80,   // left_threshold: x < 80 (14.9% of width)
+            215,  // right_threshold: x > 215 (40% from left, 60% coverage)
+            80,   // top_threshold: y < 80 (33.3% of height - more forgiving for top drags)
+            180   // bottom_threshold: y > 180 (25% of height)
         );
     #else
         // ESP32-S3 AMOLED (1.8") - uses default percentage-based thresholds

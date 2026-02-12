@@ -10,7 +10,7 @@ To validate the touch subsystem and gesture engine, a debug overlay will be adde
 ## 2. Functional Requirements
 
 ### 2.1 Visual Design
-- **Font:** Second largest font available in the theme.
+- **Font:** Smallest font available in the theme (to prevent text overflow on small screens).
 - **Background:** The text must be rendered with a background color box (using the theme's background color) to ensure legibility over the graph.
 - **Position:** Centered or unobtrusive (Requirement: "displayed over any active screen").
 - **Visibility:** Default hidden. Appears only when an event occurs.

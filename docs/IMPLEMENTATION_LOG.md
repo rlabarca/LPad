@@ -1352,3 +1352,85 @@ V058DemoApp (Live Data)
 5. **DMA vs Framebuffer sync is hard** - Direct hardware blitting (DMA) and framebuffer rendering are fundamentally async, perfect sync may not be achievable without architectural changes
 6. **Title redraw frequency matters** - Redrawing on every graph update (3s) instead of mode switch (5s) increases flicker opportunity
 7. **Data update interval trade-off** - Increased from 1s to 3s to reduce rendering pressure and flicker frequency
+
+---
+
+## [2026-02-11] Touch Coordinate System: Part 3 - Phantom Touch & Edge Zone Tuning
+
+### Problem 1: Phantom Touch at Boot
+After implementing coordinate validation and edge zone fixes, touch functionality completely failed:
+- **Symptom:** Single HOLD event at boot without user interaction, then zero touch events
+- **Debug output:**
+  ```
+  [HAL Touch] RAW: x=600, y=120
+  [Touch] PRESS at (535, 120) in RIGHT zone
+  [Touch] HOLD at (535, 120) = (99.8%, 50.0%)
+  ```
+- **Root cause:** CST816 touch controller returns garbage data (x=600) at initialization, which exceeds valid range (0-536) but was accepted and clamped to x=535, creating a stuck phantom touch
+
+### Solution 1: Raw Coordinate Validation
+Added range validation BEFORE processing touch coordinates:
+```cpp
+// Validate raw coordinates before processing
+// Touch controller occasionally returns garbage data (e.g., x=600 at boot)
+// Valid ranges from HIL testing: X: 0-540, Y: 0-250 (with margin)
+if (x[0] < 0 || x[0] > 540 || y[0] < 0 || y[0] > 250) {
+    Serial.printf("[HAL Touch] WARNING: Out-of-range RAW coordinates rejected: x=%d, y=%d\n", x[0], y[0]);
+    point->is_pressed = false;
+    return true;  // Reject invalid touch, treat as not pressed
+}
+```
+
+**Key insight:** The coordinate clamping logic (lines 149-153) was DOWNSTREAM of the acceptance decision. Out-of-range coordinates need to be REJECTED, not clamped. Clamping should only handle slight overruns from valid touches, not garbage data.
+
+**Result:** Phantom touch eliminated. Real touches register normally after boot.
+
+### Problem 2: TOP Edge Drags Misclassified as RIGHT
+After fixing phantom touch, edge drag detection had poor user experience:
+- **Symptom:** Edge drags starting from top-right area (e.g., y=58, 61, 68, 69) detected as RIGHT edge drags instead of TOP
+- **Debug evidence:**
+  ```
+  Started at: (462, 68) → RIGHT edge (y=68 > 40, so not TOP)
+  Started at: (400, 58) → RIGHT edge (y=58 > 40, so not TOP)
+  Started at: (234, 7) → TOP edge (y=7 < 40, so IS TOP) ✓
+  ```
+- **Root cause:** Edge zone imbalance
+  - RIGHT zone: x > 215 (59.9% of screen width - HUGE!)
+  - TOP zone: y < 40 (16.7% of screen height - TINY!)
+  - User attempts starting at y=58-69 were outside the narrow TOP zone
+
+### Solution 2: Balance Edge Zone Proportions
+Doubled TOP threshold to better match RIGHT zone coverage:
+
+**Before:**
+```cpp
+setEdgeZones(80, 215, 40, 180);
+// LEFT: 14.9%, RIGHT: 60%, TOP: 16.7%, BOTTOM: 25%
+```
+
+**After:**
+```cpp
+setEdgeZones(80, 215, 80, 180);
+// LEFT: 14.9%, RIGHT: 60%, TOP: 33.3%, BOTTOM: 25%
+```
+
+**Rationale:**
+- TOP zone now covers top third of screen (33%), making it easier to trigger TOP edge drags
+- Better proportional balance with RIGHT zone (60% width vs 33% height)
+- User can now comfortably start TOP edge drags anywhere in top ~80 pixels instead of just top 40 pixels
+
+**Result:** TOP edge drags much more forgiving. Drags starting at y=58-79 now correctly recognized as TOP instead of RIGHT.
+
+### Key Lessons
+1. **Validate at the boundary** - Reject invalid data at the HAL layer before it propagates into gesture detection
+2. **Clamping ≠ Validation** - Clamping handles slight overruns; validation handles garbage data
+3. **Edge zones need proportional balance** - A 60% width zone vs 17% height zone creates biased detection
+4. **HIL testing reveals initialization quirks** - Hardware can return garbage on first read; always validate
+5. **User experience > mathematical purity** - Doubling TOP zone from 17% to 33% trades slight overlap risk for much better UX
+
+### Debugging Protocol for Future Touch Issues
+1. **Check RAW coordinates first** - If out of valid range, reject at HAL layer
+2. **Log start positions for edge drags** - Shows which zone triggered the edge detection
+3. **Compare edge zone thresholds** - Unbalanced zones (60% vs 17%) indicate tuning needed
+4. **Test corner regions** - Where multiple edge zones overlap, most likely to trigger wrong edge
+5. **Watch for phantom touches at boot** - Initialization can produce invalid data; validate before accepting

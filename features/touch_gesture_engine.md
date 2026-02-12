@@ -25,7 +25,13 @@ The engine must detect and report the following high-level semantic events:
 - **Condition:** A "Hold" event has occurred, and subsequently, the finger moves significantly from the original hold location.
 - **Outcome:** Fires continuously as the touch position changes while the finger remains pressed.
 
-### D. Edge Drag (Left, Right, Top, Bottom)
+### D. Swipe (Center)
+- **Condition:** A fast directional movement starting from the center region of the screen.
+- **Start Constraint:** Must NOT start near screen edges (to distinguish from edge drags).
+- **Direction:** The primary axis of movement defines the swipe direction (UP, DOWN, LEFT, RIGHT).
+- **Outcome:** Fires on release if the movement distance exceeds the swipe threshold.
+
+### E. Edge Drag (Left, Right, Top, Bottom)
 - **Condition:** A touch that starts near one of the screen's edges and moves towards the interior.
 - **Start Constraint:** The touch must originate within a narrow zone along the screen's boundaries.
 - **Direction:** The originating edge defines the event type (e.g., "Left Edge Drag" if starting from the left-most area).
@@ -35,8 +41,8 @@ The engine must detect and report the following high-level semantic events:
 
 ### 3.1 Event Structure
 The engine must publish events containing:
-- **Type:** `TOUCH_TAP`, `TOUCH_HOLD`, `TOUCH_HOLD_DRAG`, `TOUCH_EDGE_DRAG`
-- **Direction:** `UP`, `DOWN`, `LEFT`, `RIGHT`, `NONE` (for Edge Drags)
+- **Type:** `TOUCH_TAP`, `TOUCH_HOLD`, `TOUCH_HOLD_DRAG`, `TOUCH_SWIPE`, `TOUCH_EDGE_DRAG`
+- **Direction:** `UP`, `DOWN`, `LEFT`, `RIGHT`, `NONE` (for Swipes and Edge Drags)
 - **Position (Absolute):** `x_px`, `y_px`
 - **Position (Relative):** `x_percent` (0.0-1.0), `y_percent` (0.0-1.0)
 
@@ -51,6 +57,11 @@ The engine must publish events containing:
 - Given the user presses at a location
 - And remains still for the required hold duration
 - Then a `TOUCH_HOLD` event is generated
+
+### Scenario: Detecting a Center Swipe
+- Given the user presses in the center region of the screen
+- And moves their finger in a clear direction (e.g., upward)
+- Then a `TOUCH_SWIPE` event with direction `UP` is generated
 
 ### Scenario: Detecting an Edge Drag
 - Given the user presses near the left edge of the screen
