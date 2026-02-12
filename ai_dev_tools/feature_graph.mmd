@@ -13,12 +13,24 @@ flowchart TD
         title_Application_Layer ~~~ ui_logo_screen
     end
 
+    subgraph Applications [" "]
+        title_Applications["APPLICATIONS"]
+        app_stock_ticker["App Component: Stock Ticker"]
+        title_Applications ~~~ app_stock_ticker
+    end
+
     subgraph Board_Drivers [" "]
         title_Board_Drivers["BOARD DRIVERS"]
         display_esp32s3_amoled["ESP32-S3 AMOLED Driver"]
         title_Board_Drivers ~~~ display_esp32s3_amoled
         display_tdisplay_s3_plus["T-Display S3+ Driver"]
         title_Board_Drivers ~~~ display_tdisplay_s3_plus
+    end
+
+    subgraph Core_Architecture [" "]
+        title_Core_Architecture["CORE ARCHITECTURE"]
+        core_ui_render_manager["UI Render Manager"]
+        title_Core_Architecture ~~~ core_ui_render_manager
     end
 
     subgraph Data_Layer [" "]
@@ -65,6 +77,12 @@ flowchart TD
         title_Hardware_Layer ~~~ touch_cst816_implementation
     end
 
+    subgraph Release [" "]
+        title_Release["RELEASE"]
+        RELEASE_v0_70_ui_render_manager["Release v0.70: UI Render Manager"]
+        title_Release ~~~ RELEASE_v0_70_ui_render_manager
+    end
+
     subgraph Release_Demos [" "]
         title_Release_Demos["RELEASE DEMOS"]
         demo_release_0_5["Demo for Release v0.5"]
@@ -91,6 +109,14 @@ flowchart TD
         title_Releases ~~~ RELEASE_v0_65_touch_interaction
         RELEASE_v0_67_system_menu["Release v0.67 (System Menu)"]
         title_Releases ~~~ RELEASE_v0_67_system_menu
+    end
+
+    subgraph System_Components [" "]
+        title_System_Components["SYSTEM COMPONENTS"]
+        sys_mini_logo["System Component: Mini Logo"]
+        title_System_Components ~~~ sys_mini_logo
+        sys_system_menu["System Component: System Menu"]
+        title_System_Components ~~~ sys_system_menu
     end
 
     subgraph UI_Framework [" "]
@@ -146,7 +172,15 @@ flowchart TD
     ui_touch_test_overlay --> RELEASE_v0_65_touch_interaction
     ui_system_menu --> RELEASE_v0_67_system_menu
     RELEASE_v0_60_initial_stock_tracker --> RELEASE_v0_67_system_menu
+    core_ui_render_manager --> RELEASE_v0_70_ui_render_manager
+    sys_system_menu --> RELEASE_v0_70_ui_render_manager
+    sys_mini_logo --> RELEASE_v0_70_ui_render_manager
+    app_stock_ticker --> RELEASE_v0_70_ui_render_manager
     hal_spec_timer --> app_animation_ticker
+    core_ui_render_manager --> app_stock_ticker
+    data_layer_stock_tracker --> app_stock_ticker
+    ui_themeable_time_series_graph_v2 --> app_stock_ticker
+    touch_gesture_engine --> core_ui_render_manager
     hal_core_contract --> data_layer_core
     data_layer_time_series --> data_layer_stock_tracker
     data_layer_core --> data_layer_time_series
@@ -166,6 +200,10 @@ flowchart TD
     hal_core_contract --> hal_spec_timer
     hal_core_contract --> hal_spec_touch
     hal_spec_timer --> hal_timer_esp32
+    core_ui_render_manager --> sys_mini_logo
+    ui_mini_logo --> sys_mini_logo
+    core_ui_render_manager --> sys_system_menu
+    ui_system_menu --> sys_system_menu
     hal_spec_touch --> touch_cst816_implementation
     hal_spec_touch --> touch_gesture_engine
     hal_spec_network --> ui_connectivity_status_screen
@@ -195,7 +233,10 @@ flowchart TD
     class app_config_system app;
     class touch_gesture_engine app;
     class ui_logo_screen app;
+    class title_Applications subgraphTitle;
+    class app_stock_ticker app;
     class title_Board_Drivers subgraphTitle;
+    class title_Core_Architecture subgraphTitle;
     class title_Data_Layer subgraphTitle;
     class title_Graphics_Engine subgraphTitle;
     class display_canvas_drawing graphics;
@@ -212,6 +253,8 @@ flowchart TD
     class hal_spec_touch hardware;
     class hal_timer_esp32 hardware;
     class touch_cst816_implementation hardware;
+    class title_Release subgraphTitle;
+    class RELEASE_v0_70_ui_render_manager release;
     class title_Release_Demos subgraphTitle;
     class demo_release_0_5 release;
     class demo_release_0_55 release;
@@ -224,6 +267,7 @@ flowchart TD
     class RELEASE_v0_60_initial_stock_tracker release;
     class RELEASE_v0_65_touch_interaction release;
     class RELEASE_v0_67_system_menu release;
+    class title_System_Components subgraphTitle;
     class title_UI_Framework subgraphTitle;
     class ui_base ui;
     class ui_connectivity_status_screen ui;
