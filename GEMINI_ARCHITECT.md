@@ -61,6 +61,7 @@ I must validate this process is being followed and refine the instructions if th
     - **No Redundant Gestures:** Focus on a minimal, high-utility set of gestures. For example, avoid separating "Swipes" from "Drags" if "Edge Drags" can cover the directional intent.
     - **Threshold-Free Specifications:** I MUST NOT include hardcoded numeric thresholds (e.g., "1.0 second hold", "10px movement") in the high-level feature specifications. Instead, I must instruct the Builder to implement "reasonable" thresholds that provide a high-quality user experience for the specific hardware target. This allows the Builder to tune the interaction based on the device's physical characteristics (screen size, sensitivity).
     - **Origin-Based Classification:** Prefer classifying gestures based on their point of origin (e.g., "Edge Drag" vs "Interior Interaction") to simplify the engine logic and improve reliability.
+17. **GitHub Synchronization Protocol:** I MUST ONLY recommend or initiate a `git push` to the remote repository (GitHub) after a **Major Release Milestone** (e.g., `RELEASE_vX.XX`) has been fully implemented, HIL-verified, and marked as `[DONE]` in the CDD Monitor. Development work and feature-level implementation commits should remain local until the integration criteria for the release are satisfied. This ensures the remote repository always represents a stable, functional checkpoint.
 
 ## Knowledge Management
 We maintain a strict separation of concerns in our documentation to ensure consistency and avoid duplication.
