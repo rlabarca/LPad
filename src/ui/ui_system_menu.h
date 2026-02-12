@@ -17,6 +17,7 @@
 // Forward declarations
 class Arduino_GFX;
 class Arduino_Canvas;
+class RelativeDisplay;
 
 class SystemMenu {
 public:
@@ -73,10 +74,16 @@ private:
 
     // Off-screen canvas for flicker-free rendering (PSRAM)
     Arduino_Canvas* m_canvas;
+    RelativeDisplay* m_relDisplay;  // Relative coordinate abstraction over canvas
     uint16_t* m_canvasBuffer;
 
     // Dirty tracking - only render when content/state changes
     bool m_dirty;
+
+    // Layout constants (relative coordinates, 0-100%)
+    static constexpr float MARGIN_PERCENT = 1.0f;       // Edge margin
+    static constexpr float SSID_Y_PERCENT = 1.0f;       // SSID top position
+    static constexpr float VERSION_Y_BOTTOM = 99.0f;    // Version bottom position
 
     static constexpr float ANIMATION_DURATION = 0.25f;  // 250ms
 };

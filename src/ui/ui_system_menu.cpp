@@ -2,12 +2,13 @@
  * @file ui_system_menu.cpp
  * @brief System Menu UI Component Implementation
  *
- * Renders to an off-screen PSRAM canvas then blits to display in a single
- * DMA transfer, eliminating the flicker caused by drawing directly to the
- * unbuffered AMOLED display driver.
+ * Renders to an off-screen PSRAM canvas via RelativeDisplay, then blits to
+ * display in a single DMA transfer for flicker-free animation.
+ * All layout uses relative 0-100% coordinates per ARCHITECTURE.md §E.1.
  */
 
 #include "ui_system_menu.h"
+#include "../relative_display.h"
 #include <Arduino_GFX_Library.h>
 #include "../../hal/display.h"
 
@@ -19,19 +20,21 @@ SystemMenu::SystemMenu()
     , m_progress(0.0f)
     , m_versionText(nullptr)
     , m_ssidText(nullptr)
-    , m_bgColor(0x0000)  // Black
+    , m_bgColor(0x0000)
     , m_revealColor(0x0000)
     , m_versionFont(nullptr)
-    , m_versionColor(0x7BEF)  // Grey
+    , m_versionColor(0x7BEF)
     , m_ssidFont(nullptr)
-    , m_ssidColor(0xFFFF)  // White
+    , m_ssidColor(0xFFFF)
     , m_canvas(nullptr)
+    , m_relDisplay(nullptr)
     , m_canvasBuffer(nullptr)
     , m_dirty(false)
 {
 }
 
 SystemMenu::~SystemMenu() {
+    delete m_relDisplay;
     delete m_canvas;
 }
 
@@ -63,7 +66,11 @@ bool SystemMenu::begin(Arduino_GFX* gfx, int32_t width, int32_t height) {
         return false;
     }
 
-    Serial.printf("[SystemMenu] Canvas created: %dx%d in PSRAM\n", width, height);
+    // Wrap canvas in RelativeDisplay for 0-100% coordinate drawing
+    m_relDisplay = new RelativeDisplay(m_canvas, width, height);
+    m_relDisplay->init();
+
+    Serial.printf("[SystemMenu] Canvas + RelativeDisplay created: %dx%d\n", width, height);
     return true;
 }
 
@@ -155,38 +162,23 @@ void SystemMenu::render() {
     if (m_state == CLOSED || m_canvas == nullptr || m_canvasBuffer == nullptr) return;
     if (!m_dirty) return;
 
-    int32_t visible_height = static_cast<int32_t>(m_progress * m_height);
-    if (visible_height <= 0) return;
-    if (visible_height > m_height) visible_height = m_height;
+    // Convert animation progress to relative height (0-100%)
+    float visiblePercent = m_progress * 100.0f;
+    if (visiblePercent <= 0.0f) return;
+    if (visiblePercent > 100.0f) visiblePercent = 100.0f;
 
-    // Draw everything to the off-screen canvas (no display writes yet)
-
-    // Fill visible menu area with background color
-    m_canvas->fillRect(0, 0, m_width, visible_height, m_bgColor);
+    // Fill visible menu area with background color (relative coordinates)
+    m_relDisplay->fillRect(0.0f, 0.0f, 100.0f, visiblePercent, m_bgColor);
 
     // Fill exposed area below menu with reveal color for smooth animation
-    if (visible_height < m_height) {
-        m_canvas->fillRect(0, visible_height, m_width, m_height - visible_height, m_revealColor);
+    if (visiblePercent < 100.0f) {
+        m_relDisplay->fillRect(0.0f, visiblePercent, 100.0f, 100.0f - visiblePercent, m_revealColor);
     }
 
-    // Draw version text (bottom-center, small/subtle)
-    if (m_versionText != nullptr && m_versionText[0] != '\0') {
-        m_canvas->setFont(static_cast<const GFXfont*>(m_versionFont));
-        m_canvas->setTextColor(m_versionColor);
+    // Absolute visible height for text clipping
+    int32_t visiblePx = m_relDisplay->relativeToAbsoluteHeight(visiblePercent);
 
-        int16_t x1, y1;
-        uint16_t tw, th;
-        m_canvas->getTextBounds(m_versionText, 0, 0, &x1, &y1, &tw, &th);
-
-        int16_t text_x = (m_width - tw) / 2;  // Centered horizontally
-        int16_t text_y = m_height - th - 4 - y1;  // 4px bottom margin, adjust for baseline
-        if (text_y >= 0 && text_y + static_cast<int32_t>(th) <= visible_height) {
-            m_canvas->setCursor(text_x, text_y);
-            m_canvas->print(m_versionText);
-        }
-    }
-
-    // Draw SSID text (top-right, normal)
+    // Draw SSID text (top-right corner)
     if (m_ssidText != nullptr && m_ssidText[0] != '\0') {
         m_canvas->setFont(static_cast<const GFXfont*>(m_ssidFont));
         m_canvas->setTextColor(m_ssidColor);
@@ -195,11 +187,34 @@ void SystemMenu::render() {
         uint16_t tw, th;
         m_canvas->getTextBounds(m_ssidText, 0, 0, &x1, &y1, &tw, &th);
 
-        int16_t text_x = m_width - tw - 4;  // Right-aligned with margin
-        int16_t text_y = 4 - y1;  // Same top margin as version
-        if (text_y + static_cast<int32_t>(th) <= visible_height) {
+        // Position: MARGIN_PERCENT from top, MARGIN_PERCENT from right edge
+        int32_t text_y = m_relDisplay->relativeToAbsoluteY(SSID_Y_PERCENT) - y1;
+        int32_t right_edge = m_relDisplay->relativeToAbsoluteX(100.0f - MARGIN_PERCENT);
+        int32_t text_x = right_edge - static_cast<int32_t>(tw);
+
+        if (text_y + y1 >= 0 && text_y + y1 + static_cast<int32_t>(th) <= visiblePx) {
             m_canvas->setCursor(text_x, text_y);
             m_canvas->print(m_ssidText);
+        }
+    }
+
+    // Draw version text (bottom-center)
+    if (m_versionText != nullptr && m_versionText[0] != '\0') {
+        m_canvas->setFont(static_cast<const GFXfont*>(m_versionFont));
+        m_canvas->setTextColor(m_versionColor);
+
+        int16_t x1, y1;
+        uint16_t tw, th;
+        m_canvas->getTextBounds(m_versionText, 0, 0, &x1, &y1, &tw, &th);
+
+        // Position: centered horizontally, VERSION_Y_BOTTOM% from top (bottom edge of text)
+        int32_t bottom_edge = m_relDisplay->relativeToAbsoluteY(VERSION_Y_BOTTOM);
+        int32_t text_y = bottom_edge - th - y1;  // Cursor position for bottom alignment
+        int32_t text_x = (m_width - static_cast<int32_t>(tw)) / 2;  // Centered
+
+        if (text_y + y1 >= 0 && text_y + y1 + static_cast<int32_t>(th) <= visiblePx) {
+            m_canvas->setCursor(text_x, text_y);
+            m_canvas->print(m_versionText);
         }
     }
 

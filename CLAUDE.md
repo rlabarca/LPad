@@ -9,8 +9,12 @@ Your mandate is to implement `features/*.md` into code and **commit to git**. Th
 
 When tasked with implementing or verifying a feature from a `.md` file, you MUST follow this sequence precisely. This is your primary function.
 
-**0. Pre-Flight Checks (Mandatory):**
-   - **Consult the Architecture:** Before writing any code, review `docs/ARCHITECTURE.md` to understand the established design patterns and constraints.
+**0. Pre-Flight Checks (Mandatory — applies to ALL code changes, not just feature implementations):**
+   - **Consult the Architecture:** Before writing ANY new code, review `docs/ARCHITECTURE.md`. Key constraints include (but are not limited to):
+     - §E.1: ALL drawing MUST use `RelativeDisplay` (0-100% coordinates). No raw pixel math for layout.
+     - §E.2: Use off-screen canvas strategy for flicker-free rendering.
+     - §E.3: No full screen clears in `loop()`. Use dirty-rect or optimized blitting.
+     - §E.4: Pre-render overlays to PSRAM buffers, blit with DMA.
    - **Consult the Lab Notebook:** Before starting a complex task or bugfix, review `docs/IMPLEMENTATION_LOG.md` to see if similar problems have been solved before.
    - **Check for Dependencies:** Review the `> Prerequisite:` in the feature file and check its status with `git log`. If the prerequisite feature is marked `[TODO]` (meaning it was changed more recently than its last completion commit), you MUST stop and implement/verify the prerequisite first.
 
