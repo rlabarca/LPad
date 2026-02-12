@@ -27,7 +27,11 @@ TouchTestOverlay::TouchTestOverlay()
       m_text_height(0),
       m_buffer_valid(false),
       m_needs_blit(false),
-      m_render_canvas(nullptr)
+      m_render_canvas(nullptr),
+      m_crosshair_buffer(nullptr),
+      m_show_crosshair(false),
+      m_crosshair_x(0),
+      m_crosshair_y(0)
 {
 }
 
@@ -39,6 +43,10 @@ TouchTestOverlay::~TouchTestOverlay() {
     if (m_text_buffer) {
         free(m_text_buffer);
         m_text_buffer = nullptr;
+    }
+    if (m_crosshair_buffer) {
+        free(m_crosshair_buffer);
+        m_crosshair_buffer = nullptr;
     }
 }
 
@@ -88,6 +96,16 @@ bool TouchTestOverlay::begin() {
         return false;
     }
 
+    // Allocate and pre-render crosshair buffer (spec §2.3)
+    m_crosshair_buffer = static_cast<uint16_t*>(
+        malloc(CROSSHAIR_SIZE * CROSSHAIR_SIZE * sizeof(uint16_t)));
+    if (!m_crosshair_buffer) {
+        Serial.println("[TouchTestOverlay] Failed to allocate crosshair buffer");
+        // Non-fatal: overlay still works without crosshair
+    } else {
+        renderCrosshairBuffer();
+    }
+
     return true;
 }
 
@@ -105,6 +123,13 @@ void TouchTestOverlay::update(const touch_gesture_event_t& event) {
     m_time_since_last_event_ms = 0;
     m_buffer_valid = false;  // Invalidate cached render
     m_needs_blit = true;      // Mark that we need to blit the new text
+
+    // Crosshair visible for TAP, HOLD, HOLD_DRAG only (spec §2.3)
+    m_show_crosshair = (event.type == TOUCH_TAP ||
+                        event.type == TOUCH_HOLD ||
+                        event.type == TOUCH_HOLD_DRAG);
+    m_crosshair_x = event.x_px;
+    m_crosshair_y = event.y_px;
 }
 
 void TouchTestOverlay::tick(uint32_t delta_time) {
@@ -114,6 +139,7 @@ void TouchTestOverlay::tick(uint32_t delta_time) {
         // Auto-hide after timeout
         if (m_time_since_last_event_ms >= TIMEOUT_MS) {
             m_visible = false;
+            m_show_crosshair = false;
         }
     }
 }
@@ -143,6 +169,20 @@ void TouchTestOverlay::render() {
 
     // Blit with transparency (chroma key 0x0001)
     hal_display_fast_blit_transparent(x, y, m_text_width, m_text_height, m_text_buffer, 0x0001);
+
+    // Draw crosshair at touch location (spec §2.3)
+    if (m_show_crosshair && m_crosshair_buffer) {
+        int16_t ch_x = m_crosshair_x - CROSSHAIR_ARM;
+        int16_t ch_y = m_crosshair_y - CROSSHAIR_ARM;
+
+        // Clamp to screen bounds
+        if (ch_x >= 0 && ch_y >= 0 &&
+            ch_x + CROSSHAIR_SIZE <= screen_width &&
+            ch_y + CROSSHAIR_SIZE <= screen_height) {
+            hal_display_fast_blit_transparent(ch_x, ch_y,
+                CROSSHAIR_SIZE, CROSSHAIR_SIZE, m_crosshair_buffer, 0x0001);
+        }
+    }
 
     m_needs_blit = false;  // Blit complete, clear flag
 }
@@ -238,6 +278,31 @@ void TouchTestOverlay::renderTextToBuffer() {
     }
 
     memcpy(m_text_buffer, framebuffer, m_text_width * m_text_height * sizeof(uint16_t));
+}
+
+void TouchTestOverlay::renderCrosshairBuffer() {
+    if (!m_crosshair_buffer) return;
+
+    constexpr uint16_t CHROMA_KEY = 0x0001;
+    constexpr uint16_t CROSSHAIR_COLOR = 0xFFFF;  // White
+
+    // Fill with chroma key (transparent)
+    for (int i = 0; i < CROSSHAIR_SIZE * CROSSHAIR_SIZE; i++) {
+        m_crosshair_buffer[i] = CHROMA_KEY;
+    }
+
+    // Draw "+" pattern: horizontal and vertical lines through center
+    int16_t center = CROSSHAIR_ARM;  // Center pixel index
+
+    // Horizontal line
+    for (int16_t x = 0; x < CROSSHAIR_SIZE; x++) {
+        m_crosshair_buffer[center * CROSSHAIR_SIZE + x] = CROSSHAIR_COLOR;
+    }
+
+    // Vertical line
+    for (int16_t y = 0; y < CROSSHAIR_SIZE; y++) {
+        m_crosshair_buffer[y * CROSSHAIR_SIZE + center] = CROSSHAIR_COLOR;
+    }
 }
 
 const char* TouchTestOverlay::gestureTypeToString(touch_gesture_type_t type) const {

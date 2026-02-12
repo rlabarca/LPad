@@ -65,18 +65,31 @@ void V065DemoApp::update(float deltaTime) {
     bool touch_read_success = hal_touch_read(&touch_point);
 
     if (touch_read_success) {
-        // Convert delta time to milliseconds for gesture engine
-        uint32_t delta_time_ms = static_cast<uint32_t>(deltaTime * 1000.0f);
-
-        // Update gesture engine
+        // Virtual home button → synthetic EDGE_DRAG BOTTOM (per touch_gesture_engine.md §D)
         touch_gesture_event_t gesture_event;
-        bool gesture_detected = m_gestureEngine->update(
-            touch_point.x,
-            touch_point.y,
-            touch_point.is_pressed,
-            delta_time_ms,
-            &gesture_event
-        );
+        bool gesture_detected = false;
+
+        if (touch_point.is_home_button) {
+            gesture_event.type = TOUCH_EDGE_DRAG;
+            gesture_event.direction = TOUCH_DIR_DOWN;  // BOTTOM edge
+            gesture_event.x_px = static_cast<int16_t>(hal_display_get_width_pixels() / 2);
+            gesture_event.y_px = static_cast<int16_t>(hal_display_get_height_pixels() - 1);
+            gesture_event.x_percent = 0.5f;
+            gesture_event.y_percent = 1.0f;
+            gesture_detected = true;
+        } else {
+            // Convert delta time to milliseconds for gesture engine
+            uint32_t delta_time_ms = static_cast<uint32_t>(deltaTime * 1000.0f);
+
+            // Update gesture engine
+            gesture_detected = m_gestureEngine->update(
+                touch_point.x,
+                touch_point.y,
+                touch_point.is_pressed,
+                delta_time_ms,
+                &gesture_event
+            );
+        }
 
         // If gesture detected, apply direction rotation and update overlay
         if (gesture_detected) {

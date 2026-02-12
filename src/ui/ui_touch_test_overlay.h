@@ -101,8 +101,17 @@ private:
     // Reusable canvas for text rendering (to avoid repeated allocation/deallocation)
     class Arduino_Canvas* m_render_canvas;
 
+    // Crosshair indicator at touch location (spec §2.3)
+    static constexpr int16_t CROSSHAIR_SIZE = 13;  // 13x13 pixel crosshair
+    static constexpr int16_t CROSSHAIR_ARM = 6;    // 6px arm length from center
+    uint16_t* m_crosshair_buffer;
+    bool m_show_crosshair;
+    int16_t m_crosshair_x;  // Touch location X
+    int16_t m_crosshair_y;  // Touch location Y
+
     // Helper functions
     void renderTextToBuffer();
+    void renderCrosshairBuffer();
     const char* gestureTypeToString(touch_gesture_type_t type) const;
     const char* directionToString(touch_direction_t dir, touch_gesture_type_t type) const;
 };

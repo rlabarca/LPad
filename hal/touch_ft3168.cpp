@@ -96,6 +96,9 @@ bool hal_touch_read(hal_touch_point_t* point) {
     }
 
     // Read touch registers 0x02-0x06 (5 bytes: num_touches + X/Y coords)
+    // FT3168 has no virtual home button
+    point->is_home_button = false;
+
     uint8_t buf[5];
     if (!ft_read_registers(FT_REG_NUM_TOUCHES, buf, 5)) {
         point->is_pressed = false;

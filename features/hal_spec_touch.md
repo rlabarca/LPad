@@ -28,6 +28,7 @@ typedef struct {
     int16_t x;          // X coordinate in screen pixels
     int16_t y;          // Y coordinate in screen pixels
     bool is_pressed;    // true if finger is currently down
+    bool is_home_button; // true if virtual home button was pressed
 } hal_touch_point_t;
 ```
 

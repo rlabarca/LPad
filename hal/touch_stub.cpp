@@ -27,6 +27,7 @@ bool hal_touch_read(hal_touch_point_t* point) {
     point->x = 0;
     point->y = 0;
     point->is_pressed = false;
+    point->is_home_button = false;
 
     return true;
 }

@@ -209,6 +209,7 @@ bool hal_touch_read(hal_touch_point_t* point) {
     uint8_t buf[7];
     if (!cst_read_registers(CST_REG_STATUS, buf, 7)) {
         point->is_pressed = false;
+        point->is_home_button = false;
         point->x = 0;
         point->y = 0;
         return true;
@@ -219,6 +220,7 @@ bool hal_touch_read(hal_touch_point_t* point) {
     // No touch or invalid (CST816 only supports 1 point)
     if (num_points == 0 || num_points > 1) {
         point->is_pressed = false;
+        point->is_home_button = false;
         point->x = 0;
         point->y = 0;
         return true;
@@ -227,6 +229,7 @@ bool hal_touch_read(hal_touch_point_t* point) {
     // Some CST816T return all 0xFF after auto-sleep disable
     if (buf[2] == 0xFF) {
         point->is_pressed = false;
+        point->is_home_button = false;
         point->x = 0;
         point->y = 0;
         return true;
@@ -256,11 +259,13 @@ bool hal_touch_read(hal_touch_point_t* point) {
         }
     }
 
-    // Filter home button coordinate (hardware virtual button)
+    // Virtual home button detection
     // CST816T on T-Display 1.91" reports (600, 120) or swapped (120, 600)
+    // Per touch_gesture_engine.md: map to BOTTOM EDGE_DRAG event
     if ((raw_x == HOME_BTN_X && raw_y == HOME_BTN_Y) ||
         (raw_x == HOME_BTN_Y && raw_y == HOME_BTN_X)) {
         point->is_pressed = false;
+        point->is_home_button = true;
         point->x = 0;
         point->y = 0;
         return true;
@@ -270,6 +275,7 @@ bool hal_touch_read(hal_touch_point_t* point) {
     // Valid ranges from HIL: X: 0-540, Y: 0-250
     if (raw_x < 0 || raw_x > 600 || raw_y < 0 || raw_y > 600) {
         point->is_pressed = false;
+        point->is_home_button = false;
         point->x = 0;
         point->y = 0;
         return true;
@@ -298,6 +304,7 @@ bool hal_touch_read(hal_touch_point_t* point) {
     point->x = transformed_x;
     point->y = transformed_y;
     point->is_pressed = true;
+    point->is_home_button = false;
 
     return true;
 }
