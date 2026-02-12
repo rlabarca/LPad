@@ -69,6 +69,14 @@ bool hal_network_ping(const char* host);
  */
 bool hal_network_http_get(const char* url, char* response_buffer, size_t buffer_size);
 
+/**
+ * @brief Gets the SSID of the currently connected Wi-Fi network
+ *
+ * @return The SSID string, or "N/A" if not connected. Pointer is valid
+ *         until the next call to this function.
+ */
+const char* hal_network_get_ssid(void);
+
 #ifdef __cplusplus
 }
 #endif

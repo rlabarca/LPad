@@ -111,12 +111,16 @@ demos/
   ├─ demo_v055_entry.h
   ├─ demo_v058_entry.cpp        # V0.58 entry point (setup/loop)
   ├─ demo_v058_entry.h
+  ├─ demo_v067_entry.cpp        # V0.67 entry point (setup/loop)
+  ├─ demo_v067_entry.h
   ├─ v05_demo_app.cpp           # V0.5 core logic (Logo + 6 Graph Modes)
   ├─ v05_demo_app.h
   ├─ v055_demo_app.cpp          # V0.55 wrapper (WiFi + V0.5 demo)
   ├─ v055_demo_app.h
   ├─ v058_demo_app.cpp          # V0.58 wrapper (V0.55 + Live Data)
-  └─ v058_demo_app.h
+  ├─ v058_demo_app.h
+  ├─ v067_demo_app.cpp          # V0.67 wrapper (V0.60 + System Menu)
+  └─ v067_demo_app.h
 ```
 
 #### Rules
@@ -128,7 +132,8 @@ demos/
     - `demo_v05_esp32s3`: `-DDEMO_V05`
     - `demo_v055_esp32s3`: `-DDEMO_V055`
     - `demo_v058_esp32s3`: `-DDEMO_V058`
-    - Base hardware environments (`esp32s3`, `tdisplay_s3_plus`): Use latest demo (currently `-DDEMO_V058`)
+    - `demo_v067_esp32s3`: `-DDEMO_V067`
+    - Base hardware environments (`esp32s3`, `tdisplay_s3_plus`): Use latest demo (currently `-DDEMO_V067`)
 
 #### V0.58 Specific Architecture (Live Data Updates)
 

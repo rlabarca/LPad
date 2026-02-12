@@ -2,6 +2,26 @@
 
 This document captures the "tribal knowledge" of the project: technical hurdles, why specific decisions were made, and what approaches were discarded.
 
+## [2026-02-11] Release v0.67: System Menu & GFXfont Forward Declaration Issue
+
+### System Menu Architecture
+The SystemMenu component draws directly to the main display GFX (not a PSRAM canvas) to avoid the known GFXfont crash issue on PSRAM Arduino_Canvas. This is safe because the menu suppresses all other rendering while active.
+
+### GFXfont Forward Declaration Conflict
+**Problem:** `struct GFXfont;` forward declaration in the header conflicts with the C-style `typedef struct { ... } GFXfont;` used by both the Arduino_GFX library and the native test mock.
+
+**Solution:** Use `const void*` for font pointers in the header, cast to `const GFXfont*` in the cpp file. This avoids pulling in GFX headers while remaining type-compatible at the ABI level.
+
+### Gesture Direction Semantics
+Edge drag direction reports the EDGE where the touch started, not the movement direction:
+- `TOUCH_DIR_UP` = started from TOP edge (user swiped DOWN from top)
+- `TOUCH_DIR_DOWN` = started from BOTTOM edge (user swiped UP from bottom)
+
+### Ticker Watermark on PSRAM Canvas
+Uses built-in font (`setFont(nullptr); setTextSize(3)`) instead of custom GFXfont for the watermark, per the PSRAM canvas font crash workaround. Drawn in `drawBackground()` before axes, so it renders UNDER all other graph elements.
+
+---
+
 ## [2026-02-11] Touch System: Final Implementation Guide
 
 ### Board-Specific Touch Controllers

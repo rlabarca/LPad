@@ -18,6 +18,7 @@ V060DemoApp::V060DemoApp(const char* versionText)
     , m_miniLogo(nullptr)
     , m_stockTracker(nullptr)
     , m_versionText(versionText)
+    , m_tickerSymbol(nullptr)
     , m_titleBuffer(nullptr)
     , m_titleBufferX(0)
     , m_titleBufferY(0)
@@ -312,6 +313,10 @@ void V060DemoApp::transitionToPhase(Phase newPhase) {
                         m_graph->setYAxisTitle("Value");
                         m_graph->setXAxisTitle("Hours Prior");
                         m_graph->setYTicks(0.002f);  // Set Y-axis tick spacing
+                        // Set ticker watermark if configured
+                        if (m_tickerSymbol != nullptr) {
+                            m_graph->setTickerSymbol(m_tickerSymbol);
+                        }
                         // NOTE: drawBackground() will be called after first data load (needs data for tick calculation)
                         Serial.println("[V060DemoApp] TimeSeriesGraph initialized with INSIDE labels and axis titles");
                     }
@@ -357,11 +362,19 @@ GraphTheme V060DemoApp::createStockGraphTheme() {
     theme.tickFont = lpadTheme->fonts.smallest;
     theme.axisTitleFont = lpadTheme->fonts.ui;
 
+    // Watermark color (subtle text)
+    theme.watermarkColor = lpadTheme->colors.text_secondary;
+
     return theme;
 }
 
 void V060DemoApp::renderTitleToBuffer() {
     if (m_display == nullptr) {
+        return;
+    }
+
+    // Skip title rendering if no version text
+    if (m_versionText == nullptr || m_versionText[0] == '\0') {
         return;
     }
 

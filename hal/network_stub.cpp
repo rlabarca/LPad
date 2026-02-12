@@ -29,6 +29,10 @@ bool hal_network_ping(const char* host) {
     return g_stub_ping_result;
 }
 
+const char* hal_network_get_ssid(void) {
+    return "Demo WiFi";
+}
+
 bool hal_network_http_get(const char* url, char* response_buffer, size_t buffer_size) {
     (void)url;
     (void)buffer_size;

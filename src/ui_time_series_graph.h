@@ -44,6 +44,8 @@ struct GraphTheme {
     bool useLineGradient;               ///< Whether to use line gradient
     const GFXfont* axisTitleFont;       ///< Font for axis titles (nullptr = default)
     const GFXfont* tickFont;            ///< Font for tick labels (nullptr = default)
+
+    uint16_t watermarkColor;            ///< Color for ticker watermark text (RGB565)
 };
 
 /**
@@ -116,6 +118,12 @@ public:
      * Note: After setting theme, call drawBackground() and drawData() to
      * update the canvases with the new theme.
      */
+    /**
+     * @brief Sets the ticker symbol to display as a background watermark
+     * @param symbol Ticker symbol string (e.g., "^TNX"). nullptr to disable.
+     */
+    void setTickerSymbol(const char* symbol);
+
     void setTheme(const GraphTheme& theme);
 
     /**
@@ -179,6 +187,7 @@ private:
     TickLabelPosition tick_label_position_;
     const char* x_axis_title_;
     const char* y_axis_title_;
+    const char* tickerSymbol_;
 
     // Live indicator tracking for efficient redraw
     int32_t last_indicator_x_;            ///< Last drawn indicator center X (pixels)

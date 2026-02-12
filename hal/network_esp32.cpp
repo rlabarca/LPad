@@ -12,6 +12,7 @@
 
 // Internal state
 static hal_network_status_t g_status = HAL_NETWORK_STATUS_DISCONNECTED;
+static char g_ssid_buffer[64] = "N/A";
 
 bool hal_network_init(const char* ssid, const char* password) {
     if (ssid == nullptr || password == nullptr) {
@@ -94,6 +95,17 @@ bool hal_network_ping(const char* host) {
     // Consider any response (even error codes) as connectivity success
     // We just want to know if we can reach the internet
     return (httpCode > 0);
+}
+
+const char* hal_network_get_ssid(void) {
+    if (WiFi.status() == WL_CONNECTED) {
+        String ssid = WiFi.SSID();
+        strncpy(g_ssid_buffer, ssid.c_str(), sizeof(g_ssid_buffer) - 1);
+        g_ssid_buffer[sizeof(g_ssid_buffer) - 1] = '\0';
+    } else {
+        strncpy(g_ssid_buffer, "N/A", sizeof(g_ssid_buffer));
+    }
+    return g_ssid_buffer;
 }
 
 bool hal_network_http_get(const char* url, char* response_buffer, size_t buffer_size) {

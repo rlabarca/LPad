@@ -43,6 +43,12 @@ public:
     bool begin(RelativeDisplay* display);
 
     /**
+     * @brief Set the ticker symbol for background watermark on the graph
+     * @param symbol Ticker string (e.g., "^TNX"). Must be set before graph phase.
+     */
+    void setTickerWatermark(const char* symbol) { m_tickerSymbol = symbol; }
+
+    /**
      * @brief Updates the current phase and component states.
      * @param deltaTime Time elapsed since last frame (seconds)
      */
@@ -75,6 +81,9 @@ private:
 
     // Version text (e.g., "DEMO v0.60", "DEMO v0.65")
     const char* m_versionText;
+
+    // Ticker watermark (e.g., "^TNX") - drawn on graph background
+    const char* m_tickerSymbol;
 
     // Title buffer for version text
     uint16_t* m_titleBuffer;

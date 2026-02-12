@@ -64,7 +64,7 @@ TimeSeriesGraph::TimeSeriesGraph(const GraphTheme& theme, Arduino_GFX* main_disp
       composite_buffer_(nullptr), composite_buffer_size_(0),
       pulse_phase_(0.0f), y_tick_increment_(0.0f),
       tick_label_position_(TickLabelPosition::OUTSIDE),
-      x_axis_title_(nullptr), y_axis_title_(nullptr),
+      x_axis_title_(nullptr), y_axis_title_(nullptr), tickerSymbol_(nullptr),
       last_indicator_x_(0), last_indicator_y_(0), last_indicator_radius_(0),
       has_drawn_indicator_(false),
       cached_y_min_(0.0), cached_y_max_(0.0), range_cached_(false) {
@@ -180,6 +180,10 @@ void TimeSeriesGraph::setYAxisTitle(const char* title) {
     y_axis_title_ = title;
 }
 
+void TimeSeriesGraph::setTickerSymbol(const char* symbol) {
+    tickerSymbol_ = symbol;
+}
+
 TimeSeriesGraph::GraphMargins TimeSeriesGraph::getMargins() const {
     GraphMargins m;
     if (tick_label_position_ == TickLabelPosition::OUTSIDE) {
@@ -278,6 +282,34 @@ void TimeSeriesGraph::drawBackground() {
         }
     } else {
         rel_bg_->fillRect(0.0f, 0.0f, 100.0f, 100.0f, theme_.backgroundColor);
+    }
+
+    // Draw ticker watermark (under all other elements)
+    if (tickerSymbol_ != nullptr && tickerSymbol_[0] != '\0') {
+        Arduino_GFX* canvas = rel_bg_->getGfx();
+        if (canvas) {
+            // Use built-in font at size 3 for heading-like watermark
+            // (custom GFX fonts crash on PSRAM Arduino_Canvas)
+            canvas->setFont(nullptr);
+            canvas->setTextSize(3);
+            canvas->setTextColor(theme_.watermarkColor);
+
+            // Measure text for centering
+            int16_t x1, y1;
+            uint16_t tw, th;
+            canvas->getTextBounds(tickerSymbol_, 0, 0, &x1, &y1, &tw, &th);
+
+            // Center horizontally, position near top
+            int16_t text_x = (width_ - tw) / 2;
+            int16_t text_y = 4;  // Small offset from top
+
+            canvas->setCursor(text_x, text_y);
+            canvas->print(tickerSymbol_);
+
+            // Reset font state
+            canvas->setFont(nullptr);
+            canvas->setTextSize(1);
+        }
     }
 
     // Draw axes to background canvas
