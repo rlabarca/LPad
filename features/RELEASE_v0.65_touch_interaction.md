@@ -14,7 +14,7 @@ This release introduces full touchscreen support to the LPad platform. It establ
 
 ### 2.1 Hardware Layer
 - **HAL Contract:** `hal_touch_init`, `hal_touch_read`.
-- **Implementation:** CST816 driver support for `esp32s3` (1.8") and `tdisplay_s3_plus` (1.91") environments using correct pin mappings.
+- **Implementation:** Touch driver support for both boards: CST816 for `tdisplay_s3_plus` (1.91"), FT3168 for `esp32s3` (1.8"), using correct pin mappings and direct I2C register access.
 
 ### 2.2 Application Layer
 - **Touch Gesture Engine:** logic to parse raw inputs into:
