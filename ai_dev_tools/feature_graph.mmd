@@ -65,12 +65,6 @@ flowchart TD
         title_Hardware_Layer ~~~ touch_cst816_implementation
     end
 
-    subgraph Release [" "]
-        title_Release["RELEASE"]
-        RELEASE_v0_65_touch_interaction["Release v0.65 (Touch)"]
-        title_Release ~~~ RELEASE_v0_65_touch_interaction
-    end
-
     subgraph Release_Demos [" "]
         title_Release_Demos["RELEASE DEMOS"]
         demo_release_0_5["Demo for Release v0.5"]
@@ -93,6 +87,8 @@ flowchart TD
         title_Releases ~~~ RELEASE_v0_5_display_drawing_ui_base
         RELEASE_v0_60_initial_stock_tracker["Release v0.60"]
         title_Releases ~~~ RELEASE_v0_60_initial_stock_tracker
+        RELEASE_v0_65_touch_interaction["Release v0.65 (Touch)"]
+        title_Releases ~~~ RELEASE_v0_65_touch_interaction
     end
 
     subgraph UI_Framework [" "]
@@ -208,8 +204,6 @@ flowchart TD
     class hal_spec_touch hardware;
     class hal_timer_esp32 hardware;
     class touch_cst816_implementation hardware;
-    class title_Release subgraphTitle;
-    class RELEASE_v0_65_touch_interaction release;
     class title_Release_Demos subgraphTitle;
     class demo_release_0_5 release;
     class demo_release_0_55 release;
@@ -220,6 +214,7 @@ flowchart TD
     class RELEASE_v0_58_dynamic_visuals release;
     class RELEASE_v0_5_display_drawing_ui_base release;
     class RELEASE_v0_60_initial_stock_tracker release;
+    class RELEASE_v0_65_touch_interaction release;
     class title_UI_Framework subgraphTitle;
     class ui_base ui;
     class ui_connectivity_status_screen ui;
