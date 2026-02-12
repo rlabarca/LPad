@@ -121,6 +121,10 @@ All feature files in `features/` MUST adhere to the following metadata header fo
 ```
 This metadata is required for the automated visualization system.
 
+**Category Naming:**
+- Use **plural** names for categories (e.g., `Hardware Layer`, `UI Framework`, `Applications`).
+- High-level integration contracts MUST use `Category: "RELEASES"` (always plural, all caps).
+
 *   **Graph Autogeneration:** I must NEVER edit `ai_dev_tools/feature_graph.mmd` manually. This file is a generated artifact. To change a node's label, I must edit the `> Label:` metadata in the corresponding feature file, then trigger the Software Map regeneration.
 
 ### README & Documentation Sync

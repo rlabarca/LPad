@@ -1,7 +1,7 @@
 # Release 0.70: UI Render Manager
 
 > Label: "Release v0.70: UI Render Manager"
-> Category: "Release"
+> Category: "RELEASES"
 > Prerequisite: features/core_ui_render_manager.md
 > Prerequisite: features/sys_system_menu.md
 > Prerequisite: features/sys_mini_logo.md
