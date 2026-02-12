@@ -315,7 +315,7 @@ void V060DemoApp::transitionToPhase(Phase newPhase) {
                         m_graph->setYTicks(0.002f);  // Set Y-axis tick spacing
                         // Set ticker watermark if configured
                         if (m_tickerSymbol != nullptr) {
-                            m_graph->setTickerSymbol(m_tickerSymbol);
+                            m_graph->setWatermark(m_tickerSymbol);
                         }
                         // NOTE: drawBackground() will be called after first data load (needs data for tick calculation)
                         Serial.println("[V060DemoApp] TimeSeriesGraph initialized with INSIDE labels and axis titles");

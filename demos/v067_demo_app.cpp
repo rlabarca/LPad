@@ -30,7 +30,7 @@ bool V067DemoApp::begin(RelativeDisplay* display) {
 
     // Initialize v0.60 demo with NO version text (removed per v0.67 spec)
     m_v060Demo = new V060DemoApp(nullptr);
-    m_v060Demo->setTickerWatermark("^TNX");
+    m_v060Demo->setWatermark("^TNX");
     if (!m_v060Demo->begin(display)) {
         Serial.println("[V067DemoApp] Failed to initialize V060DemoApp");
         return false;

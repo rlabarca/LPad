@@ -64,7 +64,7 @@ TimeSeriesGraph::TimeSeriesGraph(const GraphTheme& theme, Arduino_GFX* main_disp
       composite_buffer_(nullptr), composite_buffer_size_(0),
       pulse_phase_(0.0f), y_tick_increment_(0.0f),
       tick_label_position_(TickLabelPosition::OUTSIDE),
-      x_axis_title_(nullptr), y_axis_title_(nullptr), tickerSymbol_(nullptr),
+      x_axis_title_(nullptr), y_axis_title_(nullptr), watermarkText_(nullptr),
       last_indicator_x_(0), last_indicator_y_(0), last_indicator_radius_(0),
       has_drawn_indicator_(false),
       cached_y_min_(0.0), cached_y_max_(0.0), range_cached_(false) {
@@ -180,8 +180,8 @@ void TimeSeriesGraph::setYAxisTitle(const char* title) {
     y_axis_title_ = title;
 }
 
-void TimeSeriesGraph::setTickerSymbol(const char* symbol) {
-    tickerSymbol_ = symbol;
+void TimeSeriesGraph::setWatermark(const char* text) {
+    watermarkText_ = text;
 }
 
 TimeSeriesGraph::GraphMargins TimeSeriesGraph::getMargins() const {
@@ -285,7 +285,7 @@ void TimeSeriesGraph::drawBackground() {
     }
 
     // Draw ticker watermark (under all other elements)
-    if (tickerSymbol_ != nullptr && tickerSymbol_[0] != '\0') {
+    if (watermarkText_ != nullptr && watermarkText_[0] != '\0') {
         Arduino_GFX* canvas = rel_bg_->getGfx();
         if (canvas) {
             // Use built-in font at size 3 for heading-like watermark
@@ -297,14 +297,14 @@ void TimeSeriesGraph::drawBackground() {
             // Measure text for centering
             int16_t x1, y1;
             uint16_t tw, th;
-            canvas->getTextBounds(tickerSymbol_, 0, 0, &x1, &y1, &tw, &th);
+            canvas->getTextBounds(watermarkText_, 0, 0, &x1, &y1, &tw, &th);
 
             // Center horizontally, position near top
             int16_t text_x = (width_ - tw) / 2;
             int16_t text_y = 4;  // Small offset from top
 
             canvas->setCursor(text_x, text_y);
-            canvas->print(tickerSymbol_);
+            canvas->print(watermarkText_);
 
             // Reset font state
             canvas->setFont(nullptr);

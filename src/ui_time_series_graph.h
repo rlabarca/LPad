@@ -119,10 +119,10 @@ public:
      * update the canvases with the new theme.
      */
     /**
-     * @brief Sets the ticker symbol to display as a background watermark
-     * @param symbol Ticker symbol string (e.g., "^TNX"). nullptr to disable.
+     * @brief Sets text to display as a background watermark (top-center, under all elements)
+     * @param text Watermark string (e.g., "^TNX"). nullptr to disable.
      */
-    void setTickerSymbol(const char* symbol);
+    void setWatermark(const char* text);
 
     void setTheme(const GraphTheme& theme);
 
@@ -187,7 +187,7 @@ private:
     TickLabelPosition tick_label_position_;
     const char* x_axis_title_;
     const char* y_axis_title_;
-    const char* tickerSymbol_;
+    const char* watermarkText_;
 
     // Live indicator tracking for efficient redraw
     int32_t last_indicator_x_;            ///< Last drawn indicator center X (pixels)

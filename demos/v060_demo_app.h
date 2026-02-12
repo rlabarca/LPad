@@ -46,7 +46,7 @@ public:
      * @brief Set the ticker symbol for background watermark on the graph
      * @param symbol Ticker string (e.g., "^TNX"). Must be set before graph phase.
      */
-    void setTickerWatermark(const char* symbol) { m_tickerSymbol = symbol; }
+    void setWatermark(const char* text) { m_tickerSymbol = text; }
 
     /**
      * @brief Updates the current phase and component states.
