@@ -2,6 +2,64 @@
 
 This document captures the "tribal knowledge" of the project: technical hurdles, why specific decisions were made, and what approaches were discarded.
 
+## [2026-02-11] Waveshare ESP32-S3 1.8" AMOLED: Wrong Touch Controller, Rate Limiter Phantom Releases, and Title Clipping
+
+### Challenge 1: FT3168 ≠ CST816 — Wrong Touch Controller Assumption
+
+**Problem:** The `esp32s3` environment (Waveshare ESP32-S3 1.8" AMOLED Touch) was assumed to use a CST816 touch controller because the T-Display S3 AMOLED Plus uses one and the pin assignments (SDA=15, SCL=14, INT=21) are identical. Touch init was failing silently.
+
+**Discovery:** Examining the vendor examples in `hw-examples/ESP32-S3-Touch-AMOLED-1.8-Demo/` revealed:
+- The drawing board demo uses `Arduino_FT3x68` driver, NOT `TouchDrvCSTXXX`
+- I2C address is **0x38** (FocalTech FT3168), not **0x15** (CST816)
+- The `pin_config.h` confirmed identical I2C pins but completely different touch IC
+
+**Solution:** Created `hal/touch_ft3168.cpp` using direct I2C register reads (FocalTech standard register layout: 0x02=num_touches, 0x03-0x06=X/Y coords). Chose raw I2C over SensorLib's `TouchDrvFT6X36` because:
+- FT3168 chip ID (0x03) isn't in the FT6X36 driver's allowlist — `initImpl()` would reject it
+- Direct I2C reads are ~20 lines of code with zero driver compatibility risk
+- The FocalTech register layout (0x02-0x06) is identical across FT3168/FT6X36/FT6206
+
+**platformio.ini Impact:** Required adding `-<../hal/touch_ft3168.cpp>` or `-<../hal/touch_cst816.cpp>` exclusions to ALL 16 build environments to prevent duplicate symbol errors (both files implement `hal_touch_init`/`hal_touch_read`).
+
+**Key Lesson:** **Same I2C pins ≠ same touch controller.** Always check vendor demo code for the actual driver being used, especially when two boards share a pin configuration. The pin_config.h only tells you the wiring, not the silicon.
+
+### Challenge 2: Rate Limiter Causing Phantom Release Events
+
+**Problem:** After touch init worked correctly on the Waveshare board, coordinates registered fine but the gesture engine detected only TAP events — no HOLD, SWIPE, or DRAG. The finger-down state was being interrupted every few frames.
+
+**Root Cause:** The rate limiter (copied from CST816 HAL) returned `is_pressed = false` on 2 out of every 3 frames:
+```cpp
+if (poll_counter < 3) {
+    point->is_pressed = false;  // ← PROBLEM: Gesture engine sees this as RELEASE
+    point->x = 0;
+    point->y = 0;
+    return true;
+}
+```
+
+The gesture engine's `update()` method transitions to `STATE_IDLE` on ANY frame where `is_pressed = false` (line 109-173 of `touch_gesture_engine.cpp`). With the rate limiter, the state machine saw: PRESS → IDLE → PRESS → IDLE → PRESS → IDLE (every 3 frames), making sustained gestures impossible.
+
+**Why CST816 had the same code:** The CST816 rate limiter was added to work around I2C bus sticking issues specific to that controller. The FT3168 doesn't have this problem.
+
+**Solution:** Removed the rate limiter entirely from `touch_ft3168.cpp`. The FT3168 handles full-speed I2C polling without issues.
+
+**Key Lesson:** **Rate limiters that return synthetic "not pressed" states are incompatible with state-machine gesture engines.** If rate limiting is needed, return the LAST KNOWN state on skipped frames instead of forcing `is_pressed = false`. Better yet, only rate-limit at the I2C level (skip the read) without changing the reported touch state.
+
+### Challenge 3: getTextBounds() Clipping Last Character
+
+**Problem:** The on-screen title displayed "DEMO v0.6" instead of "DEMO v0.65". The "5" was missing.
+
+**Root Cause:** `Arduino_GFX::getTextBounds()` can undercount the width of the last character's advance by 1-2 pixels. In `V060DemoApp::renderTitleToBuffer()`, the canvas was sized to exactly `w` pixels from `getTextBounds()`, clipping the final character:
+```cpp
+gfx->getTextBounds(titleText, 0, 0, &x1, &y1, &w, &h);
+m_titleBufferWidth = w;  // ← 1-2px too narrow for last char
+Arduino_Canvas* canvas = new Arduino_Canvas(m_titleBufferWidth, ...);
+canvas->print(titleText);  // "5" rendered beyond canvas width → clipped
+```
+
+**Solution:** Added 2 pixels of padding: `m_titleBufferWidth = w + 2;`
+
+**Key Lesson:** **Never trust `getTextBounds()` for exact canvas sizing.** Always add 2-4 pixels of width padding when using the bounds to allocate a rendering canvas. This is a known limitation of Arduino GFX's text metrics — the advance width of the final glyph may exceed the reported bounding box.
+
 ## [2026-02-11] Touch Coordinate System: The Great Debugging Odyssey (Part 2)
 
 ### Problem Statement

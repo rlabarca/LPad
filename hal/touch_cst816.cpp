@@ -60,17 +60,57 @@ bool hal_touch_init(void) {
 
     // Initialize I2C bus
     Wire.begin(TOUCH_SDA, TOUCH_SCL);
+    Wire.setClock(100000);  // Set to 100kHz for stability
+    Serial.println("[HAL Touch] I2C bus initialized");
 
-    // Initialize touch controller
+    // CRITICAL: Force wake the controller in case it's stuck in sleep mode
+    // Previous sleep() call might have persisted across power cycles
+    Serial.println("[HAL Touch] Attempting to wake touch controller...");
     g_touch.setPins(TOUCH_RST, TOUCH_INT);
+
+    // Try to wake it first (this will fail if not initialized, but that's OK)
+    g_touch.wakeup();
+    delay(200);
+
+    Serial.println("[HAL Touch] Initializing touch controller...");
+    // Initialize touch controller
     if (!g_touch.begin(Wire, TOUCH_ADDR, TOUCH_SDA, TOUCH_SCL)) {
         Serial.println("[HAL Touch] Failed to initialize CST816 controller");
-        return false;
+        Serial.println("[HAL Touch] Trying one more time with wake...");
+
+        // One more attempt with wake
+        Wire.beginTransmission(TOUCH_ADDR);
+        Wire.write(0xFE);  // Wake command register
+        Wire.write(0x01);  // Wake value
+        Wire.endTransmission();
+        delay(100);
+
+        if (!g_touch.begin(Wire, TOUCH_ADDR, TOUCH_SDA, TOUCH_SCL)) {
+            Serial.println("[HAL Touch] Failed again - controller may be damaged or stuck");
+            return false;
+        }
     }
 
     // Get display dimensions for coordinate mapping
     g_display_width = static_cast<int16_t>(hal_display_get_width_pixels());
     g_display_height = static_cast<int16_t>(hal_display_get_height_pixels());
+
+    // Configure touch panel for T-Display S3 AMOLED Plus
+    Serial.println("[HAL Touch] Configuring touch panel...");
+
+    #if defined(APP_DISPLAY_ROTATION)
+        // T-Display S3 AMOLED Plus specific configuration
+        g_touch.setMaxCoordinates(536, 240);
+        Serial.println("[HAL Touch] Max coordinates set to 536x240");
+
+        // Disable home button by setting it to an impossible coordinate
+        g_touch.setCenterButtonCoordinate(9999, 9999);
+        Serial.println("[HAL Touch] Home button disabled (moved to 9999, 9999)");
+
+        // Try different swap/mirror settings to see if touch digitizer is connected differently
+        // g_touch.setSwapXY(true);
+        // g_touch.setMirrorXY(false, false);
+    #endif
 
     g_touch_initialized = true;
     Serial.println("[HAL Touch] CST816 initialized successfully");
@@ -82,10 +122,17 @@ bool hal_touch_read(hal_touch_point_t* point) {
         return false;
     }
 
-    // CRITICAL: Do NOT use isPressed() - it creates a race condition
-    // The CST816 clears its interrupt flag after getPoint(), causing
-    // isPressed() to return false even when coordinates are valid.
-    // Instead, rely solely on point_count from getPoint().
+    // Rate-limit polling to reduce load on I2C bus
+    // Poll every 3rd frame (10Hz instead of 30Hz) to avoid keeping controller stuck
+    static uint8_t poll_counter = 0;
+    poll_counter++;
+    if (poll_counter < 3) {
+        point->is_pressed = false;
+        point->x = 0;
+        point->y = 0;
+        return true;  // Skip this frame
+    }
+    poll_counter = 0;
 
     // Read touch coordinates
     int16_t x[1], y[1];
@@ -98,8 +145,38 @@ bool hal_touch_read(hal_touch_point_t* point) {
         return true;  // Success, just not pressed
     }
 
+    // DEBUG: Track if we EVER see coordinates other than 600, 120
+    static bool seen_non_home_button = false;
+    static uint32_t touch_count = 0;
+    touch_count++;
+
+    // Log EVERY touch for the first 10 seconds to diagnose
+    if (millis() < 20000 || !seen_non_home_button) {
+        if (!(x[0] == 600 && y[0] == 120)) {
+            seen_non_home_button = true;
+            Serial.printf("[HAL Touch] !!! NON-HOME-BUTTON TOUCH DETECTED: x=%d, y=%d !!!\n", x[0], y[0]);
+        }
+    }
+
+    // Sample logging every 60 touches
+    if (touch_count % 60 == 0) {
+        Serial.printf("[HAL Touch] Sample #%u: x=%d, y=%d (seen_real_touch=%s)\n",
+                      touch_count, x[0], y[0], seen_non_home_button ? "YES" : "NO");
+    }
+
+    // CRITICAL: Filter out home button coordinate (x=600, y=120)
+    // The CST816T reports the home button as a regular touch event
+    // Silently ignore it to prevent spam
+    if (x[0] == 600 && y[0] == 120) {
+        point->is_pressed = false;
+        point->x = 0;
+        point->y = 0;
+        return true;  // Silently reject home button as not pressed
+    }
+
     // Debug: Log raw coordinates (only on change to reduce noise)
     static int16_t last_x = -1, last_y = -1;
+    static uint32_t last_warning_time = 0;
     bool coords_changed = (x[0] != last_x || y[0] != last_y);
     if (coords_changed) {
         Serial.printf("[HAL Touch] RAW: x=%d, y=%d\n", x[0], y[0]);
@@ -107,16 +184,15 @@ bool hal_touch_read(hal_touch_point_t* point) {
         last_y = y[0];
     }
 
-    // CRITICAL: Validate raw coordinates before processing
-    // Touch controller occasionally returns garbage data (e.g., x=600 at boot)
-    // Valid ranges from HIL testing: X: 0-540, Y: 0-250 (with margin)
-    if (x[0] < 0 || x[0] > 540 || y[0] < 0 || y[0] > 250) {
-        Serial.printf("[HAL Touch] WARNING: Out-of-range RAW coordinates rejected: x=%d, y=%d\n", x[0], y[0]);
-        point->is_pressed = false;
-        point->x = 0;
-        point->y = 0;
-        return true;  // Reject invalid touch, treat as not pressed
-    }
+    // TEMPORARILY DISABLED: Validate raw coordinates before processing
+    // Allowing ALL coordinates through to see if real touches have unexpected values
+    // if (x[0] < 0 || x[0] > 540 || y[0] < 0 || y[0] > 250) {
+    //     Serial.printf("[HAL Touch] WARNING: Out-of-range RAW coordinates: x=%d, y=%d\n", x[0], y[0]);
+    //     point->is_pressed = false;
+    //     point->x = 0;
+    //     point->y = 0;
+    //     return true;
+    // }
 
     // CRITICAL: Touch controller appears to report in near-display coordinates!
     // HIL testing shows:
@@ -166,6 +242,15 @@ bool hal_touch_read(hal_touch_point_t* point) {
     point->x = transformed_x;
     point->y = transformed_y;
     point->is_pressed = true;
+
+    // DEBUG: Log when we successfully accept a touch
+    static int16_t last_accepted_x = -1, last_accepted_y = -1;
+    if (transformed_x != last_accepted_x || transformed_y != last_accepted_y) {
+        Serial.printf("[HAL Touch] ACCEPTED TOUCH: (%d, %d) -> transformed (%d, %d)\n",
+                      x[0], y[0], transformed_x, transformed_y);
+        last_accepted_x = transformed_x;
+        last_accepted_y = transformed_y;
+    }
 
     return true;
 }

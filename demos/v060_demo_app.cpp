@@ -392,7 +392,7 @@ void V060DemoApp::renderTitleToBuffer() {
     // Position in top-left corner with minimal offset
     m_titleBufferX = 0;
     m_titleBufferY = 0 - y1;  // Adjust for baseline
-    m_titleBufferWidth = w;
+    m_titleBufferWidth = w + 2;   // +2px: getTextBounds can undercount last char advance
     m_titleBufferHeight = h;
 
     // Allocate buffer
