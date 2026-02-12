@@ -89,6 +89,8 @@ flowchart TD
         title_Releases ~~~ RELEASE_v0_60_initial_stock_tracker
         RELEASE_v0_65_touch_interaction["Release v0.65 (Touch)"]
         title_Releases ~~~ RELEASE_v0_65_touch_interaction
+        RELEASE_v0_67_system_menu["Release v0.67 (System Menu)"]
+        title_Releases ~~~ RELEASE_v0_67_system_menu
     end
 
     subgraph UI_Framework [" "]
@@ -101,6 +103,8 @@ flowchart TD
         title_UI_Framework ~~~ ui_live_indicator
         ui_mini_logo["UI Mini Logo"]
         title_UI_Framework ~~~ ui_mini_logo
+        ui_system_menu["System Menu"]
+        title_UI_Framework ~~~ ui_system_menu
         ui_theme_support["Theme Support"]
         title_UI_Framework ~~~ ui_theme_support
         ui_themeable_time_series_graph["Themeable Graph"]
@@ -140,6 +144,8 @@ flowchart TD
     RELEASE_v0_58_dynamic_visuals --> RELEASE_v0_60_initial_stock_tracker
     demo_release_0_60 --> RELEASE_v0_60_initial_stock_tracker
     ui_touch_test_overlay --> RELEASE_v0_65_touch_interaction
+    ui_system_menu --> RELEASE_v0_67_system_menu
+    RELEASE_v0_60_initial_stock_tracker --> RELEASE_v0_67_system_menu
     hal_spec_timer --> app_animation_ticker
     hal_core_contract --> data_layer_core
     data_layer_time_series --> data_layer_stock_tracker
@@ -167,6 +173,8 @@ flowchart TD
     ui_vector_assets --> ui_logo_screen
     app_animation_ticker --> ui_logo_screen
     ui_logo_screen --> ui_mini_logo
+    touch_gesture_engine --> ui_system_menu
+    ui_theme_support --> ui_system_menu
     display_canvas_drawing --> ui_theme_support
     ui_themeable_time_series_graph --> ui_themeable_time_series_graph_v2
     touch_gesture_engine --> ui_touch_test_overlay
@@ -215,11 +223,13 @@ flowchart TD
     class RELEASE_v0_5_display_drawing_ui_base release;
     class RELEASE_v0_60_initial_stock_tracker release;
     class RELEASE_v0_65_touch_interaction release;
+    class RELEASE_v0_67_system_menu release;
     class title_UI_Framework subgraphTitle;
     class ui_base ui;
     class ui_connectivity_status_screen ui;
     class ui_live_indicator ui;
     class ui_mini_logo ui;
+    class ui_system_menu ui;
     class ui_theme_support ui;
     class ui_themeable_time_series_graph ui;
     class ui_themeable_time_series_graph_v2 ui;

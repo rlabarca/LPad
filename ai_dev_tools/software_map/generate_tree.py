@@ -14,7 +14,7 @@ def parse_features():
     features = {}
     label_pattern = re.compile(r'^>\s*Label:\s*"(.*)"')
     category_pattern = re.compile(r'^>\s*Category:\s*"(.*)"')
-    prereq_pattern = re.compile(r'^>\s*Prerequisite:\s*features/(.*\.md)')
+    prereq_pattern = re.compile(r'^>\s*Prerequisite:\s*(.*)')
     
     if not os.path.exists(FEATURES_DIR):
         return features
@@ -46,9 +46,15 @@ def parse_features():
                 
                 prereq_match = prereq_pattern.match(line)
                 if prereq_match:
-                    prereq_file = prereq_match.group(1)
-                    prereq_id = prereq_file.replace(".md", "").replace(".", "_")
-                    feature_data["prerequisites"].append(prereq_id)
+                    prereq_str = prereq_match.group(1)
+                    # Split by comma and clean up whitespace and 'features/' prefix
+                    prereq_files = [p.strip() for p in prereq_str.split(',')]
+                    for prereq_file in prereq_files:
+                        if prereq_file.startswith("features/"):
+                            prereq_file = prereq_file[9:]
+                        if prereq_file.endswith(".md"):
+                            prereq_id = prereq_file.replace(".md", "").replace(".", "_")
+                            feature_data["prerequisites"].append(prereq_id)
         
         features[node_id] = feature_data
     return features
