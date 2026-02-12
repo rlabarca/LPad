@@ -25,24 +25,19 @@ The engine must detect and report the following high-level semantic events:
 - **Condition:** A "Hold" event has occurred, and subsequently, the finger moves significantly from the original hold location.
 - **Outcome:** Fires continuously as the touch position changes while the finger remains pressed.
 
-### D. Swipe (Center)
-- **Condition:** A fast directional movement starting from the center region of the screen.
-- **Start Constraint:** Must NOT start near screen edges (to distinguish from edge drags).
-- **Direction:** The primary axis of movement defines the swipe direction (UP, DOWN, LEFT, RIGHT).
-- **Outcome:** Fires on release if the movement distance exceeds the swipe threshold.
-
-### E. Edge Drag (Left, Right, Top, Bottom)
+### D. Edge Drag (Left, Right, Top, Bottom)
 - **Condition:** A touch that starts near one of the screen's edges and moves towards the interior.
 - **Start Constraint:** The touch must originate within a narrow zone along the screen's boundaries.
 - **Direction:** The originating edge defines the event type (e.g., "Left Edge Drag" if starting from the left-most area).
 - **Outcome:** Fires as the movement progresses or upon completion (implementation choice), distinct from standard interior interactions.
+- **Hardware-Specific Note:** For devices with a virtual home button (e.g., T-Display S3 AMOLED Plus), interaction with this button MUST be mapped to a `BOTTOM EDGE DRAG` event (as if dragging from the bottom upwards), ensuring consistent navigation behavior regardless of physical button presence.
 
 ## 3. Data Interface
 
 ### 3.1 Event Structure
 The engine must publish events containing:
-- **Type:** `TOUCH_TAP`, `TOUCH_HOLD`, `TOUCH_HOLD_DRAG`, `TOUCH_SWIPE`, `TOUCH_EDGE_DRAG`
-- **Direction:** `UP`, `DOWN`, `LEFT`, `RIGHT`, `NONE` (for Swipes and Edge Drags)
+- **Type:** `TOUCH_TAP`, `TOUCH_HOLD`, `TOUCH_HOLD_DRAG`, `TOUCH_EDGE_DRAG`
+- **Direction:** `UP`, `DOWN`, `LEFT`, `RIGHT`, `NONE` (for Edge Drags)
 - **Position (Absolute):** `x_px`, `y_px`
 - **Position (Relative):** `x_percent` (0.0-1.0), `y_percent` (0.0-1.0)
 

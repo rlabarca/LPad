@@ -22,11 +22,13 @@ This release introduces full touchscreen support to the LPad platform. It establ
     - HOLD
     - HOLD_AND_DRAG
     - EDGE_DRAG (Directional)
+    - **Virtual Home Button:** Must be mapped to `BOTTOM EDGE DRAG` on supported devices (e.g., T-Display S3 AMOLED Plus).
 
 ### 2.3 UI Layer
 - **Touch Test Overlay:** A transient, global overlay that displays the last detected event and coordinates.
     - Auto-hides after 3 seconds.
     - Renders on top of the active screen (Graph).
+    - **Visual Indicator:** Displays a small "+" crosshair at the precise touch location during interaction, respecting HAL rotation and scaling.
 
 ## 3. Hardware-In-Loop (HIL) Verification Plan
 
@@ -53,8 +55,14 @@ This release introduces full touchscreen support to the LPad platform. It establ
 **Test E: Hold and Drag**
 1. Press, hold (wait for Hold event), then drag finger.
 2. Verify overlay updates continuously with coordinates: `HOLD_DRAG: ...`.
+3. Verify a small "+" crosshair follows the finger exactly.
+
+**Test F: Virtual Home Button (T-Display S3 Plus Only)**
+1. Tap/Interact with the virtual home button area.
+2. Verify overlay: `EDGE_DRAG: BOTTOM`.
 
 ## 4. Success Criteria
 - All supported gestures are reliably detected.
 - The overlay renders clearly over the graph.
+- The visual crosshair accurately tracks the finger position.
 - The application does not crash or stall during touch interaction.

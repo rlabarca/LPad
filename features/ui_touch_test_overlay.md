@@ -20,7 +20,14 @@ To validate the touch subsystem and gesture engine, a debug overlay will be adde
 - **Timeout:** The overlay must disappear automatically if no new event is registered for 3 seconds.
 - **Independence:** The rendering logic must be decoupled from the specific active screen (e.g., implemented as a global hook or a root-level render pass in `main.cpp` or `DisplayManager`).
 
-### 2.3 Content Format
+### 2.3 Visual Touch Indicator (Crosshair)
+- **Requirement:** A small "+" (crosshair) symbol MUST be drawn at the exact location of the current touch event.
+- **Conditions:** 
+    - Visible during `TAP` (momentarily), `HOLD`, and `HOLD_DRAG` events.
+    - Hidden when no touch is active.
+- **Coordinate Handling:** The crosshair position must accurately reflect the hardware abstraction's coordinate system, accounting for any relative rendering scaling or display rotation defined in the HAL.
+
+### 2.4 Content Format
 The text must follow the format:
 `<EVENT_NAME>: (<X,Y> and/or %)`
 
