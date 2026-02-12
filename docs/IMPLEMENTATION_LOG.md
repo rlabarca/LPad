@@ -2,6 +2,117 @@
 
 This document captures the "tribal knowledge" of the project: technical hurdles, why specific decisions were made, and what approaches were discarded.
 
+## [2026-02-11] Touch System: Final Implementation Guide
+
+### Board-Specific Touch Controllers
+
+| Board | Controller | I2C Addr | SDA | SCL | INT | Display |
+|-------|-----------|----------|-----|-----|-----|---------|
+| T-Display S3 AMOLED Plus (1.91") | CST816T | 0x15 | GPIO 3 | GPIO 2 | GPIO 21 | 536×240 landscape |
+| Waveshare ESP32-S3 1.8" AMOLED | FT3168 | 0x38 | GPIO 15 | GPIO 14 | GPIO 21 | 368×448 portrait |
+
+**Key lesson:** Same I2C pins ≠ same touch controller. Always check vendor demo code for the actual driver being used.
+
+Both controllers use **direct I2C register reads** — SensorLib was bypassed for reliability. See per-controller sections below for details.
+
+### CST816 Direct I2C Implementation (T-Display S3 AMOLED Plus)
+
+**History:** Originally used SensorLib's `TouchDrvCSTXXX` wrapper, which only returned the home button coordinate (600, 120) and never real touch points — likely due to auto-sleep mode or initialization issues that couldn't be debugged through the library abstraction. Bypassed SensorLib for direct I2C register reads (same proven approach as FT3168). Result: 14KB smaller binary, reliable touch.
+
+**Critical Init Sequence (order matters):**
+
+1. **INT pin wake-up (pseudo-reset):** The T-Display S3 AMOLED Plus has no dedicated RST pin. Driving GPIO 21 (INT) LOW for 50ms forces the controller out of sleep/gesture-only mode:
+   ```cpp
+   pinMode(TOUCH_INT, OUTPUT);
+   digitalWrite(TOUCH_INT, LOW);
+   delay(50);
+   pinMode(TOUCH_INT, INPUT);
+   delay(50);
+   ```
+   This MUST happen BEFORE `Wire.begin()`.
+
+2. **I2C init:** `Wire.begin(TOUCH_SDA, TOUCH_SCL)` at 100kHz.
+
+3. **Disable auto-sleep:** Write 0x01 to register 0xFE immediately after I2C init. The controller re-enters sleep within ~5s if this isn't done.
+
+4. **Set interrupt mode:** Write 0x60 to register 0xFA to enable touch+change interrupts (not gesture-only mode).
+
+**Register Map (CST816):**
+- `0x00-0x06`: Touch status + coordinates (read 7 bytes in single transaction)
+- `0x02`: Touch count (lower 4 bits)
+- `0x03-0x04`: X coordinate (high nibble + low byte)
+- `0x05-0x06`: Y coordinate (high nibble + low byte)
+- `0xA7`: Chip ID (`0xB4`=CST816S, `0xB5`=CST816T, `0xB6`=CST816D, `0xB7`=CST820)
+- `0xA9`: Firmware version
+- `0xFE`: Auto-sleep disable (write `0x01`)
+- `0xFA`: Interrupt mode (write `0x60` for touch+change)
+- `0xE5`: Sleep control (write `0x03` to sleep)
+
+**Home Button Filtering:** The CST816T reports a virtual home button at (600, 120) or swapped (120, 600). These must be filtered in `hal_touch_read()` before coordinate processing.
+
+**Coordinate System:** The CST816T reports coordinates directly in display space — NO rotation, NO scaling, NO axis swap needed:
+```cpp
+transformed_x = raw_x;  // Direct pass-through
+transformed_y = raw_y;  // No transform
+```
+Touchable area from HIL: X: 2-536, Y: 46-239 (slightly smaller than full 536×240 display).
+
+**Why SensorLib failed:** Two issues:
+1. SensorLib's `isPressed()` + `getPoint()` are two separate I2C transactions. The interrupt flag auto-clears after the first read, creating phantom RELEASE events that break the gesture state machine.
+2. The library's initialization sequence didn't reliably wake the controller from sleep/gesture-only mode without a hardware RST pin.
+
+### FT3168 Direct I2C Implementation (Waveshare ESP32-S3 1.8")
+
+Simpler than CST816 — no wake-up sequence, no auto-sleep disable, no home button filtering needed.
+
+**Register Map (FocalTech standard):**
+- `0x02`: Number of touches (lower 4 bits)
+- `0x03-0x06`: X/Y coordinates (same nibble+byte format as CST816)
+- `0xA3`: Chip ID
+
+**Coordinate System:** Portrait mode (0° rotation), direct pass-through. No transforms needed.
+
+**Why not SensorLib:** FT3168 chip ID (0x03) isn't in SensorLib's FT6X36 driver allowlist — `initImpl()` rejects it. Direct I2C reads are ~20 lines of code with zero driver compatibility risk. The FocalTech register layout (0x02-0x06) is identical across FT3168/FT6X36/FT6206.
+
+### Rate Limiter Anti-Pattern (CRITICAL)
+
+**Never** use rate limiters that return `is_pressed = false` on skipped frames. The gesture engine's `update()` method transitions to `STATE_IDLE` on ANY frame where `is_pressed == false`, destroying sustained gesture detection (HOLD, SWIPE, DRAG).
+
+The state machine sees: PRESS → IDLE → PRESS → IDLE (every N frames), making sustained gestures impossible.
+
+If rate limiting is needed: return the LAST KNOWN touch state on skipped frames, or skip only the I2C read without changing the reported state.
+
+### Touch Gesture Edge Zone Tuning
+
+Edge zones determine whether a touch starts in the "center" (→ SWIPE) or at an "edge" (→ EDGE_DRAG). Getting these wrong causes center swipes to be misclassified as edge drags.
+
+**T-Display S3 AMOLED Plus (536×240 landscape):**
+```cpp
+engine->setEdgeZones(
+    40,   // left: x < 40 (7.5% of 536)
+    430,  // right: x > 430 (80% — last 20%)
+    36,   // top: y < 36 (15% of 240)
+    204   // bottom: y > 204 (85% — last 15%)
+);
+```
+This leaves ~51% of the screen as "center" for SWIPE detection.
+
+**Waveshare ESP32-S3 1.8" (368×448 portrait):**
+Uses default percentage-based thresholds (30% from each edge via `EDGE_THRESHOLD_PERCENT`). No custom configuration needed — full-screen touch panel.
+
+**Tuning lessons learned:**
+- Edge zones > 60% of screen leave almost no center area for SWIPE detection (the original zones gave only 10% center)
+- RIGHT edge threshold must be reachable by actual finger touches on a 1.91" screen
+- Axis-aware swipe thresholds (`getSwipeDistanceThreshold(dx, dy)`) prevent aspect ratio distortion on non-square screens — horizontal and vertical swipes use their respective axis dimension for threshold calculation
+
+### Debugging Protocol for Touch Issues
+
+1. **Check RAW register bytes:** Log the 7-byte I2C read to verify the controller returns real data (not stuck values like `00 AA 01 82 58 00 78` → always 600,120)
+2. **Verify init sequence:** For CST816: INT pin wake → I2C init → auto-sleep disable → interrupt mode set. Missing any step can leave the controller in gesture-only mode
+3. **Tap all 4 corners:** Compare expected vs actual coordinates to determine if rotation/scaling/swapping is needed. Both controllers on LPad use direct pass-through (no transforms)
+4. **Log start positions for gestures:** Shows which zone (LEFT/RIGHT/TOP/BOTTOM/CENTER) triggered the classification
+5. **Test with FT3168 first:** It's simpler — if gestures work there, the gesture engine is fine and the issue is CST816 HAL-level
+
 ## [2026-02-11] Waveshare ESP32-S3 1.8" AMOLED: Wrong Touch Controller, Rate Limiter Phantom Releases, and Title Clipping
 
 ### Challenge 1: FT3168 ≠ CST816 — Wrong Touch Controller Assumption
@@ -13,712 +124,109 @@ This document captures the "tribal knowledge" of the project: technical hurdles,
 - I2C address is **0x38** (FocalTech FT3168), not **0x15** (CST816)
 - The `pin_config.h` confirmed identical I2C pins but completely different touch IC
 
-**Solution:** Created `hal/touch_ft3168.cpp` using direct I2C register reads (FocalTech standard register layout: 0x02=num_touches, 0x03-0x06=X/Y coords). Chose raw I2C over SensorLib's `TouchDrvFT6X36` because:
-- FT3168 chip ID (0x03) isn't in the FT6X36 driver's allowlist — `initImpl()` would reject it
-- Direct I2C reads are ~20 lines of code with zero driver compatibility risk
-- The FocalTech register layout (0x02-0x06) is identical across FT3168/FT6X36/FT6206
+**Solution:** Created `hal/touch_ft3168.cpp` using direct I2C register reads (FocalTech standard register layout: 0x02=num_touches, 0x03-0x06=X/Y coords).
 
 **platformio.ini Impact:** Required adding `-<../hal/touch_ft3168.cpp>` or `-<../hal/touch_cst816.cpp>` exclusions to ALL 16 build environments to prevent duplicate symbol errors (both files implement `hal_touch_init`/`hal_touch_read`).
-
-**Key Lesson:** **Same I2C pins ≠ same touch controller.** Always check vendor demo code for the actual driver being used, especially when two boards share a pin configuration. The pin_config.h only tells you the wiring, not the silicon.
 
 ### Challenge 2: Rate Limiter Causing Phantom Release Events
 
 **Problem:** After touch init worked correctly on the Waveshare board, coordinates registered fine but the gesture engine detected only TAP events — no HOLD, SWIPE, or DRAG. The finger-down state was being interrupted every few frames.
 
-**Root Cause:** The rate limiter (copied from CST816 HAL) returned `is_pressed = false` on 2 out of every 3 frames:
-```cpp
-if (poll_counter < 3) {
-    point->is_pressed = false;  // ← PROBLEM: Gesture engine sees this as RELEASE
-    point->x = 0;
-    point->y = 0;
-    return true;
-}
-```
-
-The gesture engine's `update()` method transitions to `STATE_IDLE` on ANY frame where `is_pressed = false` (line 109-173 of `touch_gesture_engine.cpp`). With the rate limiter, the state machine saw: PRESS → IDLE → PRESS → IDLE → PRESS → IDLE (every 3 frames), making sustained gestures impossible.
-
-**Why CST816 had the same code:** The CST816 rate limiter was added to work around I2C bus sticking issues specific to that controller. The FT3168 doesn't have this problem.
+**Root Cause:** The rate limiter returned `is_pressed = false` on 2 out of every 3 frames, causing the gesture engine to see PRESS → IDLE → PRESS → IDLE on every 3 frames. See "Rate Limiter Anti-Pattern" in the Touch System guide above.
 
 **Solution:** Removed the rate limiter entirely from `touch_ft3168.cpp`. The FT3168 handles full-speed I2C polling without issues.
-
-**Key Lesson:** **Rate limiters that return synthetic "not pressed" states are incompatible with state-machine gesture engines.** If rate limiting is needed, return the LAST KNOWN state on skipped frames instead of forcing `is_pressed = false`. Better yet, only rate-limit at the I2C level (skip the read) without changing the reported touch state.
 
 ### Challenge 3: getTextBounds() Clipping Last Character
 
 **Problem:** The on-screen title displayed "DEMO v0.6" instead of "DEMO v0.65". The "5" was missing.
 
-**Root Cause:** `Arduino_GFX::getTextBounds()` can undercount the width of the last character's advance by 1-2 pixels. In `V060DemoApp::renderTitleToBuffer()`, the canvas was sized to exactly `w` pixels from `getTextBounds()`, clipping the final character:
-```cpp
-gfx->getTextBounds(titleText, 0, 0, &x1, &y1, &w, &h);
-m_titleBufferWidth = w;  // ← 1-2px too narrow for last char
-Arduino_Canvas* canvas = new Arduino_Canvas(m_titleBufferWidth, ...);
-canvas->print(titleText);  // "5" rendered beyond canvas width → clipped
-```
+**Root Cause:** `Arduino_GFX::getTextBounds()` can undercount the width of the last character's advance by 1-2 pixels. The canvas was sized to exactly `w` pixels from `getTextBounds()`, clipping the final character.
 
 **Solution:** Added 2 pixels of padding: `m_titleBufferWidth = w + 2;`
 
-**Key Lesson:** **Never trust `getTextBounds()` for exact canvas sizing.** Always add 2-4 pixels of width padding when using the bounds to allocate a rendering canvas. This is a known limitation of Arduino GFX's text metrics — the advance width of the final glyph may exceed the reported bounding box.
-
-## [2026-02-11] Touch Coordinate System: The Great Debugging Odyssey (Part 2)
-
-### Problem Statement
-After fixing initial gesture detection, Release v0.65 touch coordinates were completely broken on T-Display S3 AMOLED Plus:
-- Top-left corner (0,0) reported as (507, 0) - 95% across screen!
-- Y-axis seemed correct for top/bottom, but X-axis completely wrong
-- LEFT/RIGHT edges swapped when trying to fix
-- BOTTOM edge unreachable (coordinates compressed)
-
-### The Debugging Journey: A Comedy of Errors
-
-#### Attempt 1: X-Axis Inversion (WRONG)
-**Assumption:** Since LEFT/RIGHT were swapped, invert X coordinate.
-```cpp
-transformed_x = 535 - scaled_y;  // Invert X
-transformed_y = scaled_x;
-```
-**Result:** Made everything worse. Top-left became (509, 0) instead of closer to (0, 0).
-**Lesson:** Don't guess at transforms without empirical data.
-
-#### Attempt 2: Swap Edge Zone Thresholds (WRONG)
-**Assumption:** Maybe the zone thresholds need swapping, not coordinates.
-```cpp
-setEdgeZones(455, 320, 40, 180);  // Swapped LEFT/RIGHT
-```
-**Result:** Semantic confusion. LEFT zone detected RIGHT edge, required compensation in direction rotation. Fragile.
-**Lesson:** Swapping thresholds to compensate for wrong coordinates is a band-aid, not a fix.
-
-#### Attempt 3: "It's Rotated 90°, Swap the OTHER Pair!" (WRONG)
-**User insight:** Screen is rotated 90°, so what you think is LEFT/RIGHT is actually TOP/BOTTOM!
-**Action:** Swapped TOP/BOTTOM thresholds instead of LEFT/RIGHT.
-```cpp
-setEdgeZones(320, 455, 180, 40);  // Swapped TOP/BOTTOM
-```
-**Result:** Still wrong. Fundamental misunderstanding of coordinate system.
-**Lesson:** Rotation affects coordinate INTERPRETATION, not just threshold parameters.
-
-#### Attempt 4: Remove X-Inversion, Use Simple Swap (PARTIAL SUCCESS)
-**HIL Evidence:** Corner tap data showed X and Y were BACKWARDS.
-```
-Top-left: expected (0,0), got (47, 4) with axis swap
-Top-right: expected (535,0), got (56, 214) with axis swap
-```
-**Action:** Removed X-inversion, used simple axis swap.
-```cpp
-transformed_x = scaled_y;
-transformed_y = scaled_x;
-```
-**Result:** Axes were swapped when they shouldn't be! Still wrong.
-**Lesson:** Don't assume rotation needs axis swap - verify empirically.
-
-#### Attempt 5: NO Axis Swap! (BREAKTHROUGH)
-**Discovery:** Touch controller already reports in ROTATED coordinates!
-```cpp
-// Remove the swap:
-transformed_x = scaled_x;  // NO swap!
-transformed_y = scaled_y;  // NO swap!
-```
-**Result:** Coordinates much closer! Top-left (2, 46) vs expected (0, 0).
-**Lesson:** Touch firmware may pre-rotate coordinates to match display orientation.
-
-#### Attempt 6: Disable Direction Rotation (CORRECT)
-**Problem:** Physical LEFT edge reported as "TOP" edge.
-**Realization:** Since touch is pre-rotated, gesture directions are already correct!
-**Action:** Disabled all direction rotation.
-```cpp
-// NO rotation needed - touch controller handles it
-```
-**Result:** Edge names finally correct! ✓
-
-#### Attempt 7: Post-Rotation Scaling (WRONG)
-**Problem:** RIGHT edge unreachable. RAW (600, 120) → screen (240, 120) - only 45% across!
-**Assumption:** Need to scale to post-rotation dimensions (536×240).
-```cpp
-scaled_x = (raw_x * 536) / 600;
-scaled_y = (raw_y * 240) / 536;
-```
-**Result:** Better, but BOTTOM edge still wrong. RAW (284, 189) → screen (253, 84).
-**Lesson:** Scaling formula was still incorrect.
-
-#### Attempt 8: NO Scaling! (FINAL SOLUTION)
-**Critical Discovery from HIL Data:**
-```
-Corner taps show:
-  RAW X range: 2-536   → MATCHES display width 536!
-  RAW Y range: 46-239  → MATCHES display height 240!
-```
-**Realization:** Touch controller reports DISPLAY COORDINATES directly!
-**Final Transform:**
-```cpp
-// NO rotation, NO scaling - touch controller does everything!
-transformed_x = raw_x;
-transformed_y = raw_y;
-```
-**Result:** ALL edges work correctly! ✓✓✓
-
-### Final Working Configuration
-
-```cpp
-// Touch coordinate transform (hal/touch_cst816.cpp)
-int16_t scaled_x = x[0];  // Direct pass-through
-int16_t scaled_y = y[0];  // Direct pass-through
-transformed_x = scaled_x; // No axis swap
-transformed_y = scaled_y; // No inversion
-
-// Direction rotation (demos/v065_demo_app.cpp)
-// DISABLED - touch controller pre-rotated
-
-// Edge zones (hal/touch_cst816.cpp)
-setEdgeZones(80, 215, 40, 180);  // Original values
-// LEFT: x<80, RIGHT: x>215, TOP: y<40, BOTTOM: y>180
-```
-
-### Key Lessons Learned
-
-1. **NEVER assume coordinate system behavior - always verify with HIL corner taps**
-   - Tap all 4 corners and compare expected vs actual coordinates
-   - Don't trust vendor documentation - test the actual hardware
-
-2. **Touch controllers may be "smart" and pre-process coordinates**
-   - The CST816 on T-Display S3 AMOLED Plus:
-     - Pre-rotates to match display orientation (no axis swap needed)
-     - Pre-scales to display resolution (no scaling needed)
-     - This is firmware behavior, not documented in datasheets!
-
-3. **Don't stack transforms to fix symptoms**
-   - X-inversion to fix LEFT/RIGHT swap = wrong approach
-   - Threshold swaps to compensate for wrong coordinates = band-aid
-   - Each "fix" creates new problems and fragile dependencies
-
-4. **The simplest solution is usually correct**
-   - Final solution: x=x, y=y (direct pass-through)
-   - All the complex rotation/scaling/inversion logic was WRONG
-   - Occam's Razor applies to coordinate transforms
-
-5. **Screen rotation ≠ Touch rotation**
-   - Display ROTATION=90 setting rotates the DISPLAY framebuffer
-   - Touch controller may independently handle its own rotation
-   - These are separate subsystems - don't assume they coordinate
-
-6. **Edge zones must match actual touchable range**
-   - T-Display touchable area: X=2-536, Y=46-239 (not full screen)
-   - BOTTOM zone (y>180) works because touch goes up to Y=239
-   - Would fail if we expected full 0-240 range
-
-7. **Empirical data beats assumptions**
-   - Every failed attempt was based on logical assumptions
-   - Success came from following the actual measured coordinates
-   - When debugging touch: TAP THE CORNERS, log RAW values, compare to expected
-
-### Debugging Protocol for Future Touch Issues
-
-1. **Collect corner tap data** (all 4 corners):
-   ```
-   Top-left:     RAW (?, ?) → screen (?, ?) expect (0, 0)
-   Top-right:    RAW (?, ?) → screen (?, ?) expect (W-1, 0)
-   Bottom-left:  RAW (?, ?) → screen (?, ?) expect (0, H-1)
-   Bottom-right: RAW (?, ?) → screen (?, ?) expect (W-1, H-1)
-   ```
-
-2. **Analyze the pattern**:
-   - Are axes swapped? (screen X correlates with raw Y or raw X?)
-   - Are axes inverted? (low raw → high screen or low raw → low screen?)
-   - What's the scaling factor? (raw range vs screen range)
-
-3. **Test edge drags** (all 4 edges):
-   - Does detected edge name match physical edge?
-   - If not, direction rotation may be needed
-   - If coordinates are wrong but names right, transform is wrong
-
-4. **Start with simplest transform** (x=x, y=y):
-   - Only add complexity if corner data proves it's needed
-   - Test each transform element independently
-
-5. **Document the actual behavior**:
-   - "Touch controller pre-rotates to match DISPLAY_ROTATION=90"
-   - "Touch controller reports in display coordinates (no scaling)"
-   - Future you will thank present you
-
-### Hardware-Specific Behavior: T-Display S3 AMOLED Plus
-
-**Touch Controller:** CST816 (via SensorLib TouchDrvCSTXXX)
-**Display Rotation:** 90° CW (DISPLAY_ROTATION=90)
-**Touch Behavior:**
-- ✓ Pre-rotated to match display orientation
-- ✓ Pre-scaled to display resolution (536×240)
-- ✓ Reports coordinates directly in display space
-- ✗ Touchable area smaller than screen (X: 2-536, Y: 46-239)
-
-**Required Transform:** NONE (direct pass-through)
-**Required Direction Rotation:** NONE (pre-rotated)
-**Required Scaling:** NONE (pre-scaled)
-
-This is NOT standard behavior - other touch controllers may require full rotation/scaling!
-
-## [2026-02-11] Touch Rotation & Gesture Tuning: The Coordinate Transform Odyssey
-
-### Problem
-Release v0.65 touch gestures on T-Display S3 AMOLED Plus (536×240 landscape, 90° rotation) exhibited multiple confusing symptoms:
-- Edge drags reported wrong directions (physical TOP reported as BOTTOM, etc.)
-- UP/DOWN swipes too easily confused with TOP/BOTTOM edge drags
-- Asymmetric sensitivity (LEFT/TOP edges easy to trigger, RIGHT/BOTTOM edges hard to trigger)
-- Direction names inconsistent between gesture types (EDGE_DRAG used TOP/BOTTOM, SWIPE used UP/DOWN)
-
-### Root Cause 1: Rotation Direction Confusion
-**Initial assumption:** Display rotation is 90° CW (clockwise), so apply 90° CW transform to touch coordinates.
-**Reality:** Display rotation is 90° CW in **screen-to-physical mapping**, so touch coordinates need **90° CCW (counter-clockwise)** transform to map physical-to-screen.
-
-**The Debugging Journey:**
-1. **Attempt 1:** Simple X↔Y swap → Directions still wrong
-2. **Attempt 2:** X↔Y swap + Y inversion → Closer, but still inverted
-3. **Attempt 3:** Tried alternative 270° formula → Same as 90° CCW (realized they're equivalent)
-4. **Success:** X↔Y swap + correct Y inversion → **Physical edges now map correctly to screen edges**
-
-**Final Transform (90° rotation):**
-```cpp
-transformed_x = scaled_y;                        // Touch Y → Display X
-transformed_y = g_display_height - 1 - scaled_x; // Inverted Touch X → Display Y
-```
-
-**Critical Insight:** When display says "90° rotation", it means:
-- Physical device TOP edge → Logical screen LEFT edge
-- Physical device RIGHT edge → Logical screen TOP edge
-- Physical device BOTTOM edge → Logical screen RIGHT edge
-- Physical device LEFT edge → Logical screen BOTTOM edge
-
-Touch coordinates must apply the **inverse rotation** (90° CCW) to map back correctly.
-
-### Root Cause 2: Aspect Ratio Distortion in Gesture Thresholds
-**Problem:** Both center swipes and edge drags used thresholds based on `m_screen_max_dim` (max of width and height).
-- For 536×240 screen: max_dim = 536px
-- Horizontal movement threshold: 536 × 8% = 43px (8% of width) ✓ Reasonable
-- Vertical movement threshold: 536 × 8% = 43px (**18% of height**) ✗ Too sensitive!
-
-**Result:** Vertical gestures required much higher screen percentage than horizontal gestures, causing:
-- UP/DOWN center swipes detected with minimal movement
-- TOP/BOTTOM edge drags overlapped heavily with center swipes
-- User couldn't distinguish edge drags from swipes in vertical direction
-
-**Solution: Axis-Aware Thresholds**
-```cpp
-int16_t getSwipeDistanceThreshold(int16_t dx, int16_t dy) const {
-    if (std::abs(dx) > std::abs(dy)) {
-        return static_cast<int16_t>(m_screen_width * SWIPE_DISTANCE_PERCENT);  // Horizontal
-    } else {
-        return static_cast<int16_t>(m_screen_height * SWIPE_DISTANCE_PERCENT); // Vertical
-    }
-}
-```
-
-**New Thresholds (v0.65.1):**
-- Center swipe: **12% of axis dimension** (increased from 8% for more deliberate gestures)
-- Edge drag: **30% of axis dimension** (increased from 15% to clearly differentiate from center swipes)
-
-**For 536×240 screen:**
-- Horizontal center swipe: 536 × 12% = 64px (12% of width)
-- Vertical center swipe: 240 × 12% = 29px (12% of height) → Balanced!
-- Horizontal edge drag: 536 × 30% = 161px (30% of width)
-- Vertical edge drag: 240 × 30% = 72px (30% of height) → Clear separation!
-
-### Root Cause 3: Board-Specific Edge Zone Configuration
-**Problem:** T-Display touch panel has limited active area (x: 18-227, y: 25-237 in screen coords).
-- Default percentage-based zones didn't align with actual touchable area
-- RIGHT and BOTTOM edges difficult to trigger (beyond touch panel range)
-
-**Solution:** Board-specific thresholds in HAL (`hal_touch_configure_gesture_engine()`):
-```cpp
-engine->setEdgeZones(
-    80,   // LEFT: x < 80 (catches minimum x=18)
-    215,  // RIGHT: x > 215 (within maximum x=227)
-    60,   // TOP: y < 60 (catches minimum y=25)
-    215   // BOTTOM: y > 215 (within maximum y=237)
-);
-```
-
-### Key Lessons
-1. **Rotation direction is relative to the mapping, not absolute** - Display "90° CW" means screen-to-physical mapping, touch needs inverse (physical-to-screen)
-2. **Test physical device orientation, not screen coordinates** - Labeling physical edges (TOP/LEFT/BOTTOM/RIGHT on actual device) prevents rotation confusion
-3. **Aspect ratio matters for gesture thresholds** - Non-square screens need axis-specific thresholds, not max-dimension-based percentages
-4. **Edge drags must be meaningfully different from center swipes** - Increased threshold from 15% to 30% (2x → 2.5x center swipe distance) provides clear separation
-5. **Touch panel active area ≠ display area** - Always test edge detection on actual hardware to tune zone thresholds
-6. **Direction rotation applies to gesture output, not input** - Touch coordinates are rotated at HAL level, but gesture directions (UP/DOWN/LEFT/RIGHT) must be rotated again for physical device mapping in demo code
-7. **Symmetric-sounding features hide asymmetric hardware** - "Touch panel covers full screen" assumption failed on T-Display (18-227 vs 0-536 range)
-
-### Architecture Impact
-- **HAL responsibility:** Board-specific edge zone configuration via `hal_touch_configure_gesture_engine()`
-- **Gesture engine responsibility:** Axis-aware thresholds for aspect-ratio-neutral gesture detection
-- **Demo responsibility:** Direction rotation for physical device mapping (screen coords → physical edges)
-
-This clean separation allows the gesture engine to remain hardware-agnostic while HAL handles board quirks.
-
-## [2026-02-11] CST816 Touch Race Condition: isPressed() vs getPoint()
-
-### Problem
-Touch events showed impossible timing: PRESS, TAP, and RELEASE all occurring in a single 33ms frame:
-```
-[Touch] PRESS at (134, 186)
-[Touch] TAP at (134, 186) = (25.0%, 77.5%)
-[Touch] RELEASE
-```
-
-User reported:
-- Only TAP gestures detected (no HOLD, SWIPE, DRAG)
-- 1.5 second delay before touch registers
-- RELEASE events triggered while finger still down
-
-### Root Cause: I2C Race Condition
-
-`hal_touch_read()` made TWO separate I2C transactions:
-```cpp
-// WRONG: Two separate reads create race condition
-if (!g_touch.isPressed()) {  // I2C read #1
-    return false;
-}
-uint8_t count = g_touch.getPoint(x, y, 1);  // I2C read #2
-```
-
-**The Problem:**
-1. Frame N: `isPressed()` returns TRUE → read coordinates → report touch pressed
-2. Between frames: CST816 interrupt flag auto-clears after coordinate read
-3. Frame N+1: `isPressed()` returns FALSE (flag cleared) → report touch released
-4. But `getPoint()` STILL returns valid coordinates (cached by controller)
-
-**Result:** Phantom RELEASE events between every frame, preventing gesture detection.
-
-### Solution: Single Source of Truth
-
-Use `point_count` from `getPoint()` as the ONLY indicator of touch state:
-```cpp
-// CORRECT: Single I2C transaction
-uint8_t point_count = g_touch.getPoint(x, y, 1);
-if (point_count == 0) {
-    point->is_pressed = false;  // No valid coordinates
-} else {
-    point->is_pressed = true;   // Valid coordinates = touch present
-}
-```
-
-**Why This Works:**
-- `getPoint()` returns 0 when no touch detected
-- Returns 1 (or more) when touch coordinates are valid
-- Single I2C transaction = no race condition
-- No dependency on volatile interrupt flags
-
-### Results
-- Touch state now stable across frames
-- HOLD gestures should work (no phantom releases interrupting 1s timer)
-- SWIPE/DRAG can track continuous motion
-- Coordinates changing correctly (RAW values vary across screen)
-
-**Remaining Issue:** 1.5 second delay before first touch registers
-- Likely CST816 internal debounce/noise filtering
-- May require firmware configuration via I2C registers
-
-### Key Lessons
-1. **Never split atomic operations across multiple I2C transactions** - hardware state can change between reads
-2. **CST816 interrupt flag auto-clears on coordinate read** - makes `isPressed()` unreliable for state tracking
-3. **Use point_count as touch state indicator** - it's the direct result of the coordinate read, not a separate status check
-4. **Debug multi-event-per-frame anomalies immediately** - they indicate race conditions or timing bugs
-5. **Hardware interrupts/flags are NOT stable across I2C transactions** - assume they can change at any time
-
-## [2026-02-11] Touch Overlay Optimization: Reducing Render Cost & Polling Overhead
-
-### Problem
-Release v0.65 (touch interaction demo) exhibited three performance issues:
-1. **Text cutoff**: Touch gesture text was truncated (buffer too small for full text)
-2. **Touch polling overhead**: `hal_touch_read()` performed 2 I2C transactions EVERY frame (30fps = 60 I2C reads/sec)
-3. **Overlay over-rendering**: Touch overlay blit happened every frame even when overlay content hadn't changed
-
-### Root Causes
-
-**1. Text Cutoff:**
-- Buffer size was 200x60 pixels
-- Text with 18pt font could be ~300px wide: "EDGE_DRAG: RIGHT" + "(240, 536) 100%"
-- Long gesture names + coordinates exceeded buffer width, causing cutoff
-
-**2. Touch Polling Overhead:**
-- `hal_touch_read()` called every frame in V065DemoApp::update()
-- Each call executed 2 I2C transactions:
-  - `g_touch.isPressed()` - read touch state register
-  - `g_touch.getPoint()` - read coordinate registers
-- At 30fps, this resulted in 60 I2C reads/second
-- **CST816 INT pin (GPIO 21) was configured but never checked** - pin goes LOW when touch data is ready, HIGH when idle
-
-**3. Overlay Over-Rendering:**
-- `TouchTestOverlay::render()` called every frame via V065DemoApp::render()
-- `hal_display_fast_blit_transparent()` executed every frame even when overlay text hadn't changed
-- Overlay only changes when new gesture detected (typically <1fps), but was blitting at 30fps
-
-### Solutions
-
-**1. Increased Buffer Size (200x60 → 300x80):**
-```cpp
-// Old: 200x60 (too small)
-m_text_width = 200;
-m_text_height = 60;
-
-// New: 300x80 (fits full text with 18pt font)
-m_text_width = 300;  // 18pt ≈ 12px/char, ~35 chars max = 420px, reduced to 300px
-m_text_height = 80;  // 2 lines + spacing + box padding
-```
-
-**2. INT Pin Polling Optimization:**
-Added fast-path check in `hal_touch_read()`:
-```cpp
-// Check INT pin first (GPIO read - microseconds)
-if (digitalRead(TOUCH_INT) == HIGH) {
-    point->is_pressed = false;
-    return true;  // Fast path - no I2C transaction
-}
-
-// INT pin LOW - touch data ready, proceed with I2C read
-if (!g_touch.isPressed()) { ... }
-```
-
-**Impact:**
-- **When no touch active (majority of time)**: Single GPIO read (microseconds) instead of 2 I2C transactions (~2-3ms total)
-- **When touch active**: Same 2 I2C transactions as before (no performance loss)
-- **Estimated savings**: ~2-3ms per frame when idle = ~60-90ms/second at 30fps
-
-**3. Conditional Blit with Dirty Flag:**
-Added `m_needs_blit` flag to track when overlay content changes:
-```cpp
-void TouchTestOverlay::update(const touch_gesture_event_t& event) {
-    // ... store event data ...
-    m_buffer_valid = false;  // Re-render text
-    m_needs_blit = true;      // Mark for blit
-}
-
-void TouchTestOverlay::render() {
-    if (!m_buffer_valid) {
-        renderTextToBuffer();   // Render text to buffer
-        m_needs_blit = true;    // New content needs blit
-    }
-
-    if (!m_needs_blit) {
-        return;  // Skip blit if unchanged
-    }
-
-    hal_display_fast_blit_transparent(...);
-    m_needs_blit = false;  // Blit complete
-}
-```
-
-**Additional Helper Method:**
-```cpp
-void TouchTestOverlay::markForReblit() {
-    if (m_visible) {
-        m_needs_blit = true;  // Re-blit after graph render
-    }
-}
-```
-Called in V065DemoApp::render() to ensure overlay reappears after graph updates.
-
-**Impact:**
-- Overlay blit only happens when:
-  1. New gesture detected (~1fps typical)
-  2. Graph re-renders and may have overwritten overlay
-- Eliminates 29 unnecessary blits per second (at 30fps with 1fps gesture rate)
-
-### Results
-- **Text cutoff eliminated**: Full gesture text visible with 300x80 buffer
-- **Touch polling overhead reduced by ~90% when idle**: GPIO read instead of I2C transactions
-- **Overlay render cost reduced by ~97%**: 1 blit/sec (on gesture) instead of 30 blits/sec
-
-### Results
-- **Text cutoff eliminated**: Full gesture text visible with 300x100 buffer
-- **Overlay render cost reduced by ~97%**: 1 blit/sec (on gesture) instead of 30 blits/sec
-- **INT pin optimization FAILED**: Caused false positives (touch reported when not touching)
-
-### Lessons Learned: INT Pin Polling Failure
-
-**Attempted Optimization (FAILED):**
-```cpp
-// Check INT pin before I2C read
-if (digitalRead(TOUCH_INT) == HIGH) {
-    return false;  // Assume no touch
-}
-```
-
-**Result:** Constant false positives - touch reported at (120, 0) even without contact.
-
-**Root Cause (Hypothesis):** INT pin polarity/behavior different than assumed:
-- May be active-high instead of active-low
-- May require pull-up resistor configuration
-- SensorLib may configure pin differently than expected
-- Pin state may not directly indicate "touch ready"
-
-**Correct Approach for Future:**
-1. Read CST816 datasheet for INT pin specifications
-2. Use logic analyzer to observe pin state during touch events
-3. Check SensorLib source code for pin configuration
-4. Test with oscilloscope to verify timing and polarity
-5. **Never assume INT pin behavior without verification**
-
-**Interim Solution:** Reverted to I2C polling (isPressed() check) until pin behavior understood.
-
-### Key Lessons
-1. **Dirty flags prevent redundant render operations** - Track when content actually changes instead of rendering every frame
-2. **Buffer size must accommodate worst-case content** - Measure longest possible text with actual font metrics, don't guess
-3. **Font baseline positioning is critical** - getTextBounds() returns negative y offset from baseline to top, must subtract when centering
-4. **DMA blits are fast but not free** - Eliminate unnecessary blits even if each one is only 1-2ms
-5. **DO NOT assume hardware pin behavior** - INT/IRQ pin polarity and configuration must be verified with datasheet + testing before optimization
-
-## [2026-02-11] Touch Coordinate Scaling: Controller Resolution vs Display Pixels
-
-### Problem
-Touch coordinates were consistently wrong - Y always reported as 0%:
-```
-RAW: x=600, y=120
-TRANSFORM: trans_y = 240 - 600 = -360
-FINAL: y=0 (clamped from negative)
-[Touch] TAP at (120, 0) = (22.4%, 0.0%)  ← Y always 0!
-```
-
-### Root Cause
-The CST816 touch controller reports coordinates in a **fixed resolution** (600×536) that differs from the physical display pixel dimensions (240×536). The rotation transformation was applying directly to raw coordinates without scaling:
-```cpp
-// WRONG: Using raw 0-599 range with 240-pixel display height
-transformed_y = g_display_height - x[0];  // 240 - 600 = -360!
-```
-
-### Solution
-Scale raw touch coordinates to physical display dimensions BEFORE applying rotation transform:
-```cpp
-// Touch controller resolution (hardware-specific)
-const int16_t TOUCH_WIDTH = 600;
-const int16_t TOUCH_HEIGHT = 536;
-
-// Physical display dimensions
-const int16_t PHYSICAL_WIDTH = 240;
-const int16_t PHYSICAL_HEIGHT = 536;
-
-// Scale first
-int16_t scaled_x = (x[0] * PHYSICAL_WIDTH) / TOUCH_WIDTH;   // 600 → 240
-int16_t scaled_y = (y[0] * PHYSICAL_HEIGHT) / TOUCH_HEIGHT; // 536 → 536
-
-// Then apply rotation transform
-transformed_y = g_display_height - scaled_x;  // Now in correct range!
-```
-
-### Lesson
-**Touch controller resolution ≠ Display pixel resolution**. Many touch controllers (especially capacitive) report in fixed resolutions (e.g., 600×600, 1024×1024) regardless of actual display size. Always check vendor datasheets and empirically verify the touch coordinate range, then scale to display dimensions before applying coordinate transformations.
+**Key Lesson:** **Never trust `getTextBounds()` for exact canvas sizing.** Always add 2-4 pixels of width padding when using the bounds to allocate a rendering canvas.
 
 ## [2026-02-11] TouchTestOverlay Crash: Arduino_Canvas Requires Valid Parent Device
 
 ### Problem
 Release v0.65 crashed immediately upon detecting the first touch tap gesture:
 ```
-[Touch] TAP at (120, 0) = (22.4%, 0.0%)
 Guru Meditation Error: Core  1 panic'ed (StoreProhibited). Exception was unhandled.
 EXCVADDR: 0x00000000
 ```
 
-A `StoreProhibited` exception (0x1d) indicated a null pointer dereference in the TouchTestOverlay's render path.
+### Root Cause Chain (3 crashes, 3 fixes)
 
-### Root Cause
-In `ui_touch_test_overlay.cpp:99`, the temporary canvas was created with `nullptr` as the parent device AND the critical `begin()` initialization was missing:
+**Crash 1: Null pointer dereference**
+Canvas created with `nullptr` parent AND missing `begin()` call:
 ```cpp
-Arduino_Canvas canvas(m_text_width, m_text_height, nullptr);  // TWO BUGS
+Arduino_Canvas canvas(m_text_width, m_text_height, nullptr);  // No begin()!
 canvas.fillScreen(CHROMA_KEY);  // CRASH: framebuffer not allocated
 ```
+**Fix:** Call `canvas.begin(GFX_SKIP_OUTPUT_BEGIN)` to allocate the internal framebuffer.
 
-**Bug 1:** Passing `nullptr` as parent device (though after testing, this alone might not crash)
-**Bug 2 (PRIMARY):** Missing `canvas.begin(GFX_SKIP_OUTPUT_BEGIN)` call — **this allocates the internal framebuffer**. Without it, all drawing operations dereference a null framebuffer pointer.
-
-### Solution
-Always provide a valid parent display device AND call `begin()` before any drawing operations:
+**Crash 2: Stack overflow**
+Canvas allocated on stack caused stack overflow during touch event handling:
 ```cpp
-Arduino_GFX* gfx = static_cast<Arduino_GFX*>(hal_display_get_gfx());
-Arduino_Canvas canvas(m_text_width, m_text_height, gfx);
-
-// CRITICAL: Initialize canvas framebuffer before drawing
-if (!canvas.begin(GFX_SKIP_OUTPUT_BEGIN)) {
-    Serial.println("[ERROR] Canvas begin() failed");
-    return;
-}
-
-canvas.fillScreen(CHROMA_KEY);  // NOW SAFE
+Arduino_Canvas canvas(...);  // STACK - too large for local variable
 ```
+**Fix:** Heap allocate: `Arduino_Canvas* canvas = new Arduino_Canvas(...);`
 
-The HAL provides `hal_display_get_gfx()` for the parent device. See `hal/display_tdisplay_s3_plus.cpp:278` and `ui_time_series_graph.cpp:118` for reference patterns.
-
-### Lesson Learned: Stack vs Heap Allocation (CRITICAL)
-After fixing the null pointer crash, a **second crash occurred** - "Double exception" with corrupted backtrace. This indicated **stack overflow**.
-
-**Root Cause (Secondary):** The canvas was initially allocated on the stack:
-```cpp
-Arduino_Canvas canvas(m_text_width, m_text_height, gfx);  // STACK - WRONG for large canvases
-```
-
-Even with the framebuffer heap-allocated by `begin()`, the `Arduino_Canvas` object itself is large enough to cause stack overflow when created as a local variable, especially during interrupt-driven touch event handling.
-
-**Final Solution:**
-```cpp
-// Allocate canvas on HEAP, not stack
-Arduino_Canvas* canvas = new Arduino_Canvas(m_text_width, m_text_height, gfx);
-if (canvas == nullptr || !canvas->begin(GFX_SKIP_OUTPUT_BEGIN)) {
-    delete canvas;
-    return;
-}
-
-// Use canvas...
-
-delete canvas;  // Clean up when done
-```
-
-This pattern is used throughout the codebase (see `v060_demo_app.cpp:407`, HAL canvas functions) and MUST be followed for all temporary canvas creation.
-
-### Complete Arduino_Canvas Initialization Pattern
-1. **Heap allocate:** `Arduino_Canvas* canvas = new Arduino_Canvas(width, height, gfx)`
-2. **Initialize framebuffer:** `canvas->begin(GFX_SKIP_OUTPUT_BEGIN)`
-3. **Use canvas:** `canvas->fillScreen()`, `canvas->print()`, etc.
-4. **Clean up:** `delete canvas;`
-
-**Never allocate large Arduino_Canvas objects on the stack** — always use heap allocation to prevent stack overflow crashes.
-
-### Third Crash: Double-Free from Repeated Canvas Allocation (CRITICAL)
-After fixing stack overflow, a **third crash occurred** - double-free assertion in memory allocator:
+**Crash 3: Double-free from repeated allocation**
+Creating/destroying `Arduino_Canvas` on every touch event corrupted heap:
 ```
 assert failed: tlsf_free tlsf.c:1120 (!block_is_free(block) && "block already marked as free")
 ```
-
-**Root Cause:** Creating and destroying `Arduino_Canvas` on EVERY touch event (multiple times per second) caused heap corruption:
-```cpp
-void renderTextToBuffer() {
-    Arduino_Canvas* canvas = new Arduino_Canvas(...);  // Create
-    canvas->begin();
-    // ... use canvas ...
-    delete canvas;  // Delete
-}  // Called repeatedly - causes heap corruption!
-```
-
-The rapid allocation/deallocation cycle corrupted the heap allocator's metadata, leading to double-free errors on the 2nd-3rd touch event.
-
-**Final Solution: Create Canvas Once, Reuse Forever**
+**Fix:** Create canvas once as class member, reuse forever:
 ```cpp
 class TouchTestOverlay {
-    Arduino_Canvas* m_render_canvas;  // Member variable, not temporary
+    Arduino_Canvas* m_render_canvas;  // Created once in begin(), deleted in destructor
 };
+```
 
-bool begin() {
-    m_render_canvas = new Arduino_Canvas(...);
-    m_render_canvas->begin();
-    // Canvas lives for lifetime of overlay
+### Complete Arduino_Canvas Pattern
+1. **Heap allocate:** `Arduino_Canvas* canvas = new Arduino_Canvas(width, height, gfx)`
+2. **Initialize framebuffer:** `canvas->begin(GFX_SKIP_OUTPUT_BEGIN)`
+3. **Reuse:** `canvas->fillScreen()`, `canvas->print()`, etc. — never recreate
+4. **Clean up once:** `delete canvas;` in destructor only
+
+**Never allocate large Arduino_Canvas objects on the stack. Never create/destroy canvases in render paths.**
+
+## [2026-02-11] Touch Overlay Rendering Optimization
+
+### Problem
+Touch overlay blit happened every frame even when overlay content hadn't changed, wasting DMA bandwidth.
+
+### Solution: Conditional Blit with Dirty Flag
+Added `m_needs_blit` flag to track when overlay content changes:
+```cpp
+void TouchTestOverlay::update(const touch_gesture_event_t& event) {
+    m_buffer_valid = false;  // Re-render text
+    m_needs_blit = true;     // Mark for blit
 }
 
-~TouchTestOverlay() {
-    delete m_render_canvas;  // Clean up once at end
-}
-
-void renderTextToBuffer() {
-    // REUSE existing canvas, don't create/destroy
-    m_render_canvas->fillScreen(CHROMA_KEY);
-    // ... render ...
+void TouchTestOverlay::render() {
+    if (!m_buffer_valid) {
+        renderTextToBuffer();
+        m_needs_blit = true;
+    }
+    if (!m_needs_blit) return;  // Skip if unchanged
+    hal_display_fast_blit_transparent(...);
+    m_needs_blit = false;
 }
 ```
 
-**Critical Lesson:** For UI components that render frequently (touch overlays, animations, etc.), **NEVER create/destroy canvases in the render path**. Create them once during initialization and reuse them. This pattern is standard in the codebase (see `ui_time_series_graph.cpp` - canvases are members, not temporaries).
+Also added `markForReblit()` to re-blit after graph renders that may overwrite the overlay.
+
+**Impact:** Overlay blit only happens on new gesture (~1fps) or after graph update, eliminating ~29 unnecessary blits/sec at 30fps.
+
+### Buffer Sizing
+Buffer size 200x60 was too small for full gesture text ("EDGE_DRAG: RIGHT" + coordinates). Increased to 300x80 to accommodate worst-case text with 18pt font.
+
+### Key Lessons
+1. **Dirty flags prevent redundant render operations** — track when content actually changes
+2. **Buffer size must accommodate worst-case content** — measure with actual font metrics
+3. **DMA blits are fast but not free** — eliminate unnecessary blits even if each is only 1-2ms
 
 ## [2026-02-11] Release v0.60 Final: Y-Axis Tick Spacing & Label Uniqueness
 
@@ -773,25 +281,7 @@ Instead of fighting the pixel rounding, we **increase tick density** until all l
 bool has_duplicates = true;
 while (has_duplicates && tick_skip < static_cast<int>(all_ticks.size())) {
     // Generate labels for ticks at current skip level
-    std::vector<std::string> test_labels;
-    for (size_t idx = 0; idx < all_ticks.size(); idx += tick_skip) {
-        char label[16];
-        format_3_sig_digits(all_ticks[idx].first, label, sizeof(label));
-        test_labels.push_back(std::string(label));
-    }
-
     // Check for duplicates
-    has_duplicates = false;
-    for (size_t i = 0; i < test_labels.size(); i++) {
-        for (size_t j = i + 1; j < test_labels.size(); j++) {
-            if (test_labels[i] == test_labels[j]) {
-                has_duplicates = true;
-                break;
-            }
-        }
-        if (has_duplicates) break;
-    }
-
     if (has_duplicates) tick_skip++;
 }
 ```
@@ -799,36 +289,15 @@ while (has_duplicates && tick_skip < static_cast<int>(all_ticks.size())) {
 **For the example data (range 0.079, increment 0.002):**
 - tick_skip=1: 35 ticks, many duplicates
 - tick_skip=2: 17 ticks, still duplicates
-- tick_skip=5: 7 ticks with labels "4.13", "4.14", "4.15", "4.16", "4.17", "4.18" → ALL UNIQUE ✓
+- tick_skip=5: 7 ticks with labels "4.13", "4.14", "4.15", "4.16", "4.17", "4.18" → ALL UNIQUE
 
-**X-axis fix:**
-```cpp
-std::vector<size_t> tick_indices;
-for (size_t i = tick_interval; i < num_points; i += tick_interval) {
-    tick_indices.push_back(i);
-}
-
-// Always include last data point
-size_t last_index = num_points - 1;
-if (tick_indices.empty() || tick_indices.back() != last_index) {
-    tick_indices.push_back(last_index);
-}
-```
-
-### Results
-- ✓ Y-ticks remain at exact vertical positions for clean data values (spec compliant)
-- ✓ All Y-tick labels are unique (auto-adjusted tick_skip from 1→5)
-- ✓ No ticks overlap X-axis (origin suppression preserved)
-- ✓ X-axis "0" label always appears at most recent data point
-- ✓ Tick spacing is mathematically uniform (2.152 pixels), visual variation from rounding is acceptable given larger tick density reduces total variation
+**X-axis fix:** Always include last data point in tick indices.
 
 ### Key Lessons
 1. **Don't fight the spec to fix a symptom** - The spec requires ticks at exact data values; trying to move them to uniform pixels violates this requirement
 2. **Precision mismatch is solvable by density** - If display precision is coarser than data increment, reduce tick count until labels are distinguishable
-3. **User insight is invaluable** - "4 sig figs being displayed as 3 sig figs" immediately identified the root cause
-4. **Iterative algorithms > fixed heuristics** - `tick_skip = 2` hardcoded guess fails; `while (has_duplicates) tick_skip++` always succeeds
-5. **Feature specs can conflict** - "Ticks at exact clean values" + "Uniform visual spacing" are mathematically incompatible when increment is fractional pixels; prioritize data accuracy over visual perfection
-6. **Test what users see, not what code calculates** - Debug showed "delta = -2.152" (uniform), but users saw "inconsistent spacing" (rounding artifacts); both were correct from their reference frames
+3. **Iterative algorithms > fixed heuristics** - `tick_skip = 2` hardcoded guess fails; `while (has_duplicates) tick_skip++` always succeeds
+4. **Feature specs can conflict** - "Ticks at exact clean values" + "Uniform visual spacing" are mathematically incompatible when increment is fractional pixels; prioritize data accuracy over visual perfection
 
 ---
 
@@ -859,18 +328,6 @@ After initial v0.60 HIL testing, three issues were reported:
    float target_height = width_percent * shape_aspect_ratio * screen_aspect_ratio;
    ```
    This correctly converts from width percentage (% of screen width) to height percentage (% of screen height) while maintaining the shape's aspect ratio.
-
-### Key Technical Insight: Percentage Coordinate Space Conversion
-VectorRenderer works in RelativeDisplay's percentage coordinate system where:
-- X coordinates are 0-100% of screen WIDTH
-- Y coordinates are 0-100% of screen HEIGHT
-
-When converting a width percentage to height percentage to maintain aspect ratio:
-1. Shape aspect = height / width (e.g., 370/245 = 1.51 for portrait logo)
-2. Screen aspect = width / height (e.g., 536/240 = 2.23 for landscape display)
-3. Height % = Width % × Shape aspect × Screen aspect
-
-Without the screen aspect correction, shapes appear squashed or stretched because the percentage units don't account for non-square screens.
 
 ### Key Lessons
 1. **Use smallest font for compact overlays**: Status text like "DEMO v0.60" should use 9pt font, not 18pt UI font
@@ -903,15 +360,11 @@ During HIL testing of Release v0.60, multiple visual issues were discovered:
 5. **Dynamic updates**: Added static tracking of last data length in render loop, triggers `setData()` + `drawData()` when data changes
 
 ### Key Implementation Pattern: Transparent Overlay with Chroma Key
-This is the established pattern from v0.58 (see IMPLEMENTATION_LOG line 88):
 ```cpp
-// Render title to buffer with chroma key
 constexpr uint16_t CHROMA_KEY = 0x0001;
 canvas->fillScreen(CHROMA_KEY);  // Transparent background
 canvas->setTextColor(RGB565_WHITE);
 canvas->print(titleText);
-
-// Fast blit with transparency
 hal_display_fast_blit_transparent(x, y, w, h, buffer, CHROMA_KEY);
 ```
 
@@ -981,84 +434,25 @@ In v0.58 demo, the "DEMO v0.58" title text needs to persist on screen while the 
 ### Discarded Attempts
 
 **Attempt 1: Font Rendering After Graph Blit**
-```cpp
-graph->render();        // Full-screen DMA blit (title disappears)
-drawTitle();            // Font rendering with Arduino_GFX (slow)
-hal_display_flush();    // No-op
-```
-- **Result:** Visible flash between graph blit and title appearing
-- **Root cause:** `drawTitle()` involves expensive operations (getTextBounds, font rendering, print) creating ~10-20ms gap
+- **Result:** Visible flash between graph blit and title appearing (~10-20ms gap)
 
-**Attempt 2: Pre-draw Title to Framebuffer (WRONG)**
-```cpp
-drawTitle();            // Writes to display
-graph->render();        // DMA blit overwrites title
-hal_display_flush();    // No-op
-```
-- **Result:** Title immediately overwritten, never restored
-- **Root cause:** Misunderstanding of flush behavior - since flush is no-op, title drawn before graph render is immediately lost
+**Attempt 2: Pre-draw Title to Framebuffer**
+- **Result:** Title immediately overwritten, never restored (flush is no-op)
 
-**Attempt 3: Title Buffer with Parent GFX (CRASH)**
-```cpp
-Arduino_Canvas* canvas = new Arduino_Canvas(width, height, gfx);  // gfx = Arduino_ESP32QSPI
-```
+**Attempt 3: Title Buffer with Parent GFX**
 - **Result:** `ESP_ERR_INVALID_STATE: SPI bus already initialized` crash
-- **Root cause:** Passing hardware GFX object as canvas parent triggers SPI bus reinitialization
 
 ### Final Solution: Pre-rendered Buffer + Transparent DMA Blit
 
-**Architecture:**
-1. **One-time rendering**: `V05DemoApp::renderTitleToBuffer()`
-   - Create standalone `Arduino_Canvas` with `nullptr` parent (avoids SPI reinit)
-   - Fill with chroma key `0x0001` for transparency
-   - Render title text using Arduino_GFX font API
-   - Copy framebuffer to cached buffer
-
-2. **Fast blit**: `V05DemoApp::blitTitle()`
-   - Uses `hal_display_fast_blit_transparent()` with chroma key
-   - DMA operation (~1-2ms) instead of font rendering (~10-20ms)
-   - Pixels matching chroma key are skipped, creating transparent effect
-
-3. **Dual blit strategy**:
-   - Immediately after `graph->render()` in data updates (minimize gap)
-   - Every frame in `V058DemoApp::render()` (prevent disappearance from live indicator overlaps)
-
-**Code Pattern:**
-```cpp
-// V05DemoApp - Non-breaking addition
-void blitTitle() {
-    if (!m_titleBufferValid) renderTitleToBuffer();
-    hal_display_fast_blit_transparent(x, y, w, h, m_titleBuffer, 0x0001);
-}
-
-// V058DemoApp - Data update
-graph->render();         // Full-screen DMA
-v05Demo->blitTitle();    // Fast DMA (1-2ms)
-
-// V058DemoApp - Every frame
-v05Demo->blitTitle();    // Restore if overwritten by live indicator
-```
-
-### Known Limitation: Slight Flash Still Visible
-Despite optimization, a **minor flash is still perceptible** during graph updates due to fundamental architectural constraint:
-- Graph render and title blit are **two separate DMA operations**
-- Gap between operations (~1-2ms) is small but visible on high-refresh displays
-- True atomic rendering would require compositing title into graph buffer before single DMA blit
-
-**Accepted Trade-off:** Slight flash is tolerable for v0.58. Future solution would require deeper integration:
-```cpp
-// Hypothetical future approach
-graph->setOverlay(titleBuffer, x, y, w, h);  // Composite before blit
-graph->render();  // Single DMA with title included
-```
+1. **One-time rendering**: Create standalone `Arduino_Canvas` with `nullptr` parent, fill with chroma key `0x0001`, render title text, copy framebuffer to cached buffer
+2. **Fast blit**: Uses `hal_display_fast_blit_transparent()` with chroma key (~1-2ms DMA instead of ~10-20ms font rendering)
+3. **Dual blit strategy**: Immediately after `graph->render()` + every frame in render loop
 
 ### Key Lessons
 1. **hal_display_flush() behavior varies by hardware** - Always check HAL implementation, never assume buffering exists
-2. **Arduino_Canvas parent parameter** - Use `nullptr` for standalone canvases to avoid hardware reinitialization
-3. **Chroma key transparency** - Use `0x0001` matching graph's approach for consistent transparency
+2. **Arduino_Canvas parent parameter** - Use `nullptr` for standalone canvases to avoid SPI reinit
+3. **Chroma key transparency** - Use `0x0001` for consistent transparency
 4. **Buffer caching eliminates font rendering overhead** - One-time render + fast blit beats per-frame font rendering
-5. **Architectural separation has cost** - Graph and overlay as separate components requires two DMA operations, creating inherent gap
-6. **Perfect is enemy of good** - Slight flash is acceptable if alternative requires major architectural changes
 
 ---
 
@@ -1100,92 +494,22 @@ The standalone `LiveIndicator::draw()` method draws a radial gradient circle dir
 1. Redraw the entire graph before each indicator frame (causing flicker)
 2. Track the previous indicator position and manually restore that region
 
-The initial demo implementation (main.cpp) used approach #1: calling `g_graph->render()` every frame before drawing the indicator. This causes visible flashing because:
-- The graph composite (background + data layers) is re-blitted to the display every frame
-- On ESP32-S3 over SPI, this full-screen blit takes ~15-20ms
-- The display refresh happens during the blit, causing tearing/flashing
+### Decision for v0.5 Demo
+Initially attempted standalone LiveIndicator with application-level dirty-rect, but flashing was unacceptable for HIL testing.
 
-### Attempted Approaches
-
-**Attempt 1: Draw Without Erasing (FAILED)**
-- Call `indicator.draw()` each frame without clearing
-- **Result:** Old indicator pixels remain on screen, creating a "smear" effect
-- Only the inner magenta area appeared to pulse; outer cyan edge stayed fixed
-
-**Attempt 2: Full Graph Re-render (CURRENT - FLICKERS)**
-- Call `g_graph->render()` + `indicator.draw()` each frame
-- **Result:** Functionally correct but causes visible flashing artifacts
-- Demonstrates the feature but not production-ready
-
-### Correct Implementation Approaches
-
-There are three valid solutions, each with different trade-offs:
-
-#### Option A: Dirty-Rect in LiveIndicator (Best for Reusability)
-Modify `LiveIndicator` to handle its own dirty-rect logic:
-```cpp
-class LiveIndicator {
-    void draw(x, y) {
-        // 1. Calculate union of old and new bounding boxes
-        // 2. Request background restoration for old rect
-        // 3. Draw new indicator
-        // 4. Store new position/radius for next frame
-    }
-private:
-    float last_x_, last_y_, last_radius_;
-    bool has_drawn_once_;
-};
-```
-**Pros:** Makes LiveIndicator truly standalone and reusable
-**Cons:** Requires access to the background composite buffer or a callback mechanism
-
-#### Option B: Application-Level Dirty Rect (Best for Demo Simplicity)
-Keep the region tracking in main.cpp:
-```cpp
-void loop() {
-    // Calculate indicator position
-    // If first frame: just draw
-    // Else:
-    //   1. Blit old rect from graph composite
-    //   2. Draw new indicator
-    //   3. Store new rect
-}
-```
-**Pros:** Keeps LiveIndicator simple, caller has full control
-**Cons:** Every use case must implement this logic
-
-#### Option C: Use Integrated TimeSeriesGraph Indicator (IMPLEMENTED)
-TimeSeriesGraph already has a highly optimized indicator with dirty-rect:
-- Maintains a composite buffer (bg + data)
-- Tracks previous indicator position/radius
-- Calculates bounding box union
-- Restores background from composite
-- Draws new indicator in one atomic blit
-
-**Pros:** Already implemented and flicker-free, proven in production
-**Cons:** Couples the indicator to the graph, not a standalone component
-
-### Decision for v0.5 Demo (UPDATED)
-Initially attempted **Approach B** with standalone LiveIndicator, but flashing was unacceptable for HIL testing.
-
-**Final Implementation:** Uses **Option C (Integrated TimeSeriesGraph Indicator)**
+**Final Implementation:** Uses integrated TimeSeriesGraph indicator:
 - Flicker-free 30fps animation
 - Dirty-rect optimization with composite buffer restoration
 - Production-ready implementation
-- Still demonstrates all v0.5 visual requirements
 
-The standalone `LiveIndicator` component remains:
-- Fully implemented and unit-tested (5 tests passing)
-- Available for use cases where dirty-rect can be managed by the caller
-- Documented as a reusable component for future work
+The standalone `LiveIndicator` component remains fully implemented and unit-tested (5 tests passing), available for use cases where dirty-rect can be managed by the caller.
 
 **Conclusion:** For SPI-based displays where bandwidth is limited, integrated components with tight coupling to the rendering pipeline are the pragmatic choice over pure component separation.
 
 ### Key Lessons
 1. **Dirty-rect optimization is not optional** for smooth animation on SPI displays
 2. **Component reusability vs performance** is a real trade-off - sometimes tight coupling is the right choice
-3. **Demonstrate correctness first, optimize second** - the v0.5 demo proves the concept works
-4. **TimeSeriesGraph's integrated indicator** should be the reference implementation for any future dirty-rect work
+3. **TimeSeriesGraph's integrated indicator** should be the reference implementation for any future dirty-rect work
 
 ---
 
@@ -1210,12 +534,6 @@ Use direct includes: `#include "file.h"` instead of `#include "../src/file.h"`. 
 ### Problem
 The initial LogoScreen implementation drew the logo directly to the display using VectorRenderer each frame, causing visible refresh artifacts during the smooth EaseInOut animation (logo moving from center to top-right corner while shrinking).
 
-### Root Cause
-Drawing vector graphics directly to the display without dirty-rect optimization causes the same issues as the standalone LiveIndicator:
-- Each frame clears background and redraws logo
-- ESP32-S3 over SPI cannot complete full redraw fast enough
-- Display refresh happens during draw, causing tearing/ghosting
-
 ### Solution: Dirty-Rect with Composite Buffer
 Applied the same technique used in TimeSeriesGraph's live indicator:
 
@@ -1226,21 +544,11 @@ Applied the same technique used in TimeSeriesGraph's live indicator:
    - Rasterize new logo into temp buffer using barycentric coordinates
    - Single atomic blit to display via `hal_display_fast_blit`
 
-### Implementation Details
-- Logo triangles rasterized in software (barycentric test) instead of using Arduino_GFX::fillTriangle
-- Allows rendering to temp buffer before display blit
-- Tracks `m_lastLogoX/Y/Width/Height` for dirty-rect calculation
-- Aspect ratio preserved: `widthPercent = heightPercent * (original_width / original_height)`
-
 ### Updated Animation Parameters (2026-02-06)
 Re-implemented LogoScreen with corrected animation parameters per feature spec:
 - **End size**: 10% of screen height
 - **End anchor point**: Top-right corner of the logo image (1.0, 0.0)
 - **End position**: The anchor point (top-right of logo) is placed 10px from screen edges
-  - X position: `100% - (10px / screenWidth * 100%)` (10px from right edge)
-  - Y position: `0% + (10px / screenHeight * 100%)` (10px from top edge)
-- **Visual result**: The top-left corner of the logo ends up 10px down and to the left of the screen's top-right corner
-- **Dynamic calculation**: Position calculated in `begin()` based on actual screen dimensions
 
 **Critical clarification**: The anchor point (1.0, 0.0) means the top-right corner OF THE LOGO IMAGE, not the screen. This anchor point is positioned at the calculated screen coordinates, causing the rest of the logo to extend leftward and downward from that point.
 
@@ -1264,12 +572,6 @@ Implemented an automatic mode-switching demo that cycles through three visual st
 - **Mode 2 (MIXED)**: Solid dark blue background, gradient plot line (yellow→red), gradient indicator (yellow→red)
 
 This approach required adding a `setTheme()` method to the `TimeSeriesGraph` class to enable runtime theme changes without recreating the entire graph object.
-
-### Implementation Details
-1. Created three theme factory functions: `createGradientTheme()`, `createSolidTheme()`, `createMixedTheme()`
-2. Added mode-switching timer in `loop()` that triggers every 8 seconds
-3. When switching, the demo calls `setTheme()`, then redraws the background and data layers to apply the new theme
-4. The live indicator continues animating smoothly during transitions using dirty-rect optimization
 
 ### Key Lessons
 1. **Automated cycling is better than manual switching** for HIL testing - the user can simply watch the display and verify all modes work correctly without manual intervention
@@ -1295,12 +597,11 @@ As the project expands into Networking and HTTP (v0.6), the monolithic `hal_cont
 1.  **Problem**: The iTerm2 terminal image was not zoomable, making large graphs unreadable.
 2.  **Interactive Viewer**: Created `scripts/serve_graph.py` (minimal Python server) and `scripts/graph_viewer.html` (Mermaid.js + svg-pan-zoom).
 3.  **Live-Reload**: The viewer polls for changes to `feature_graph.mmd` and re-renders in-place, preserving zoom level.
-4.  **Styling**: Updated the generator to use large (24px bold) titles for category subgraphs to improve high-level architectural visibility.
 
 ### Key Lessons
 1.  **Architecture is a living document**: Don't be afraid to refactor the HAL *before* it gets too messy. Segmenting by domain early prevents "Header Spaghetti."
 2.  **Browser > Terminal for Visualization**: Browsers offer superior interactive capabilities (zoom, search, pan) for complex diagrams.
-3.  **Gherkin Prerequisite Formatting**: Discovered that the dependency parser is sensitive to formatting. Multiple prerequisites MUST be on separate lines (`> Prerequisite: X \n > Prerequisite: Y`) to be parsed correctly by the regex.
+3.  **Gherkin Prerequisite Formatting**: Discovered that the dependency parser is sensitive to formatting. Multiple prerequisites MUST be on separate lines.
 
 ### Problem
 The demo_release_0.5.md spec requires two layout modes: "Scientific" (OUTSIDE tick labels + axis titles) and "Compact" (INSIDE tick labels, no titles). Previous attempts to modify the graph draw methods caused watchdog reset (TG1WDT_SYS_RST) crashes.
@@ -1315,18 +616,11 @@ Instead of the graph code accessing `ThemeManager::getInstance()` directly, font
 
 The demo code (which already includes `theme_manager.h`) sets these when creating themes.
 
-### Key Design Decisions
-1. **Dynamic margins via `getMargins()`** replace static `constexpr` values. Returns wider margins for OUTSIDE mode (room for external labels + titles) and narrow margins for INSIDE mode (labels overlay plot area).
-2. **Y-tick labels skip first tick** (at y_min) to avoid overlap with X-axis.
-3. **X-tick labels skip first tick** (at index 0) to avoid overlap with Y-axis.
-4. **Y-axis title rendered vertically** using character-by-character drawing (centered in graph area).
-5. **Demo cycles 6 combinations**: 2 layout modes × 3 visual styles every 5 seconds.
-
 ### Key Lessons
 1. **Never include font headers in draw code** - pass font pointers through configuration structs instead
 2. **Watchdog crashes on ESP32-S3** are often caused by memory pressure during pixel-intensive operations, not necessarily by timing
 3. **Incremental modification of draw methods** after full revert is safer than trying to fix crashes in-place
-4. **CRITICAL: Custom GFX fonts crash on PSRAM Arduino_Canvas** - calling `canvas->setFont(GFXfont*)` on an Arduino_Canvas allocated in PSRAM causes TG1WDT_SYS_RST watchdog resets. **Workaround:** Use built-in font with `canvas->setFont(nullptr); canvas->setTextSize(N);` instead. This limitation means axis titles use 10x14 pixel characters (size 2) and tick labels use 5x7 pixel characters (size 1), instead of the 9pt and 18pt custom fonts specified in the theme.
+4. **CRITICAL: Custom GFX fonts crash on PSRAM Arduino_Canvas** - calling `canvas->setFont(GFXfont*)` on an Arduino_Canvas allocated in PSRAM causes TG1WDT_SYS_RST watchdog resets. **Workaround:** Use built-in font with `canvas->setFont(nullptr); canvas->setTextSize(N);` instead.
 
 ---
 
@@ -1356,35 +650,14 @@ Release v0.58 introduces dynamic, self-updating data using `DataItemTimeSeries` 
 
 #### Challenge 1: Graph Overwriting Logo Screen
 **Problem:** Graph updates happened during logo animation phase, overwriting the logo.
-**Root Cause:** Phase check `isInVisualPhase()` returned true during logo animation because V055's `PHASE_VISUAL_DEMO` includes both logo and graph stages.
 **Solution:** Added granular stage checking:
 - V055 Phase check: `isInVisualPhase()` (not connectivity/handover)
 - V05 Stage check: `isShowingGraph()` (STAGE_GRAPH_CYCLE, not STAGE_LOGO)
 - Combined: `v055Demo->isInVisualPhase() && v05Demo->isShowingGraph()`
-**Result:** Graph updates only during active graph display, logo completes uninterrupted.
 
 #### Challenge 2: Live Indicator Misalignment
 **Problem:** After data updates, live indicator didn't track the last data point on the graph.
-**Root Cause:** Graph data canvas was updated (`setData()` + `drawData()`) but not composited to display. V05DemoApp's render flow only calls `graph->render()` during mode switches (every 5s), not on every frame.
 **Solution:** Call `graph->render()` in `updateGraphWithLiveData()` after `drawData()` to composite and blit updated data canvas.
-**Result:** Live indicator now tracks rightmost data point accurately.
-
-#### Challenge 3: Title Text Flickering (PARTIALLY RESOLVED)
-**Problem:** "DEMO v0.58" title flashes when graph updates every 3 seconds.
-**Root Cause:** Dual rendering paths with async synchronization:
-- `graph->render()` → `hal_display_fast_blit()` → Direct DMA to display hardware (immediate)
-- `drawTitle()` → Arduino_GFX framebuffer → Requires `hal_display_flush()` to send to display
-
-**Attempted Solutions:**
-1. **Initial:** Redraw title after `graph->render()`, rely on normal flush in V05DemoApp::render()
-   - **Result:** Visible flicker due to timing gap between DMA blit and framebuffer flush
-2. **Current:** Call `hal_display_flush()` immediately after `drawTitle()` to force sync
-   - **Result:** Reduced flicker but still visible artifact
-
-**Status:** Under investigation. The fundamental issue is that graph uses DMA (bypasses framebuffer) while title uses GFX framebuffer (async path). Potential solutions:
-- Draw title to a buffer before final composite (requires graph architecture changes)
-- Use double-buffering for entire display (memory intensive)
-- Accept minor flicker as trade-off for live updates
 
 ### Implementation Pattern: Wrapper Composition
 
@@ -1395,100 +668,9 @@ V058DemoApp (Live Data)
       └─ wraps V05DemoApp (Logo + 6 Graph Modes)
 ```
 
-**Data Flow:**
-1. V058 creates `DataItemTimeSeries` with embedded test data
-2. Timer triggers `injectNewDataPoint()` every 3 seconds
-3. Random data added to FIFO buffer (oldest evicted)
-4. `updateGraphWithLiveData()` checks phase/stage gates
-5. If in graph display: `setData()` → `drawData()` → `render()` → `drawTitle()` → `flush()`
-
 ### Key Lessons
 1. **Embedded data > Filesystem for demos** - Simpler deployment, no upload dependencies
 2. **FIFO sizing must match use case** - Set max_length to match expected window size, not arbitrary buffer
 3. **Fixed bounds prevent drift** - Store initial data range for random generation, don't use dynamic min/max
 4. **Granular phase checking required** - Single-level phase checks insufficient when phases have sub-stages
 5. **DMA vs Framebuffer sync is hard** - Direct hardware blitting (DMA) and framebuffer rendering are fundamentally async, perfect sync may not be achievable without architectural changes
-6. **Title redraw frequency matters** - Redrawing on every graph update (3s) instead of mode switch (5s) increases flicker opportunity
-7. **Data update interval trade-off** - Increased from 1s to 3s to reduce rendering pressure and flicker frequency
-
----
-
-## [2026-02-11] Touch Coordinate System: Part 3 - Phantom Touch & Edge Zone Tuning
-
-### Problem 1: Phantom Touch at Boot
-After implementing coordinate validation and edge zone fixes, touch functionality completely failed:
-- **Symptom:** Single HOLD event at boot without user interaction, then zero touch events
-- **Debug output:**
-  ```
-  [HAL Touch] RAW: x=600, y=120
-  [Touch] PRESS at (535, 120) in RIGHT zone
-  [Touch] HOLD at (535, 120) = (99.8%, 50.0%)
-  ```
-- **Root cause:** CST816 touch controller returns garbage data (x=600) at initialization, which exceeds valid range (0-536) but was accepted and clamped to x=535, creating a stuck phantom touch
-
-### Solution 1: Raw Coordinate Validation
-Added range validation BEFORE processing touch coordinates:
-```cpp
-// Validate raw coordinates before processing
-// Touch controller occasionally returns garbage data (e.g., x=600 at boot)
-// Valid ranges from HIL testing: X: 0-540, Y: 0-250 (with margin)
-if (x[0] < 0 || x[0] > 540 || y[0] < 0 || y[0] > 250) {
-    Serial.printf("[HAL Touch] WARNING: Out-of-range RAW coordinates rejected: x=%d, y=%d\n", x[0], y[0]);
-    point->is_pressed = false;
-    return true;  // Reject invalid touch, treat as not pressed
-}
-```
-
-**Key insight:** The coordinate clamping logic (lines 149-153) was DOWNSTREAM of the acceptance decision. Out-of-range coordinates need to be REJECTED, not clamped. Clamping should only handle slight overruns from valid touches, not garbage data.
-
-**Result:** Phantom touch eliminated. Real touches register normally after boot.
-
-### Problem 2: TOP Edge Drags Misclassified as RIGHT
-After fixing phantom touch, edge drag detection had poor user experience:
-- **Symptom:** Edge drags starting from top-right area (e.g., y=58, 61, 68, 69) detected as RIGHT edge drags instead of TOP
-- **Debug evidence:**
-  ```
-  Started at: (462, 68) → RIGHT edge (y=68 > 40, so not TOP)
-  Started at: (400, 58) → RIGHT edge (y=58 > 40, so not TOP)
-  Started at: (234, 7) → TOP edge (y=7 < 40, so IS TOP) ✓
-  ```
-- **Root cause:** Edge zone imbalance
-  - RIGHT zone: x > 215 (59.9% of screen width - HUGE!)
-  - TOP zone: y < 40 (16.7% of screen height - TINY!)
-  - User attempts starting at y=58-69 were outside the narrow TOP zone
-
-### Solution 2: Balance Edge Zone Proportions
-Doubled TOP threshold to better match RIGHT zone coverage:
-
-**Before:**
-```cpp
-setEdgeZones(80, 215, 40, 180);
-// LEFT: 14.9%, RIGHT: 60%, TOP: 16.7%, BOTTOM: 25%
-```
-
-**After:**
-```cpp
-setEdgeZones(80, 215, 80, 180);
-// LEFT: 14.9%, RIGHT: 60%, TOP: 33.3%, BOTTOM: 25%
-```
-
-**Rationale:**
-- TOP zone now covers top third of screen (33%), making it easier to trigger TOP edge drags
-- Better proportional balance with RIGHT zone (60% width vs 33% height)
-- User can now comfortably start TOP edge drags anywhere in top ~80 pixels instead of just top 40 pixels
-
-**Result:** TOP edge drags much more forgiving. Drags starting at y=58-79 now correctly recognized as TOP instead of RIGHT.
-
-### Key Lessons
-1. **Validate at the boundary** - Reject invalid data at the HAL layer before it propagates into gesture detection
-2. **Clamping ≠ Validation** - Clamping handles slight overruns; validation handles garbage data
-3. **Edge zones need proportional balance** - A 60% width zone vs 17% height zone creates biased detection
-4. **HIL testing reveals initialization quirks** - Hardware can return garbage on first read; always validate
-5. **User experience > mathematical purity** - Doubling TOP zone from 17% to 33% trades slight overlap risk for much better UX
-
-### Debugging Protocol for Future Touch Issues
-1. **Check RAW coordinates first** - If out of valid range, reject at HAL layer
-2. **Log start positions for edge drags** - Shows which zone triggered the edge detection
-3. **Compare edge zone thresholds** - Unbalanced zones (60% vs 17%) indicate tuning needed
-4. **Test corner regions** - Where multiple edge zones overlap, most likely to trigger wrong edge
-5. **Watch for phantom touches at boot** - Initialization can produce invalid data; validate before accepting

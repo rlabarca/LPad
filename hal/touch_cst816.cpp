@@ -1,13 +1,16 @@
 /**
  * @file touch_cst816.cpp
- * @brief CST816 Touch Controller HAL Implementation
+ * @brief CST816 Touch Controller HAL Implementation (Direct I2C)
  *
- * Implements the touch HAL for ESP32-S3 AMOLED boards using the
- * CST816 touch controller via the SensorLib library.
+ * Implements the touch HAL for the T-Display S3 AMOLED Plus (1.91")
+ * using direct I2C register reads, bypassing SensorLib.
  *
- * Supported Boards:
- * - ESP32-S3-Touch-AMOLED-1.8" (esp32s3 environment)
- * - T-Display S3 AMOLED Plus 1.91" (tdisplay_s3_plus environment)
+ * This approach was adopted because SensorLib's TouchDrvCSTXXX wrapper
+ * was only returning the home button coordinate (600, 120) and never
+ * real touch points — likely due to auto-sleep mode or initialization
+ * issues that could not be debugged through the library abstraction.
+ *
+ * Direct I2C approach proven reliable with FT3168 HAL.
  *
  * Specification: features/touch_cst816_implementation.md
  */
@@ -18,7 +21,6 @@
 #include "input/touch_gesture_engine.h"
 #include <Arduino.h>
 #include <Wire.h>
-#include "TouchDrvCSTXXX.hpp"
 
 // Board-specific pin configuration
 #if defined(APP_DISPLAY_ROTATION)
@@ -26,7 +28,6 @@
     #define TOUCH_SDA 3
     #define TOUCH_SCL 2
     #define TOUCH_INT 21
-    #define TOUCH_RST -1  // Not used
     #define TOUCH_ADDR 0x15
     #define DISPLAY_ROTATION 90  // Landscape
 #else
@@ -34,16 +35,33 @@
     #define TOUCH_SDA 15
     #define TOUCH_SCL 14
     #define TOUCH_INT 21
-    #define TOUCH_RST -1  // Not used (managed by PMU)
     #define TOUCH_ADDR 0x15
     #define DISPLAY_ROTATION 0  // Portrait
 #endif
 
-// Global touch driver instance
-static TouchDrvCSTXXX g_touch;
-static bool g_touch_initialized = false;
+// CST816 register addresses
+#define CST_REG_STATUS        0x00  // Read 13 bytes for full touch data
+#define CST_REG_TOUCH_COUNT   0x02  // Number of touch points (lower 4 bits)
+#define CST_REG_XPOS_HIGH     0x03  // X position high byte (lower 4 bits)
+#define CST_REG_XPOS_LOW      0x04  // X position low byte
+#define CST_REG_YPOS_HIGH     0x05  // Y position high byte (lower 4 bits)
+#define CST_REG_YPOS_LOW      0x06  // Y position low byte
+#define CST_REG_CHIP_ID       0xA7  // Chip ID register
+#define CST_REG_FW_VERSION    0xA9  // Firmware version
+#define CST_REG_SLEEP         0xE5  // Sleep control (write 0x03 to sleep)
+#define CST_REG_DIS_AUTOSLEEP 0xFE  // Disable auto-sleep (write 0x01)
 
-// Display dimensions (set during init based on display HAL)
+// Expected chip IDs
+#define CST816S_CHIP_ID  0xB4
+#define CST816T_CHIP_ID  0xB5
+#define CST816D_CHIP_ID  0xB6
+#define CST820_CHIP_ID   0xB7
+
+// Home button coordinate (hardware-reported, must be filtered)
+#define HOME_BTN_X 600
+#define HOME_BTN_Y 120
+
+static bool g_touch_initialized = false;
 static int16_t g_display_width = 0;
 static int16_t g_display_height = 0;
 
@@ -53,67 +71,132 @@ extern "C" {
     int32_t hal_display_get_height_pixels(void);
 }
 
+// Direct I2C register read (same pattern as FT3168 HAL)
+static bool cst_read_registers(uint8_t reg, uint8_t* buf, uint8_t len) {
+    Wire.beginTransmission(TOUCH_ADDR);
+    Wire.write(reg);
+    if (Wire.endTransmission(false) != 0) {
+        return false;
+    }
+    if (Wire.requestFrom((uint8_t)TOUCH_ADDR, len) != len) {
+        return false;
+    }
+    for (uint8_t i = 0; i < len; i++) {
+        buf[i] = Wire.read();
+    }
+    return true;
+}
+
+// Direct I2C single-byte write
+static bool cst_write_register(uint8_t reg, uint8_t value) {
+    Wire.beginTransmission(TOUCH_ADDR);
+    Wire.write(reg);
+    Wire.write(value);
+    return Wire.endTransmission() == 0;
+}
+
 bool hal_touch_init(void) {
     if (g_touch_initialized) {
-        return true;  // Already initialized
+        return true;
     }
+
+    // CRITICAL: Wake the CST816 using INT pin toggle (pseudo-reset).
+    // Without a dedicated RST pin, driving INT low for 50ms forces the
+    // controller out of sleep/gesture-only mode into full coordinate mode.
+    // This MUST happen before Wire.begin() because GPIO 21 is the INT pin.
+    Serial.println("[HAL Touch CST816] INT pin wake-up sequence...");
+    pinMode(TOUCH_INT, OUTPUT);
+    digitalWrite(TOUCH_INT, LOW);
+    delay(50);
+    pinMode(TOUCH_INT, INPUT);
+    delay(50);
+    Serial.println("[HAL Touch CST816] INT pin released, controller should be awake");
 
     // Initialize I2C bus
     Wire.begin(TOUCH_SDA, TOUCH_SCL);
-    Wire.setClock(100000);  // Set to 100kHz for stability
-    Serial.println("[HAL Touch] I2C bus initialized");
+    Wire.setClock(100000);  // 100kHz for stability
+    Serial.println("[HAL Touch CST816] I2C bus initialized");
 
-    // CRITICAL: Force wake the controller in case it's stuck in sleep mode
-    // Previous sleep() call might have persisted across power cycles
-    Serial.println("[HAL Touch] Attempting to wake touch controller...");
-    g_touch.setPins(TOUCH_RST, TOUCH_INT);
+    // Probe the touch controller
+    Wire.beginTransmission(TOUCH_ADDR);
+    uint8_t err = Wire.endTransmission();
+    if (err != 0) {
+        Serial.printf("[HAL Touch CST816] Controller not found at 0x%02X (error %d)\n",
+                      TOUCH_ADDR, err);
+        return false;
+    }
+    Serial.println("[HAL Touch CST816] Controller found on I2C bus");
 
-    // Try to wake it first (this will fail if not initialized, but that's OK)
-    g_touch.wakeup();
-    delay(200);
-
-    Serial.println("[HAL Touch] Initializing touch controller...");
-    // Initialize touch controller
-    if (!g_touch.begin(Wire, TOUCH_ADDR, TOUCH_SDA, TOUCH_SCL)) {
-        Serial.println("[HAL Touch] Failed to initialize CST816 controller");
-        Serial.println("[HAL Touch] Trying one more time with wake...");
-
-        // One more attempt with wake
-        Wire.beginTransmission(TOUCH_ADDR);
-        Wire.write(0xFE);  // Wake command register
-        Wire.write(0x01);  // Wake value
-        Wire.endTransmission();
-        delay(100);
-
-        if (!g_touch.begin(Wire, TOUCH_ADDR, TOUCH_SDA, TOUCH_SCL)) {
-            Serial.println("[HAL Touch] Failed again - controller may be damaged or stuck");
-            return false;
-        }
+    // Read chip ID
+    uint8_t chip_id = 0;
+    if (cst_read_registers(CST_REG_CHIP_ID, &chip_id, 1)) {
+        Serial.printf("[HAL Touch CST816] Chip ID: 0x%02X", chip_id);
+        if (chip_id == CST816S_CHIP_ID) Serial.println(" (CST816S)");
+        else if (chip_id == CST816T_CHIP_ID) Serial.println(" (CST816T)");
+        else if (chip_id == CST816D_CHIP_ID) Serial.println(" (CST816D)");
+        else if (chip_id == CST820_CHIP_ID) Serial.println(" (CST820)");
+        else Serial.println(" (UNKNOWN)");
+    } else {
+        Serial.println("[HAL Touch CST816] WARNING: Could not read chip ID");
     }
 
-    // Get display dimensions for coordinate mapping
+    // Read firmware version
+    uint8_t fw_ver = 0;
+    if (cst_read_registers(CST_REG_FW_VERSION, &fw_ver, 1)) {
+        Serial.printf("[HAL Touch CST816] FW Version: 0x%02X\n", fw_ver);
+    }
+
+    // CRITICAL: Disable auto-sleep IMMEDIATELY after wake.
+    // The CST816T vendor code requires reset() before this write, but since
+    // we don't have RST, the INT pin toggle above serves as the wake event.
+    // Must happen within ~5s of wake before controller re-enters sleep.
+    Serial.println("[HAL Touch CST816] Disabling auto-sleep...");
+    if (cst_write_register(CST_REG_DIS_AUTOSLEEP, 0x01)) {
+        Serial.println("[HAL Touch CST816] Auto-sleep disabled (reg 0xFE = 0x01)");
+    } else {
+        Serial.println("[HAL Touch CST816] WARNING: Failed to disable auto-sleep");
+    }
+
+    // Configure interrupt mode to report touch coordinates (not just gestures)
+    // Register 0xFA: 0x60 = touch-detect + state-change interrupts
+    // Without this, controller may only report gesture events (home button)
+    if (cst_write_register(0xFA, 0x60)) {
+        Serial.println("[HAL Touch CST816] Interrupt mode set to touch+change (0x60)");
+    } else {
+        Serial.println("[HAL Touch CST816] WARNING: Failed to set interrupt mode");
+    }
+
+    delay(50);  // Let configuration settle
+
+    // Read a diagnostic frame to check initial state
+    uint8_t diag[13];
+    if (cst_read_registers(CST_REG_STATUS, diag, 13)) {
+        Serial.printf("[HAL Touch CST816] Init RAW: ");
+        for (int i = 0; i < 13; i++) {
+            Serial.printf("%02X ", diag[i]);
+        }
+        Serial.println();
+    }
+
+    // Read back auto-sleep register to verify write took effect
+    uint8_t autosleep_val = 0;
+    if (cst_read_registers(CST_REG_DIS_AUTOSLEEP, &autosleep_val, 1)) {
+        Serial.printf("[HAL Touch CST816] Auto-sleep reg readback: 0x%02X (%s)\n",
+                      autosleep_val, autosleep_val == 0x01 ? "DISABLED" : "ACTIVE!");
+    }
+
+    // Read back interrupt mode register
+    uint8_t irq_mode = 0;
+    if (cst_read_registers(0xFA, &irq_mode, 1)) {
+        Serial.printf("[HAL Touch CST816] IRQ mode reg readback: 0x%02X\n", irq_mode);
+    }
+
     g_display_width = static_cast<int16_t>(hal_display_get_width_pixels());
     g_display_height = static_cast<int16_t>(hal_display_get_height_pixels());
-
-    // Configure touch panel for T-Display S3 AMOLED Plus
-    Serial.println("[HAL Touch] Configuring touch panel...");
-
-    #if defined(APP_DISPLAY_ROTATION)
-        // T-Display S3 AMOLED Plus specific configuration
-        g_touch.setMaxCoordinates(536, 240);
-        Serial.println("[HAL Touch] Max coordinates set to 536x240");
-
-        // Disable home button by setting it to an impossible coordinate
-        g_touch.setCenterButtonCoordinate(9999, 9999);
-        Serial.println("[HAL Touch] Home button disabled (moved to 9999, 9999)");
-
-        // Try different swap/mirror settings to see if touch digitizer is connected differently
-        // g_touch.setSwapXY(true);
-        // g_touch.setMirrorXY(false, false);
-    #endif
+    Serial.printf("[HAL Touch CST816] Display: %dx%d\n", g_display_width, g_display_height);
 
     g_touch_initialized = true;
-    Serial.println("[HAL Touch] CST816 initialized successfully");
+    Serial.println("[HAL Touch CST816] Initialized successfully (direct I2C mode)");
     return true;
 }
 
@@ -122,118 +205,91 @@ bool hal_touch_read(hal_touch_point_t* point) {
         return false;
     }
 
-    // Rate-limit polling to reduce load on I2C bus
-    // Poll every 3rd frame (10Hz instead of 30Hz) to avoid keeping controller stuck
-    static uint8_t poll_counter = 0;
-    poll_counter++;
-    if (poll_counter < 3) {
+    // Read touch registers 0x00-0x06 (7 bytes: status + gesture + count + X/Y)
+    uint8_t buf[7];
+    if (!cst_read_registers(CST_REG_STATUS, buf, 7)) {
         point->is_pressed = false;
         point->x = 0;
         point->y = 0;
-        return true;  // Skip this frame
+        return true;
     }
-    poll_counter = 0;
 
-    // Read touch coordinates
-    int16_t x[1], y[1];
-    uint8_t point_count = g_touch.getPoint(x, y, 1);
+    uint8_t num_points = buf[2] & 0x0F;
 
-    if (point_count == 0) {
+    // No touch or invalid (CST816 only supports 1 point)
+    if (num_points == 0 || num_points > 1) {
         point->is_pressed = false;
         point->x = 0;
         point->y = 0;
-        return true;  // Success, just not pressed
+        return true;
     }
 
-    // DEBUG: Track if we EVER see coordinates other than 600, 120
-    static bool seen_non_home_button = false;
+    // Some CST816T return all 0xFF after auto-sleep disable
+    if (buf[2] == 0xFF) {
+        point->is_pressed = false;
+        point->x = 0;
+        point->y = 0;
+        return true;
+    }
+
+    // Extract coordinates (FocalTech-style register layout)
+    int16_t raw_x = ((buf[3] & 0x0F) << 8) | buf[4];
+    int16_t raw_y = ((buf[5] & 0x0F) << 8) | buf[6];
+
+    // Diagnostic: track if we ever see real coordinates
+    static bool seen_real_touch = false;
     static uint32_t touch_count = 0;
     touch_count++;
 
-    // Log EVERY touch for the first 10 seconds to diagnose
-    if (millis() < 20000 || !seen_non_home_button) {
-        if (!(x[0] == 600 && y[0] == 120)) {
-            seen_non_home_button = true;
-            Serial.printf("[HAL Touch] !!! NON-HOME-BUTTON TOUCH DETECTED: x=%d, y=%d !!!\n", x[0], y[0]);
+    // Log raw register bytes for first few touches and periodically
+    if (touch_count <= 5 || touch_count % 120 == 0) {
+        Serial.printf("[HAL Touch CST816] #%u RAW bytes: %02X %02X %02X %02X %02X %02X %02X → x=%d y=%d\n",
+                      touch_count, buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6],
+                      raw_x, raw_y);
+    }
+
+    if (!(raw_x == HOME_BTN_X && raw_y == HOME_BTN_Y) &&
+        !(raw_x == 120 && raw_y == 600)) {
+        if (!seen_real_touch) {
+            seen_real_touch = true;
+            Serial.printf("[HAL Touch CST816] FIRST REAL TOUCH: x=%d, y=%d\n", raw_x, raw_y);
         }
     }
 
-    // Sample logging every 60 touches
-    if (touch_count % 60 == 0) {
-        Serial.printf("[HAL Touch] Sample #%u: x=%d, y=%d (seen_real_touch=%s)\n",
-                      touch_count, x[0], y[0], seen_non_home_button ? "YES" : "NO");
-    }
-
-    // CRITICAL: Filter out home button coordinate (x=600, y=120)
-    // The CST816T reports the home button as a regular touch event
-    // Silently ignore it to prevent spam
-    if (x[0] == 600 && y[0] == 120) {
+    // Filter home button coordinate (hardware virtual button)
+    // CST816T on T-Display 1.91" reports (600, 120) or swapped (120, 600)
+    if ((raw_x == HOME_BTN_X && raw_y == HOME_BTN_Y) ||
+        (raw_x == HOME_BTN_Y && raw_y == HOME_BTN_X)) {
         point->is_pressed = false;
         point->x = 0;
         point->y = 0;
-        return true;  // Silently reject home button as not pressed
+        return true;
     }
 
-    // Debug: Log raw coordinates (only on change to reduce noise)
+    // Validate raw coordinates (reject garbage data)
+    // Valid ranges from HIL: X: 0-540, Y: 0-250
+    if (raw_x < 0 || raw_x > 600 || raw_y < 0 || raw_y > 600) {
+        point->is_pressed = false;
+        point->x = 0;
+        point->y = 0;
+        return true;
+    }
+
+    // Debug: log on coordinate change
     static int16_t last_x = -1, last_y = -1;
-    static uint32_t last_warning_time = 0;
-    bool coords_changed = (x[0] != last_x || y[0] != last_y);
-    if (coords_changed) {
-        Serial.printf("[HAL Touch] RAW: x=%d, y=%d\n", x[0], y[0]);
-        last_x = x[0];
-        last_y = y[0];
+    if (raw_x != last_x || raw_y != last_y) {
+        Serial.printf("[HAL Touch CST816] RAW: x=%d, y=%d\n", raw_x, raw_y);
+        last_x = raw_x;
+        last_y = raw_y;
     }
 
-    // TEMPORARILY DISABLED: Validate raw coordinates before processing
-    // Allowing ALL coordinates through to see if real touches have unexpected values
-    // if (x[0] < 0 || x[0] > 540 || y[0] < 0 || y[0] > 250) {
-    //     Serial.printf("[HAL Touch] WARNING: Out-of-range RAW coordinates: x=%d, y=%d\n", x[0], y[0]);
-    //     point->is_pressed = false;
-    //     point->x = 0;
-    //     point->y = 0;
-    //     return true;
-    // }
+    // Touch controller on T-Display S3 AMOLED Plus reports in display
+    // coordinates directly — no rotation or scaling needed.
+    // See IMPLEMENTATION_LOG.md "Touch Coordinate System" entries.
+    int16_t transformed_x = raw_x;
+    int16_t transformed_y = raw_y;
 
-    // CRITICAL: Touch controller appears to report in near-display coordinates!
-    // HIL testing shows:
-    //   - RAW X range: 2-536 (matches display width 536!)
-    //   - RAW Y range: 46-239 (close to display height 240!)
-    // This suggests minimal scaling needed - touch controller is pre-scaled
-
-    // Use raw coordinates directly (touch controller pre-scaled to display)
-    int16_t scaled_x = x[0];
-    int16_t scaled_y = y[0];
-
-    // Apply coordinate transformation based on display rotation
-    // CRITICAL: Touch panel coordinates may already be in display orientation!
-    // Testing NO rotation transform (touch panel pre-rotated by hardware/firmware)
-    int16_t transformed_x, transformed_y;
-
-    #if DISPLAY_ROTATION == 0
-        // Portrait mode (no transformation)
-        transformed_x = scaled_x;
-        transformed_y = scaled_y;
-    #elif DISPLAY_ROTATION == 90
-        // Landscape 90° CW: NO axis swap needed!
-        // Touch controller already reports in rotated coordinate system
-        // HIL corner data shows axes are correctly aligned, just need direct mapping
-        transformed_x = scaled_x;  // Touch X → Display X (NO swap!)
-        transformed_y = scaled_y;  // Touch Y → Display Y (NO swap!)
-    #elif DISPLAY_ROTATION == 180
-        // Inverted portrait (180°)
-        transformed_x = g_display_width - scaled_x;
-        transformed_y = g_display_height - scaled_y;
-    #elif DISPLAY_ROTATION == 270
-        // Landscape mode (270° clockwise / 90° counter-clockwise)
-        transformed_x = g_display_width - scaled_y;
-        transformed_y = scaled_x;
-    #else
-        // Default: no transformation
-        transformed_x = scaled_x;
-        transformed_y = scaled_y;
-    #endif
-
-    // Clamp coordinates to display bounds
+    // Clamp to display bounds
     if (transformed_x < 0) transformed_x = 0;
     if (transformed_x >= g_display_width) transformed_x = g_display_width - 1;
     if (transformed_y < 0) transformed_y = 0;
@@ -243,41 +299,27 @@ bool hal_touch_read(hal_touch_point_t* point) {
     point->y = transformed_y;
     point->is_pressed = true;
 
-    // DEBUG: Log when we successfully accept a touch
-    static int16_t last_accepted_x = -1, last_accepted_y = -1;
-    if (transformed_x != last_accepted_x || transformed_y != last_accepted_y) {
-        Serial.printf("[HAL Touch] ACCEPTED TOUCH: (%d, %d) -> transformed (%d, %d)\n",
-                      x[0], y[0], transformed_x, transformed_y);
-        last_accepted_x = transformed_x;
-        last_accepted_y = transformed_y;
-    }
-
     return true;
 }
 
 void hal_touch_configure_gesture_engine(TouchGestureEngine* engine) {
     if (!engine) return;
 
-    // Board-specific edge zone configuration
     #if defined(APP_DISPLAY_ROTATION)
-        // T-Display S3 AMOLED Plus (1.91") with 90° rotation
-        // Coordinate system: (0,0) at top-left, X-INVERTED (x = 535 - scaled_y)
+        // T-Display S3 AMOLED Plus (1.91") — 536x240 landscape
+        // Touchable area from HIL: X: 2-536, Y: 46-239
         //
-        // Touch panel has limited range after X-inversion:
-        //   X: ~308-517 (inverted from scaled_y 18-227: 535-227=308, 535-18=517)
-        //   Y: ~2-214 (from scaled_x range)
-        //
-        // Simple axis swap with no X-inversion
-        // Edge zones tuned for comfortable edge drag detection:
+        // Edge zones must be TIGHT so center swipes work.
+        // Previous zones (80, 215, 80, 180) left only 10% of screen as "center".
+        // New zones: ~15% from each physical edge, leaving ~70% center area.
         engine->setEdgeZones(
-            80,   // left_threshold: x < 80 (14.9% of width)
-            215,  // right_threshold: x > 215 (40% from left, 60% coverage)
-            80,   // top_threshold: y < 80 (33.3% of height - more forgiving for top drags)
-            180   // bottom_threshold: y > 180 (25% of height)
+            40,   // left_threshold: x < 40 (7.5% of 536)
+            430,  // right_threshold: x > 430 (80% — last 20%)
+            36,   // top_threshold: y < 36 (15% of 240)
+            204   // bottom_threshold: y > 204 (85% — last 15%)
         );
     #else
-        // ESP32-S3 AMOLED (1.8") - uses default percentage-based thresholds
-        // Touch panel covers full screen area, no special configuration needed
+        // ESP32-S3 AMOLED (1.8") — default percentage-based thresholds
     #endif
 }
 
