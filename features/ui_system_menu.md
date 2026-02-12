@@ -22,7 +22,8 @@ The System Menu is a global, transient UI layer that provides system-level infor
 - **Activation Gesture:** `EDGE_DRAG: TOP` (swipe down from the top edge).
 - **Dismissal Gesture:** `EDGE_DRAG: BOTTOM` (swipe up from the bottom edge).
 - **Animation:** 
-    - The menu must animate down from the top.
+    - **Summoning:** The menu must animate down from the top.
+    - **Dismissing:** The menu must animate back up to the top in the same manner.
     - **Frame Rate:** 30 FPS.
     - **Speed:** "Quick" (e.g., < 300ms for full transition).
 - **State Management:** While the menu is in the "OPEN" or "OPENING" state, it must capture all touch events, preventing them from reaching the underlying application layers (e.g., the graph).
