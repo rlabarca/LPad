@@ -79,6 +79,18 @@ flowchart TD
 
     subgraph RELEASES [" "]
         title_RELEASES["RELEASES"]
+        RELEASE_v0_55_connectivity_smoke_test["Release v0.55 - Connectivity Smoke Test"]
+        title_RELEASES ~~~ RELEASE_v0_55_connectivity_smoke_test
+        RELEASE_v0_58_dynamic_visuals["Release v0.58 - Dynamic Visuals"]
+        title_RELEASES ~~~ RELEASE_v0_58_dynamic_visuals
+        RELEASE_v0_5_display_drawing_ui_base["Release v0.5 - Display, Drawing & UI Base"]
+        title_RELEASES ~~~ RELEASE_v0_5_display_drawing_ui_base
+        RELEASE_v0_60_initial_stock_tracker["Release v0.60"]
+        title_RELEASES ~~~ RELEASE_v0_60_initial_stock_tracker
+        RELEASE_v0_65_touch_interaction["Release v0.65 (Touch)"]
+        title_RELEASES ~~~ RELEASE_v0_65_touch_interaction
+        RELEASE_v0_67_system_menu["Release v0.67 (System Menu)"]
+        title_RELEASES ~~~ RELEASE_v0_67_system_menu
         RELEASE_v0_70_ui_render_manager["Release v0.70: UI Render Manager"]
         title_RELEASES ~~~ RELEASE_v0_70_ui_render_manager
     end
@@ -93,22 +105,6 @@ flowchart TD
         title_Release_Demos ~~~ demo_release_0_58
         demo_release_0_60["Demo v0.60"]
         title_Release_Demos ~~~ demo_release_0_60
-    end
-
-    subgraph Releases [" "]
-        title_Releases["RELEASES"]
-        RELEASE_v0_55_connectivity_smoke_test["Release v0.55 - Connectivity Smoke Test"]
-        title_Releases ~~~ RELEASE_v0_55_connectivity_smoke_test
-        RELEASE_v0_58_dynamic_visuals["Release v0.58 - Dynamic Visuals"]
-        title_Releases ~~~ RELEASE_v0_58_dynamic_visuals
-        RELEASE_v0_5_display_drawing_ui_base["Release v0.5 - Display, Drawing & UI Base"]
-        title_Releases ~~~ RELEASE_v0_5_display_drawing_ui_base
-        RELEASE_v0_60_initial_stock_tracker["Release v0.60"]
-        title_Releases ~~~ RELEASE_v0_60_initial_stock_tracker
-        RELEASE_v0_65_touch_interaction["Release v0.65 (Touch)"]
-        title_Releases ~~~ RELEASE_v0_65_touch_interaction
-        RELEASE_v0_67_system_menu["Release v0.67 (System Menu)"]
-        title_Releases ~~~ RELEASE_v0_67_system_menu
     end
 
     subgraph System_Components [" "]
@@ -259,13 +255,6 @@ flowchart TD
     class demo_release_0_55 release;
     class demo_release_0_58 release;
     class demo_release_0_60 release;
-    class title_Releases subgraphTitle;
-    class RELEASE_v0_55_connectivity_smoke_test release;
-    class RELEASE_v0_58_dynamic_visuals release;
-    class RELEASE_v0_5_display_drawing_ui_base release;
-    class RELEASE_v0_60_initial_stock_tracker release;
-    class RELEASE_v0_65_touch_interaction release;
-    class RELEASE_v0_67_system_menu release;
     class title_System_Components subgraphTitle;
     class title_UI_Framework subgraphTitle;
     class ui_base ui;

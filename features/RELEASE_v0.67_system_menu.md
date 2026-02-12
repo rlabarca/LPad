@@ -1,7 +1,7 @@
 # Release v0.67: System Menu
 
 > Label: "Release v0.67 (System Menu)"
-> Category: "Releases"
+> Category: "RELEASES"
 > Prerequisite: features/ui_system_menu.md, features/RELEASE_v0.60_initial_stock_tracker.md
 
 ## 1. Overview

@@ -1,7 +1,7 @@
 # Release v0.55 - Connectivity Smoke Test
 
 > Label: "Release v0.55 - Connectivity Smoke Test"
-> Category: "Releases"
+> Category: "RELEASES"
 > Prerequisite: features/RELEASE_v0.5_display_drawing_ui_base.md
 > Prerequisite: features/hal_spec_network.md
 > Prerequisite: features/app_config_system.md

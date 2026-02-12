@@ -1,7 +1,7 @@
 # Release v0.65: Touch Interaction & Debugging
 
 > Label: "Release v0.65 (Touch)"
-> Category: "Releases"
+> Category: "RELEASES"
 > Prerequisite: features/ui_touch_test_overlay.md
 
 ## 1. Overview

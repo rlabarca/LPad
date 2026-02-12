@@ -1,7 +1,7 @@
 # Release v0.58 - Dynamic Visuals
 
 > Label: "Release v0.58 - Dynamic Visuals"
-> Category: "Releases"
+> Category: "RELEASES"
 > Prerequisite: features/RELEASE_v0.55_connectivity_smoke_test.md
 > Prerequisite: features/data_layer_time_series.md
 > Prerequisite: features/demo_release_0.58.md

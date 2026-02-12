@@ -1,7 +1,7 @@
 # Release v0.60: Initial Stock Tracker
 
 > Label: "Release v0.60"
-> Category: "Releases"
+> Category: "RELEASES"
 > Prerequisite: features/RELEASE_v0.58_dynamic_visuals.md
 > Prerequisite: features/demo_release_0.60.md
 

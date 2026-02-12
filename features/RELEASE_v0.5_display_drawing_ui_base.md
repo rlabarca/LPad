@@ -1,7 +1,7 @@
 # Release v0.5 - Display, Drawing & UI Base
 
 > Label: "Release v0.5 - Display, Drawing & UI Base"
-> Category: "Releases"
+> Category: "RELEASES"
 
 > Prerequisite: features/hal_spec_display.md
 > Prerequisite: features/hal_spec_timer.md
