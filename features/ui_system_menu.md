@@ -11,12 +11,12 @@ The System Menu is a global, transient UI layer that provides system-level infor
 - **Background:** Solid color defined by `colors.system_menu_background` in the active theme (e.g., solid black in the Default theme).
 - **Size:** Full screen (covers all underlying content).
 - **Typography:**
-    - **Version Information:** Displays "Version <version_number>" in the top-left corner.
-        - **Font:** `fonts.smallest` (9pt).
-        - **Color:** `colors.text_secondary` (subtle).
     - **Connectivity Information:** Displays the active WiFi AP name in the top-right corner.
         - **Font:** `fonts.normal` (12pt).
         - **Color:** `colors.text_main` (normal).
+    - **Version Information:** Displays "Version <version_number>" centered at the bottom of the screen.
+        - **Font:** `fonts.smallest` (9pt).
+        - **Color:** `colors.text_secondary` (subtle).
 
 ## 3. Interaction & Animation
 - **Activation Gesture:** `EDGE_DRAG: TOP` (swipe down from the top edge).

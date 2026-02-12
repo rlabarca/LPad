@@ -40,8 +40,8 @@ This release introduces the "System Menu" as the primary navigation and status i
 **Scenario B: Opening System Menu**
 1. Swipe down from the top edge.
 2. Verify: The black System Menu animates down smoothly.
-3. Verify: The text "Version 0.67" appears in the top-left (small/subtle).
-4. Verify: The current WiFi SSID appears in the top-right.
+3. Verify: The current WiFi SSID appears in the top-right.
+4. Verify: The text "Version 0.67" appears centered at the bottom (small/subtle).
 
 **Scenario C: Dismissing System Menu**
 1. Swipe up from the bottom of the screen while the menu is open.
