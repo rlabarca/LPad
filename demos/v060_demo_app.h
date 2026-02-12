@@ -49,6 +49,12 @@ public:
     void setWatermark(const char* text) { m_tickerSymbol = text; }
 
     /**
+     * @brief Request a full graph redraw (background, axes, labels, data).
+     * Call after the display has been overwritten by an overlay (e.g., system menu).
+     */
+    void requestFullRedraw();
+
+    /**
      * @brief Updates the current phase and component states.
      * @param deltaTime Time elapsed since last frame (seconds)
      */
@@ -97,6 +103,8 @@ private:
     bool m_logoAnimationComplete;
     bool m_pingResult;
     bool m_graphInitialRenderDone;
+    bool m_backgroundDrawn;
+    long m_lastDataTimestamp;
     float m_logoHoldTimer;
     float m_handoverTimer;
 

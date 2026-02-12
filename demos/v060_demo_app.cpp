@@ -28,10 +28,12 @@ V060DemoApp::V060DemoApp(const char* versionText)
     , m_logoAnimationComplete(false)
     , m_pingResult(false)
     , m_graphInitialRenderDone(false)
+    , m_backgroundDrawn(false)
+    , m_lastDataTimestamp(0)
     , m_logoHoldTimer(0.0f)
     , m_handoverTimer(0.0f)
 {
-    Serial.printf("[V060DemoApp] Constructor called with versionText='%s'\n", versionText);
+    Serial.printf("[V060DemoApp] Constructor called with versionText='%s'\n", versionText ? versionText : "(null)");
 }
 
 V060DemoApp::~V060DemoApp() {
@@ -49,6 +51,12 @@ V060DemoApp::~V060DemoApp() {
     if (m_titleBuffer != nullptr) {
         free(m_titleBuffer);
     }
+}
+
+void V060DemoApp::requestFullRedraw() {
+    m_backgroundDrawn = false;
+    m_lastDataTimestamp = 0;
+    m_graphInitialRenderDone = false;
 }
 
 bool V060DemoApp::begin(RelativeDisplay* display) {
@@ -191,7 +199,6 @@ void V060DemoApp::render() {
             break;
 
         case PHASE_STOCK_GRAPH: {
-            static bool backgroundDrawn = false;
             bool needsFullRender = false;  // Only render when we have actual graph content
 
             // Update graph data if available
@@ -201,23 +208,21 @@ void V060DemoApp::render() {
                 if (dataSeries != nullptr && dataSeries->getLength() > 0) {
                     // Check if data has been updated since last render
                     // Use the timestamp of the last data point to detect updates (length may stay constant with rolling window)
-                    static long lastTimestamp = 0;
                     GraphData graphData = dataSeries->getGraphData();
                     long currentTimestamp = graphData.x_values.empty() ? 0 : graphData.x_values.back();
 
-                    if (currentTimestamp != lastTimestamp) {
+                    if (currentTimestamp != m_lastDataTimestamp) {
                         // Data changed - update graph and trigger full render
                         m_graph->setData(graphData);
 
-                        // Calculate and print data range for debugging
                         // Draw background (axes + ticks) after first data load (needed for tick calculation)
-                        if (!backgroundDrawn) {
+                        if (!m_backgroundDrawn) {
                             m_graph->drawBackground();
-                            backgroundDrawn = true;
+                            m_backgroundDrawn = true;
                         }
 
                         m_graph->drawData();
-                        lastTimestamp = currentTimestamp;
+                        m_lastDataTimestamp = currentTimestamp;
                         needsFullRender = true;  // NOW we have content to render
                     }
                 }
@@ -363,7 +368,7 @@ GraphTheme V060DemoApp::createStockGraphTheme() {
     theme.axisTitleFont = lpadTheme->fonts.ui;
 
     // Watermark color (subtle text)
-    theme.watermarkColor = lpadTheme->colors.text_secondary;
+    theme.watermarkColor = lpadTheme->colors.graph_ticks;
 
     return theme;
 }

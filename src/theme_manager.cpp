@@ -21,7 +21,9 @@ Theme ThemeManager::default_theme_ = {
         .graph_axes = THEME_GRAPH_AXES,
         .graph_ticks = THEME_GRAPH_TICKS,
         .axis_labels = THEME_AXIS_LABELS,
-        .data_labels = THEME_DATA_LABELS
+        .data_labels = THEME_DATA_LABELS,
+
+        .system_menu_bg = 0x0000  // Pure black (AMOLED pixels OFF)
     },
     // fonts
     {

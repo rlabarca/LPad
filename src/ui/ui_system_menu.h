@@ -14,8 +14,9 @@
 
 #include <stdint.h>
 
-// Forward declaration (Arduino_GFX is a class, safe to forward-declare)
+// Forward declarations
 class Arduino_GFX;
+class Arduino_Canvas;
 
 class SystemMenu {
 public:
@@ -35,6 +36,7 @@ public:
     void setSSID(const char* ssid);
 
     void setBackgroundColor(uint16_t color);
+    void setRevealColor(uint16_t color);
     void setVersionFont(const void* font);
     void setVersionColor(uint16_t color);
     void setSSIDFont(const void* font);
@@ -63,10 +65,18 @@ private:
 
     // Theme
     uint16_t m_bgColor;
+    uint16_t m_revealColor;  // Color shown below menu during closing animation
     const void* m_versionFont;
     uint16_t m_versionColor;
     const void* m_ssidFont;
     uint16_t m_ssidColor;
+
+    // Off-screen canvas for flicker-free rendering (PSRAM)
+    Arduino_Canvas* m_canvas;
+    uint16_t* m_canvasBuffer;
+
+    // Dirty tracking - only render when content/state changes
+    bool m_dirty;
 
     static constexpr float ANIMATION_DURATION = 0.25f;  // 250ms
 };

@@ -16,6 +16,7 @@ V067DemoApp::V067DemoApp()
     , m_gestureEngine(nullptr)
     , m_systemMenu(nullptr)
     , m_lastTouchPressed(false)
+    , m_menuWasActive(false)
 {
 }
 
@@ -58,9 +59,10 @@ bool V067DemoApp::begin(RelativeDisplay* display) {
 
     m_systemMenu->setVersion("Version 0.67");
     m_systemMenu->setSSID(hal_network_get_ssid());
-    m_systemMenu->setBackgroundColor(theme->colors.background);
+    m_systemMenu->setBackgroundColor(theme->colors.system_menu_bg);
+    m_systemMenu->setRevealColor(theme->colors.background);
     m_systemMenu->setVersionFont(theme->fonts.smallest);
-    m_systemMenu->setVersionColor(theme->colors.text_secondary);
+    m_systemMenu->setVersionColor(theme->colors.graph_ticks);
     m_systemMenu->setSSIDFont(theme->fonts.normal);
     m_systemMenu->setSSIDColor(theme->colors.text_main);
 
@@ -126,11 +128,19 @@ void V067DemoApp::update(float deltaTime) {
 }
 
 void V067DemoApp::render() {
-    if (m_systemMenu->isActive()) {
+    bool menuActive = m_systemMenu->isActive();
+
+    if (menuActive) {
         // System menu has exclusive display access
         m_systemMenu->render();
     } else {
+        // Detect menu just closed → force full graph redraw
+        if (m_menuWasActive) {
+            m_v060Demo->requestFullRedraw();
+        }
         // Normal graph rendering
         m_v060Demo->render();
     }
+
+    m_menuWasActive = menuActive;
 }

@@ -37,6 +37,9 @@ private:
 
     // Track last touch state
     bool m_lastTouchPressed;
+
+    // Track menu state transitions for graph redraw
+    bool m_menuWasActive;
 };
 
 #endif // V067_DEMO_APP_H

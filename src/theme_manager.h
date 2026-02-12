@@ -28,6 +28,9 @@ struct ThemeColors {
     uint16_t graph_ticks;
     uint16_t axis_labels;
     uint16_t data_labels;
+
+    // System menu
+    uint16_t system_menu_bg;
 };
 
 /**
