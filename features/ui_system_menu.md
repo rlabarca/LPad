@@ -8,7 +8,7 @@
 The System Menu is a global, transient UI layer that provides system-level information (version, connectivity) and navigation. It remains hidden until summoned by a specific gesture and has the highest rendering priority, suppressing all underlying application rendering while active.
 
 ## 2. Visual Specification
-- **Background:** Solid black (`colors.background` in the default theme).
+- **Background:** Solid color defined by `colors.system_menu_background` in the active theme (e.g., solid black in the Default theme).
 - **Size:** Full screen (covers all underlying content).
 - **Typography:**
     - **Version Information:** Displays "Version <version_number>" in the top-left corner.

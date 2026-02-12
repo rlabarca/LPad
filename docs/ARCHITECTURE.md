@@ -180,6 +180,7 @@ To prevent graph from overwriting logo or connectivity screens, updates require:
 1.  **Isolation:** Themes are stored in `src/themes/<theme_name>/`.
 2.  **Manifest Pattern:** Every theme MUST provide a `theme_manifest.h` which acts as the entry point.
 3.  **Semantic Mapping:** Code MUST NOT use hardcoded hex colors. It must use semantic names defined in the theme (e.g., `LPad::THEME_TEXT`).
+4.  **System Menu Background:** All themes MUST explicitly define a `system_menu_background` color. This color is dedicated to the overlay system menu and is typically a solid, opaque color (e.g., solid black `0x0000` for dark themes).
 
 ### B. Typography & Fonts
 1.  **GFX Fonts:** We use Adafruit GFX compatible header-based fonts.

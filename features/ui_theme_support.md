@@ -12,7 +12,15 @@ This feature establishes the "LPad Design System" (Theme) for the application. I
 ### Theme Definitions
 Themes are defined as C++ structures containing color palettes and font pointers.
 
-1.  **`ThemeColors` Struct:** Holds 16-bit RGB565 color values for semantic UI elements (e.g., `background`, `surface`, `primary`, `text_main`, `text_secondary`).
+1.  **`ThemeColors` Struct:** Holds 16-bit RGB565 color values for semantic UI elements:
+    - `background`: Primary background for screens.
+    - `surface`: Background for cards or elevated elements.
+    - `primary`: Main brand color.
+    - `secondary`: Secondary brand color.
+    - `accent`: Attention-grabbing color.
+    - `text_main`: Primary text color.
+    - `text_secondary`: Subtle text color.
+    - `system_menu_background`: Dedicated background color for the overlay system menu.
 2.  **`ThemeFonts` Struct:** Holds pointers to `GFXfont` objects for the 5 standardized typography levels.
 3.  **`Theme` Struct:** Aggregates `ThemeColors` and `ThemeFonts`.
 
