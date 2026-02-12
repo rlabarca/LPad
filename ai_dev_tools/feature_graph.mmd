@@ -77,10 +77,10 @@ flowchart TD
         title_Hardware_Layer ~~~ touch_cst816_implementation
     end
 
-    subgraph Release [" "]
-        title_Release["RELEASE"]
+    subgraph RELEASES [" "]
+        title_RELEASES["RELEASES"]
         RELEASE_v0_70_ui_render_manager["Release v0.70: UI Render Manager"]
-        title_Release ~~~ RELEASE_v0_70_ui_render_manager
+        title_RELEASES ~~~ RELEASE_v0_70_ui_render_manager
     end
 
     subgraph Release_Demos [" "]
@@ -253,8 +253,7 @@ flowchart TD
     class hal_spec_touch hardware;
     class hal_timer_esp32 hardware;
     class touch_cst816_implementation hardware;
-    class title_Release subgraphTitle;
-    class RELEASE_v0_70_ui_render_manager release;
+    class title_RELEASES subgraphTitle;
     class title_Release_Demos subgraphTitle;
     class demo_release_0_5 release;
     class demo_release_0_55 release;
