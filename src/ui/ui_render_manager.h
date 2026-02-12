@@ -32,6 +32,9 @@ public:
     /** Render all visible, non-paused components in ascending Z-Order (Painter's Algorithm). */
     void renderAll();
 
+    /** Update all visible, non-paused components with the frame delta time. */
+    void updateAll(float dt);
+
     /** Route a touch event: first checks activation events, then dispatches highest-Z first. */
     void routeInput(const touch_gesture_event_t& event);
 

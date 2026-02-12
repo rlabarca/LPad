@@ -175,16 +175,13 @@ demos/v055_demo_app.cpp         # WiFi wrapper around V05DemoApp
 - Shared components go in `vXX_demo_app.cpp` classes
 
 ## Hardware Upload Protocol
-**DO NOT automatically upload to devices.** The user controls which device is connected via USB.
+**NEVER flash/upload/erase the device yourself.** The user controls all hardware operations.
 
 **Your role:**
 1. Build the firmware: `pio run -e <env>`
 2. **STOP and inform the user** that the build is ready
-3. Tell the user: "Ready to upload. Run: `pio run -e <env> -t upload`"
-4. Let the user execute the upload command when they're ready
-
-**Only upload automatically if:**
-- The user explicitly asks you to upload
+3. Tell the user the command to run (e.g., `pio run -e <env> -t upload` or `pio run -e <env> -t erase`)
+4. **The user will execute the command themselves.** Never run upload, erase, or flash commands even if asked.
 - The user provides a specific environment to upload to
 
 ## Status Reset Logic

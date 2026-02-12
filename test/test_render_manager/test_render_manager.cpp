@@ -40,6 +40,8 @@ public:
     int unpauseCalls = 0;
     int runCalls = 0;
     int closeCalls = 0;
+    int updateCalls = 0;
+    float lastDt = 0.0f;
 
     MockApp(int id) : id(id) {}
 
@@ -50,6 +52,11 @@ public:
 
     void render() override {
         if (g_renderCount < 16) g_renderOrder[g_renderCount++] = id;
+    }
+
+    void update(float dt) override {
+        updateCalls++;
+        lastDt = dt;
     }
 
     bool handleInput(const touch_gesture_event_t& event) override {
@@ -70,6 +77,8 @@ public:
     int lastInputType = -1;
     int pauseCalls = 0;
     int unpauseCalls = 0;
+    int updateCalls = 0;
+    float lastDt = 0.0f;
 
     MockSystem(int id) : id(id) {}
 
@@ -78,6 +87,11 @@ public:
 
     void render() override {
         if (g_renderCount < 16) g_renderOrder[g_renderCount++] = id;
+    }
+
+    void update(float dt) override {
+        updateCalls++;
+        lastDt = dt;
     }
 
     bool handleInput(const touch_gesture_event_t& event) override {
@@ -452,6 +466,77 @@ void test_unregister_allows_zorder_reuse() {
 }
 
 // ==========================================
+// Scenario: updateAll
+// ==========================================
+
+void test_update_all_calls_visible() {
+    MockApp app(1);
+    MockSystem sys(10);
+
+    auto& mgr = UIRenderManager::getInstance();
+    mgr.registerComponent(&app, 1);
+    mgr.registerComponent(&sys, 10);
+    mgr.setActiveApp(&app);
+
+    mgr.updateAll(0.033f);
+
+    TEST_ASSERT_EQUAL(1, app.updateCalls);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 0.033f, app.lastDt);
+    TEST_ASSERT_EQUAL(1, sys.updateCalls);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 0.033f, sys.lastDt);
+}
+
+void test_update_skips_paused_app() {
+    MockApp app(1);
+    MockSystem menu(20);
+
+    menu.setActivationEvent(TOUCH_EDGE_DRAG, TOUCH_DIR_UP);
+    menu.hide();
+
+    auto& mgr = UIRenderManager::getInstance();
+    mgr.registerComponent(&app, 1);
+    mgr.registerComponent(&menu, 20);
+    mgr.setActiveApp(&app);
+
+    // Activate menu (pauses app)
+    touch_gesture_event_t event = {};
+    event.type = TOUCH_EDGE_DRAG;
+    event.direction = TOUCH_DIR_UP;
+    mgr.routeInput(event);
+
+    // Reset counters
+    app.updateCalls = 0;
+    menu.updateCalls = 0;
+
+    mgr.updateAll(0.016f);
+
+    // App is paused — should NOT be updated
+    TEST_ASSERT_EQUAL(0, app.updateCalls);
+    // Menu is visible and active — should be updated
+    TEST_ASSERT_EQUAL(1, menu.updateCalls);
+}
+
+void test_update_skips_hidden_system() {
+    MockApp app(1);
+    MockSystem overlay(10);
+
+    overlay.hide(); // Hidden system component
+
+    auto& mgr = UIRenderManager::getInstance();
+    mgr.registerComponent(&app, 1);
+    mgr.registerComponent(&overlay, 10);
+    mgr.setActiveApp(&app);
+
+    app.updateCalls = 0;
+    overlay.updateCalls = 0;
+
+    mgr.updateAll(0.033f);
+
+    TEST_ASSERT_EQUAL(1, app.updateCalls);
+    TEST_ASSERT_EQUAL(0, overlay.updateCalls); // Hidden — skipped
+}
+
+// ==========================================
 // Main
 // ==========================================
 
@@ -490,6 +575,11 @@ int main(int argc, char** argv) {
     RUN_TEST(test_unregister_removes_component);
     RUN_TEST(test_unregister_active_app_clears_pointer);
     RUN_TEST(test_unregister_allows_zorder_reuse);
+
+    // updateAll
+    RUN_TEST(test_update_all_calls_visible);
+    RUN_TEST(test_update_skips_paused_app);
+    RUN_TEST(test_update_skips_hidden_system);
 
     return UNITY_END();
 }

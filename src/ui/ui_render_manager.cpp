@@ -107,6 +107,18 @@ void UIRenderManager::renderAll() {
 }
 
 // ---------------------------------------------------------------------------
+// Update Loop
+// ---------------------------------------------------------------------------
+void UIRenderManager::updateAll(float dt) {
+    for (int i = 0; i < m_componentCount; i++) {
+        UIComponent* comp = m_components[i];
+        if (comp->isVisible() && !comp->isPaused()) {
+            comp->update(dt);
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Event Routing
 // ---------------------------------------------------------------------------
 void UIRenderManager::routeInput(const touch_gesture_event_t& event) {

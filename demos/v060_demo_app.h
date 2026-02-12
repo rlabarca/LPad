@@ -55,6 +55,12 @@ public:
     void requestFullRedraw();
 
     /**
+     * @brief Skip directly to PHASE_STOCK_GRAPH, bypassing logo and WiFi phases.
+     * Used by v0.70+ when V060DemoApp is wrapped as an inner component.
+     */
+    void skipToStockGraph();
+
+    /**
      * @brief Updates the current phase and component states.
      * @param deltaTime Time elapsed since last frame (seconds)
      */

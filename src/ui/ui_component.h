@@ -37,6 +37,7 @@ public:
     virtual void onPause() {}
     virtual void onUnpause() {}
     virtual void render() = 0;
+    virtual void update(float dt) { (void)dt; }
     virtual bool handleInput(const touch_gesture_event_t& event) { return false; }
 
     // Properties for render manager occlusion check
