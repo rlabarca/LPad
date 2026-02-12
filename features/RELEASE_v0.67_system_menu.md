@@ -19,7 +19,7 @@ This release introduces the "System Menu" as the primary navigation and status i
 
 ### 2.3 New Features
 - **System Menu Implementation:** As defined in `features/ui_system_menu.md`.
-- **Ticker Watermark:** The graph now displays the active ticker symbol as a background watermark (top-center, subtle color, heading font).
+- **Ticker Watermark:** The graph is configured to display the active ticker symbol as a background watermark (top-center, subtle color, heading font) via the new `setWatermark` API.
 - **Version Migration:** The version string "Version 0.67" is now located exclusively within the System Menu.
 
 ## 3. Hardware-In-Loop (HIL) Test

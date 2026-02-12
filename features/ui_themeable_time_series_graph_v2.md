@@ -28,10 +28,16 @@ This feature updates the `TimeSeriesGraph` component with a new look and feel, a
   - The Y-axis should have a title "Value" rendered vertically.
   - The X-axis should have a title "Hours Prior" rendered horizontally.
   - The graph must maintain a "Live" indicator (pulsing circle) at the latest data point.
-  - **Ticker Watermark:** The current ticker symbol (e.g., "^TNX") MUST be displayed at the top-center of the screen.
-    - **Layering:** It MUST be drawn *under* all other graph elements (background layer).
-    - **Font:** `fonts.heading` (second largest font).
-    - **Color:** `colors.text_secondary` (most subtle text color).
+
+### Scenario: Optional Ticker Watermark
+
+- **Given** a `TimeSeriesGraph` instance.
+- **When** the `setWatermark(const char* text)` method is called with a valid string (e.g., "^TNX").
+- **Then** the text MUST be displayed at the top-center of the screen.
+  - **Layering:** It MUST be drawn *under* all other graph elements (background layer).
+  - **Font:** `fonts.heading` (second largest font).
+  - **Color:** `colors.text_secondary` (most subtle text color).
+- **But** if `setWatermark` has NOT been called (or called with `nullptr`), NO watermark text should be rendered. This ensures backward compatibility with previous demos.
 
 ### Scenario: Dynamic Axis Labels
 
