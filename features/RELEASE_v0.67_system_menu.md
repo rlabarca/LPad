@@ -19,6 +19,7 @@ This release introduces the "System Menu" as the primary navigation and status i
 
 ### 2.3 New Features
 - **System Menu Implementation:** As defined in `features/ui_system_menu.md`.
+- **Ticker Watermark:** The graph now displays the active ticker symbol as a background watermark (top-center, subtle color, heading font).
 - **Version Migration:** The version string "Version 0.67" is now located exclusively within the System Menu.
 
 ## 3. Hardware-In-Loop (HIL) Test
@@ -32,7 +33,9 @@ This release introduces the "System Menu" as the primary navigation and status i
 **Scenario A: Clean Graph View**
 1. Observe the main graph screen.
 2. Verify: No "DEMO v0.67" text is visible in the corner.
-3. Verify: No touch crosshair or coordinate overlay appears when touching the screen.
+3. Verify: The ticker symbol (e.g., "^TNX") is visible in the top-center background.
+4. Verify: The ticker is drawn in a subtle color and is "behind" the graph line if they intersect.
+5. Verify: No touch crosshair or coordinate overlay appears when touching the screen.
 
 **Scenario B: Opening System Menu**
 1. Swipe down from the top edge.
