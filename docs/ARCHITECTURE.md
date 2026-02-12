@@ -5,7 +5,8 @@ The system follows a strict **Layered Architecture** designed to decouple Applic
 
 ```mermaid
 graph TD
-    App[Application (src/)] --> HAL_Core[HAL Core Contract]
+    App[Application (src/)] --> UIMgr[UI Render Manager]
+    UIMgr --> HAL_Core[HAL Core Contract]
     
     subgraph "HAL Layer (Domain Segmented)"
     HAL_Core --> Spec_Disp[Display Spec]
@@ -22,10 +23,10 @@ graph TD
     App --> Spec_Time
 
     subgraph "Application Logic"
+    UIMgr --> StockTicker[App: StockTicker]
+    UIMgr --> SystemMenu[System: Menu]
+    UIMgr --> MiniLogo[System: MiniLogo]
     RelativeDisplay[Relative Display Abstraction]
-    TimeSeriesGraph[UI Component]
-    AnimationTicker[Animation Loop]
-    ConfigSystem[Config Bridge]
     end
 ```
 
@@ -173,6 +174,21 @@ To prevent graph from overwriting logo or connectivity screens, updates require:
 - **No Duplication:** Shared logic lives in `vXX_demo_app.cpp` classes
 - **Easy Navigation:** `main.cpp` points to active milestone
 - **Maintainability:** Old demos preserved for regression testing
+
+### H. UI Architecture (Render Manager)
+*Since Release v0.70*
+
+The `UIRenderManager` serves as the central orchestration layer, replacing the monolithic "Demo App" pattern with a composable "System + App" model.
+
+1.  **Painter's Algorithm:** Components are rendered in ascending **Z-Order** (0 to N). Higher Z-order components draw on top of lower ones.
+2.  **No Master Framebuffer:** Due to memory constraints and the use of direct DMA blitting, there is no global framebuffer. Components must draw to their own off-screen surfaces or directly to the display.
+3.  **Transparent Compositing:** High Z-order components (System Tools, MiniLogo) MUST use **Transparent DMA Blitting** (`hal_display_fast_blit_transparent` with Chroma Key `0x0001`) to overlay content without erasing the underlying application.
+4.  **Occlusion Optimization:**
+    *   The Render Manager checks component visibility and opacity.
+    *   If a high Z-order component (e.g., System Menu) reports `isOpaque = true` and `isFullscreen = true`, the Manager **skips rendering** all lower Z-order components to conserve CPU and DMA bandwidth.
+5.  **Event Routing:**
+    *   **Activation Events:** The Manager intercepts specific global gestures (e.g., `EDGE_DRAG: TOP`) to wake up sleeping System Components.
+    *   **Focus:** Input is routed to the highest Z-order active component. If a System Component is active (e.g., Menu), it consumes all input, blocking it from the Application.
 
 ## 4. Design System & Theming
 

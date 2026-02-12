@@ -116,7 +116,32 @@ build_src_filter =
 
 **Check these environments:** `esp32s3`, `tdisplay_s3_plus`, and any other hardware targets.
 
-## Demo Architecture Pattern (CRITICAL)
+## Application & Demo Architecture
+
+### 1. v0.70+ App Architecture (System + App)
+Starting with Release v0.70, the monolithic "Demo App" pattern is replaced by a composable system managed by `UIRenderManager`.
+
+**Directory Structure:**
+```
+src/
+  ├─ core/
+  │   └─ ui_render_manager.cpp    # The Orchestrator (Singleton)
+  ├─ apps/
+  │   └─ stock_ticker.cpp         # User App (Implements AppComponent)
+  ├─ system/
+  │   ├─ system_menu.cpp          # System Tool (Implements SystemComponent)
+  │   └─ mini_logo.cpp            # Passive Overlay
+  └─ main.cpp                     # Initializes Manager & Registers Components
+```
+
+**Implementation Rules:**
+1.  **Orchestration:** `main.cpp` no longer runs a loop. It configures the `UIRenderManager`, registers components, and calls `manager.start()`.
+2.  **Component Migration:** Logic from old `demos/v0XX_demo_app.cpp` MUST be refactored into isolated classes in `src/apps/` or `src/system/`.
+3.  **Z-Order:** Strictly adhere to the Z-Order defined in `features/*.md`.
+4.  **No Hardware in Apps:** Apps must use `HAL` interfaces or the `UIRenderManager` context, never raw hardware headers.
+
+### 2. Legacy Demo Architecture (Dispatcher Pattern)
+**Applies to:** Releases v0.5 - v0.67 (preserved for regression testing).
 
 **Dispatcher Pattern for Milestones:**
 ```
