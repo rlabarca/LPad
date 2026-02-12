@@ -118,6 +118,9 @@ build_src_filter =
 
 ## Application & Demo Architecture
 
+> **Architecture Source of Truth:**
+> Detailed rules for the **UI Render Manager**, **Z-Order**, and **Component Lifecycles** are defined in `docs/ARCHITECTURE.md` (Section H). You MUST consult that document before implementing any new app components.
+
 ### 1. v0.70+ App Architecture (System + App)
 Starting with Release v0.70, the monolithic "Demo App" pattern is replaced by a composable system managed by `UIRenderManager`.
 
@@ -137,7 +140,7 @@ src/
 **Implementation Rules:**
 1.  **Orchestration:** `main.cpp` no longer runs a loop. It configures the `UIRenderManager`, registers components, and calls `manager.start()`.
 2.  **Component Migration:** Logic from old `demos/v0XX_demo_app.cpp` MUST be refactored into isolated classes in `src/apps/` or `src/system/`.
-3.  **Z-Order:** Strictly adhere to the Z-Order defined in `features/*.md`.
+3.  **Strict Z-Order:** Implement Z-Order as defined in `features/*.md`.
 4.  **No Hardware in Apps:** Apps must use `HAL` interfaces or the `UIRenderManager` context, never raw hardware headers.
 
 ### 2. Legacy Demo Architecture (Dispatcher Pattern)
