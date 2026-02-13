@@ -31,8 +31,14 @@ void TextWidget::render(Arduino_GFX* gfx, int32_t x, int32_t y, int32_t w, int32
     uint16_t tw, th;
     gfx->getTextBounds(m_text, 0, 0, &x1, &y1, &tw, &th);
 
-    // Single-line case: text fits within width
-    if ((int32_t)tw <= w) {
+    // Single-line rendering: text fits width, OR cell too short for word-wrap.
+    // When the cell height can't hold even one wrapped line, render the full text
+    // as a single centered line (GFX will overflow-clip naturally).
+    int32_t lineHeight = (th > 0) ? (int32_t)th + 2 : 14;
+    bool fitsWidth = ((int32_t)tw <= w);
+    bool cellTooShortForWrap = (h < lineHeight * 2);
+
+    if (fitsWidth || cellTooShortForWrap) {
         int32_t textX = x;
         int32_t textY = y;
 
@@ -54,8 +60,8 @@ void TextWidget::render(Arduino_GFX* gfx, int32_t x, int32_t y, int32_t w, int32
         return;
     }
 
-    // Multi-line word-wrap case
-    int32_t lineHeight = (th > 0) ? (int32_t)th + 2 : 14;
+    // Multi-line word-wrap case (cell tall enough for at least 2 lines)
+    // lineHeight already computed above
     int32_t lineY = y - y1;  // Start from top, baseline-adjusted
 
     const char* ptr = m_text;

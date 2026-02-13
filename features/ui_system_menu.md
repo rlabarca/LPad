@@ -24,8 +24,8 @@ The System Menu layout is managed by a `WidgetLayoutEngine` using a `GridWidgetL
     2. **WiFi List (Rows 1-4):** `WiFiListWidget`
         - **Content:** List of available pre-configured APs.
         - **Font:** `fonts.normal`
-        - **Color (Normal):** `colors.text_secondary` (Muted Green)
-        - **Color (Active):** `colors.text_highlight` (Cream/Bright)
+        - **Color (Normal):** `colors.text_main` (Khaki)
+        - **Color (Active):** `colors.text_highlight` (Chamoisee)
         - **Behavior:** See `features/ui_wifi_list_widget.md`.
 
 - **Legacy Status Items (Overlay):**

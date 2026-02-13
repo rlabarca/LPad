@@ -345,6 +345,13 @@
 
         window.addEventListener('resize', resetZoom);
 
+        // Prevent browser from zooming when pinch-zooming on trackpad
+        window.addEventListener('wheel', function(e) {
+            if (e.ctrlKey) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
         async function updateGraph() {
             try {
                 const response = await fetch('/api/graph');
@@ -383,7 +390,23 @@
                         maxZoom: 10,
                         dblClickZoomEnabled: false,
                         onZoom: saveZoomState,
-                        onPan: saveZoomState
+                        onPan: saveZoomState,
+                        beforePan: function(oldPan, newPan) {
+                            const gutterWidth = 100;
+                            const gutterHeight = 100;
+                            const sizes = this.getSizes();
+                            
+                            // Calculate limits to keep at least 100px of the map visible
+                            const leftLimit = gutterWidth - (sizes.viewBox.width * sizes.realZoom);
+                            const rightLimit = sizes.width - gutterWidth;
+                            const topLimit = gutterHeight - (sizes.viewBox.height * sizes.realZoom);
+                            const bottomLimit = sizes.height - gutterHeight;
+
+                            return {
+                                x: Math.max(leftLimit, Math.min(rightLimit, newPan.x)),
+                                y: Math.max(topLimit, Math.min(bottomLimit, newPan.y))
+                            };
+                        }
                     });
 
                     // Restore state if available

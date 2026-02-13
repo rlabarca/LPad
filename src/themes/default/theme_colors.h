@@ -24,9 +24,9 @@ namespace LPad {
     static const uint32_t COLOR_NIGHT_24     = 0x1E231E; // Background
     static const uint32_t COLOR_FOREST_24    = 0x464C42; // Deepest Green
     static const uint32_t COLOR_RESEDA_24    = 0x6D7361; // Muted Green
-    static const uint32_t COLOR_MOSS_24      = 0x989F7E; // Light Olive
+    static const uint32_t COLOR_MOSS_24      = 0x999F7D; // Moss
     static const uint32_t COLOR_SAGE_24      = 0x89AA89; // Fresh Green
-    static const uint32_t COLOR_KHAKI_24     = 0xB6AD90; // Earthy Beige
+    static const uint32_t COLOR_KHAKI_24     = 0xB6AD90; // Khaki
     static const uint32_t COLOR_CHAMOISEE_24 = 0xAC855E; // Accent Brown/Orange
     static const uint32_t COLOR_CREAM_24     = 0xBEBDB6; // Text/Highlight
 
@@ -37,7 +37,7 @@ namespace LPad {
     static const uint16_t COLOR_NIGHT_16     = 0x1923;
     static const uint16_t COLOR_FOREST_16    = 0x4268;
     static const uint16_t COLOR_RESEDA_16    = 0x6B8C;
-    static const uint16_t COLOR_MOSS_16      = 0x9CFF;
+    static const uint16_t COLOR_MOSS_16      = 0x9CEF;
     static const uint16_t COLOR_SAGE_16      = 0x8D51;
     static const uint16_t COLOR_KHAKI_16     = 0xB572;
     static const uint16_t COLOR_CHAMOISEE_16 = 0xAC2B;
