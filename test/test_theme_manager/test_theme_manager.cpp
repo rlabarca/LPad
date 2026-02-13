@@ -100,6 +100,9 @@ void test_dynamic_theme_switching() {
             .accent = 0xFFE0,            // Yellow
             .text_main = 0x0000,         // Black
             .text_secondary = 0x4208,    // Dark grey
+            .text_error = 0xF800,        // Red
+            .text_version = 0x4208,      // Dark grey
+            .text_status = 0xFFFF,       // White
 
             .graph_axes = 0x4208,
             .graph_ticks = 0x2104,

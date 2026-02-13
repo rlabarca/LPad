@@ -17,6 +17,7 @@ Adapt the existing `UISystemMenu` (from `features/ui_system_menu.md` and `RELEAS
 ## 3. Behavior
 
 ### 3.1 Lifecycle
+*   **Implementation:** `src/system/system_menu_component.cpp`
 *   **Init:** Pre-allocates necessary resources but does NOT draw.
 *   **Run:** Stays hidden (`visible = false`).
 *   **Activation (UnPause/Show):**
@@ -52,3 +53,20 @@ Adapt the existing `UISystemMenu` (from `features/ui_system_menu.md` and `RELEAS
     And the RenderManager calls `onPause()` on the SystemMenu
     And the SystemMenu becomes hidden
     And input control returns to the App
+
+## Implementation Notes
+
+### [2026-02-11] Direct Display Rendering (No PSRAM Canvas)
+The SystemMenu draws directly to the main display GFX (not a PSRAM canvas) to avoid the known GFXfont crash on PSRAM Arduino_Canvas. This is safe because the menu suppresses all other rendering while active.
+
+### [2026-02-11] GFXfont Forward Declaration Conflict
+**Problem:** `struct GFXfont;` forward declaration in the header conflicts with C-style `typedef struct { ... } GFXfont;` used by Arduino_GFX and native test mocks.
+**Solution:** Use `const void*` for font pointers in the header, cast to `const GFXfont*` in the cpp file. Avoids pulling in GFX headers while remaining type-compatible at ABI level.
+
+### [2026-02-11] Gesture Direction Semantics for Menu Activation
+Edge drag direction reports the EDGE where the touch started, not the movement direction:
+- `TOUCH_DIR_UP` = started from TOP edge (user swiped DOWN from top) → activates menu
+- `TOUCH_DIR_DOWN` = started from BOTTOM edge (user swiped UP from bottom) → closes menu
+
+### [2026-02-12] Semantic Color Defaults (v0.71 Sync)
+Constructor defaults for `m_versionColor` and `m_ssidColor` were hardcoded hex (`0x7BEF`, `0xFFFF`). Replaced with semantic constants from `theme_colors.h` (`THEME_TEXT_VERSION`, `THEME_TEXT_STATUS`) per `arch_design_system.md §1`. The caller (`main.cpp`) still overrides these from the active theme's `text_version` and `text_status` fields at runtime.

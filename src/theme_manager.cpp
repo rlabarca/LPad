@@ -16,6 +16,9 @@ Theme ThemeManager::default_theme_ = {
         .accent = THEME_ACCENT,
         .text_main = THEME_TEXT,
         .text_secondary = COLOR_MOSS_16,
+        .text_error = THEME_TEXT_ERROR,
+        .text_version = THEME_TEXT_VERSION,
+        .text_status = THEME_TEXT_STATUS,
 
         // Graph-specific colors
         .graph_axes = THEME_GRAPH_AXES,
@@ -23,7 +26,7 @@ Theme ThemeManager::default_theme_ = {
         .axis_labels = THEME_AXIS_LABELS,
         .data_labels = THEME_DATA_LABELS,
 
-        .system_menu_bg = 0x0000  // Pure black (AMOLED pixels OFF)
+        .system_menu_bg = THEME_SYSTEM_MENU_BG
     },
     // fonts
     {

@@ -22,6 +22,9 @@ struct ThemeColors {
     uint16_t accent;
     uint16_t text_main;
     uint16_t text_secondary;
+    uint16_t text_error;
+    uint16_t text_version;
+    uint16_t text_status;
 
     // Graph-specific colors
     uint16_t graph_axes;

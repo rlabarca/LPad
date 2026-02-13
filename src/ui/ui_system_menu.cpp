@@ -9,6 +9,7 @@
 
 #include "ui_system_menu.h"
 #include "../relative_display.h"
+#include "../themes/default/theme_colors.h"
 #include <Arduino_GFX_Library.h>
 #include "../../hal/display.h"
 
@@ -20,12 +21,12 @@ SystemMenu::SystemMenu()
     , m_progress(0.0f)
     , m_versionText(nullptr)
     , m_ssidText(nullptr)
-    , m_bgColor(0x0000)
-    , m_revealColor(0x0000)
+    , m_bgColor(LPad::THEME_SYSTEM_MENU_BG)
+    , m_revealColor(LPad::THEME_BACKGROUND)
     , m_versionFont(nullptr)
-    , m_versionColor(0x7BEF)
+    , m_versionColor(LPad::THEME_TEXT_VERSION)
     , m_ssidFont(nullptr)
-    , m_ssidColor(0xFFFF)
+    , m_ssidColor(LPad::THEME_TEXT_STATUS)
     , m_canvas(nullptr)
     , m_relDisplay(nullptr)
     , m_canvasBuffer(nullptr)

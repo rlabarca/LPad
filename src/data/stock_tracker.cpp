@@ -360,20 +360,26 @@ void StockTracker::taskFunction(void* param) {
 }
 
 void StockTracker::taskLoop() {
-    Serial.println("[StockTracker] Task started");
+    Serial.println("[StockTracker] Task started, polling for network...");
 
-    // Perform initial fetch
-    fetchData();
-
-    // Main loop: wait for refresh interval, then fetch again
+    // Single polling loop — no blocking waits (arch_data_strategy.md §1)
     while (m_is_running) {
-        // Wait for refresh interval (in milliseconds)
-        vTaskDelay(pdMS_TO_TICKS(m_refresh_interval_seconds * 1000));
+        hal_network_status_t net_status = hal_network_get_status();
 
-        // Fetch new data
-        if (m_is_running) {
-            fetchData();
+        if (net_status != HAL_NETWORK_STATUS_CONNECTED) {
+            // Network not ready: poll every 500ms, remain responsive to shutdown
+            vTaskDelay(pdMS_TO_TICKS(500));
+            continue;
         }
+
+        // Network connected: fetch data
+        fetchData();
+
+        // Short retry after failed first fetch, full interval after success
+        uint32_t delay_ms = m_is_first_fetch
+            ? 5000
+            : (m_refresh_interval_seconds * 1000);
+        vTaskDelay(pdMS_TO_TICKS(delay_ms));
     }
 
     Serial.println("[StockTracker] Task ended");

@@ -53,13 +53,21 @@ namespace LPad {
     static const uint16_t THEME_SECONDARY    = COLOR_RESEDA_16;
 
     // ==========================================
+    // Extended Semantic Usage
+    // ==========================================
+    static const uint16_t THEME_TEXT_ERROR    = 0xF800;          // Pure red for critical alerts
+    static const uint16_t THEME_TEXT_VERSION  = COLOR_FOREST_16; // Subtle system metadata
+    static const uint16_t THEME_TEXT_STATUS   = COLOR_CREAM_16;  // Network/SSID info (readable)
+    static const uint16_t THEME_SYSTEM_MENU_BG = 0x0000;        // AMOLED black (pixels OFF)
+
+    // ==========================================
     // Graph Specific Semantic Usage
     // ==========================================
     static const uint16_t THEME_GRAPH_AXES   = COLOR_RESEDA_16; // Muted for background
     static const uint16_t THEME_GRAPH_TICKS  = COLOR_FOREST_16; // Subtle ticks
     static const uint16_t THEME_AXIS_LABELS  = COLOR_CREAM_16;  // Clear readable labels
     static const uint16_t THEME_DATA_LABELS  = COLOR_SAGE_16;   // Thematic accent for data
-    
+
 }
 
 #endif // LPAD_THEME_COLORS_H

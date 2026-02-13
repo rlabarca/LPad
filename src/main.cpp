@@ -37,7 +37,7 @@ static MiniLogoComponent* g_miniLogo = nullptr;
 static SystemMenuComponent* g_systemMenu = nullptr;
 
 static void displayError(const char* message) {
-    hal_display_clear(0xF800); // RED
+    hal_display_clear(LPad::ThemeManager::getInstance().getTheme()->colors.text_error);
     hal_display_flush();
     Serial.println("=== ERROR ===");
     Serial.println(message);
@@ -153,13 +153,14 @@ void setup() {
         while (1) delay(1000);
     }
     g_systemMenu->setVersion("Version 0.70");
+    g_systemMenu->setSSIDProvider(hal_network_get_ssid);
     g_systemMenu->setSSID(hal_network_get_ssid());
     g_systemMenu->setBackgroundColor(theme->colors.system_menu_bg);
     g_systemMenu->setRevealColor(theme->colors.background);
     g_systemMenu->setVersionFont(theme->fonts.smallest);
-    g_systemMenu->setVersionColor(theme->colors.graph_ticks);
+    g_systemMenu->setVersionColor(theme->colors.text_version);
     g_systemMenu->setSSIDFont(theme->fonts.normal);
-    g_systemMenu->setSSIDColor(theme->colors.text_main);
+    g_systemMenu->setSSIDColor(theme->colors.text_status);
 
     Serial.println("  [PASS] StockTicker + MiniLogo + SystemMenu created");
     yield();
@@ -170,6 +171,7 @@ void setup() {
 
     auto& mgr = UIRenderManager::getInstance();
     mgr.reset();
+    mgr.setFlushCallback(hal_display_flush);
 
     mgr.registerComponent(g_stockTicker, 1);
     mgr.registerComponent(g_miniLogo, 10);
@@ -228,14 +230,8 @@ void loop() {
         }
     }
 
-    // --- Render (Painter's Algorithm) ---
+    // --- Render (Painter's Algorithm) + flush ---
     UIRenderManager::getInstance().renderAll();
-
-    // Flush GFX buffer only when stock ticker is active
-    // (SystemMenu uses hal_display_fast_blit directly when visible)
-    if (!g_stockTicker->isPaused()) {
-        hal_display_flush();
-    }
 
     // --- Update animations ---
     UIRenderManager::getInstance().updateAll(deltaTime);
