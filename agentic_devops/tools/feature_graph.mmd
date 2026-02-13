@@ -15,6 +15,8 @@ flowchart TD
         title_ARCHITECTURES ~~~ arch_infrastructure
         arch_ui_compositing["UI Compositing Policy<br/><small>arch_ui_compositing.md</small>"]
         title_ARCHITECTURES ~~~ arch_ui_compositing
+        arch_ui_widgets["UI Widget Policy<br/><small>arch_ui_widgets.md</small>"]
+        title_ARCHITECTURES ~~~ arch_ui_widgets
     end
 
     subgraph Applications [" "]
@@ -61,8 +63,8 @@ flowchart TD
 
     subgraph RELEASES [" "]
         title_RELEASES["RELEASES"]
-        RELEASE_v0_71_serial_screenshot["Release v0.71: Serial Screenshot<br/><small>RELEASE_v0.71_serial_screenshot.md</small>"]
-        title_RELEASES ~~~ RELEASE_v0_71_serial_screenshot
+        RELEASE_v0_72_wifi_widgets["Release v0.72: WiFi & Widgets<br/><small>RELEASE_v0.72_wifi_widgets.md</small>"]
+        title_RELEASES ~~~ RELEASE_v0_72_wifi_widgets
     end
 
     subgraph System_Architecture [" "]
@@ -97,6 +99,8 @@ flowchart TD
         title_UI_Framework ~~~ ui_base
         ui_mini_logo["UI Mini Logo<br/><small>ui_mini_logo.md</small>"]
         title_UI_Framework ~~~ ui_mini_logo
+        ui_standard_widgets["Standard UI Widgets<br/><small>ui_standard_widgets.md</small>"]
+        title_UI_Framework ~~~ ui_standard_widgets
         ui_system_menu["System Menu<br/><small>ui_system_menu.md</small>"]
         title_UI_Framework ~~~ ui_system_menu
         ui_theme_support["Theme Support<br/><small>ui_theme_support.md</small>"]
@@ -105,17 +109,24 @@ flowchart TD
         title_UI_Framework ~~~ ui_themeable_time_series_graph
         ui_vector_assets["Vector Asset Pipeline<br/><small>ui_vector_assets.md</small>"]
         title_UI_Framework ~~~ ui_vector_assets
+        ui_widget_framework["UI Widget Framework<br/><small>ui_widget_framework.md</small>"]
+        title_UI_Framework ~~~ ui_widget_framework
+        ui_wifi_list_widget["WiFi Selection List Widget<br/><small>ui_wifi_list_widget.md</small>"]
+        title_UI_Framework ~~~ ui_wifi_list_widget
     end
 
     %% Relationships
-    sys_serial_screenshot --> RELEASE_v0_71_serial_screenshot
-    sys_animation_ticker --> RELEASE_v0_71_serial_screenshot
-    sys_config_system --> RELEASE_v0_71_serial_screenshot
-    core_ui_render_manager --> RELEASE_v0_71_serial_screenshot
-    sys_system_menu --> RELEASE_v0_71_serial_screenshot
-    sys_mini_logo --> RELEASE_v0_71_serial_screenshot
-    app_stock_ticker --> RELEASE_v0_71_serial_screenshot
-    display_target_rotation --> RELEASE_v0_71_serial_screenshot
+    ui_widget_framework --> RELEASE_v0_72_wifi_widgets
+    ui_standard_widgets --> RELEASE_v0_72_wifi_widgets
+    ui_wifi_list_widget --> RELEASE_v0_72_wifi_widgets
+    sys_serial_screenshot --> RELEASE_v0_72_wifi_widgets
+    sys_animation_ticker --> RELEASE_v0_72_wifi_widgets
+    sys_config_system --> RELEASE_v0_72_wifi_widgets
+    core_ui_render_manager --> RELEASE_v0_72_wifi_widgets
+    ui_system_menu --> RELEASE_v0_72_wifi_widgets
+    sys_mini_logo --> RELEASE_v0_72_wifi_widgets
+    app_stock_ticker --> RELEASE_v0_72_wifi_widgets
+    display_target_rotation --> RELEASE_v0_72_wifi_widgets
     core_ui_render_manager --> app_stock_ticker
     data_layer_stock_tracker --> app_stock_ticker
     ui_themeable_time_series_graph --> app_stock_ticker
@@ -128,6 +139,8 @@ flowchart TD
     display_tdisplay_s3_plus --> arch_hal_policy
     touch_cst816_implementation --> arch_hal_policy
     hal_timer_esp32 --> arch_hal_policy
+    arch_ui_compositing --> arch_ui_widgets
+    display_relative_drawing --> arch_ui_widgets
     touch_gesture_engine --> core_ui_render_manager
     arch_ui_compositing --> core_ui_render_manager
     hal_core_contract --> data_layer_core
@@ -159,6 +172,8 @@ flowchart TD
     hal_spec_touch --> touch_cst816_implementation
     hal_spec_touch --> touch_gesture_engine
     ui_vector_assets --> ui_mini_logo
+    ui_widget_framework --> ui_standard_widgets
+    arch_design_system --> ui_standard_widgets
     touch_gesture_engine --> ui_system_menu
     ui_theme_support --> ui_system_menu
     display_canvas_drawing --> ui_theme_support
@@ -169,6 +184,9 @@ flowchart TD
     ui_base --> ui_themeable_time_series_graph
     display_relative_drawing --> ui_vector_assets
     arch_design_system --> ui_vector_assets
+    arch_ui_widgets --> ui_widget_framework
+    ui_standard_widgets --> ui_wifi_list_widget
+    hal_spec_network --> ui_wifi_list_widget
 
     %% Styling Definitions
     classDef default fill:#e1f5fe,stroke:#01579b,stroke-width:1px,color:black;
@@ -204,7 +222,10 @@ flowchart TD
     class display_relative_drawing ui;
     class ui_base ui;
     class ui_mini_logo ui;
+    class ui_standard_widgets ui;
     class ui_system_menu ui;
     class ui_theme_support ui;
     class ui_themeable_time_series_graph ui;
     class ui_vector_assets ui;
+    class ui_widget_framework ui;
+    class ui_wifi_list_widget ui;

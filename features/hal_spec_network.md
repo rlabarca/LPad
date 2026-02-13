@@ -23,15 +23,23 @@ typedef enum {
 ## Network HAL API
 
 ### `hal_network_init(const char* ssid, const char* password)`
-*   **Description:** Initializes the Wi-Fi hardware and starts an asynchronous connection attempt.
+*   **Description:** Starts an asynchronous connection attempt to a specific network. If already connected to another network, it should disconnect first.
 *   **Parameters:**
     *   `ssid`: The Wi-Fi network name.
     *   `password`: The Wi-Fi password.
+    *   Note: If `ssid` is `NULL`, it clears the current connection but doesn't start a new one.
 *   **Returns:** `bool` - `true` if initialization was successful.
 
 ### `hal_network_get_status(void)`
 *   **Description:** Returns the current connectivity status.
 *   **Returns:** `hal_network_status_t`.
+
+### `hal_network_get_ssid(void)`
+*   **Description:** Returns the SSID of the currently connected (or connecting) network.
+*   **Returns:** `const char*` or `"NONE"`.
+
+### `hal_network_disconnect(void)`
+*   **Description:** Explicitly disconnects from the current network.
 
 ### `hal_network_ping(const char* host)`
 *   **Description:** Performs a simple ICMP ping or HTTP HEAD request to verify internet connectivity.

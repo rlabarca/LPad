@@ -1,14 +1,13 @@
 /**
  * @file main.cpp
- * @brief LPad v0.70+ Entry Point
+ * @brief LPad v0.72 Entry Point
  *
- * Clean entry point for the UIRenderManager-driven architecture.
- * No dispatcher, no #ifdef, no demo includes.
+ * UIRenderManager-driven architecture with Widget-based System Menu.
  *
  * Components:
- *   Z=1  StockTickerApp   (AppComponent)
- *   Z=10 MiniLogoComponent (SystemComponent, passive overlay)
- *   Z=20 SystemMenuComponent (SystemComponent, activation=EDGE_DRAG TOP)
+ *   Z=1  StockTickerApp       (AppComponent)
+ *   Z=10 MiniLogoComponent    (SystemComponent, passive overlay)
+ *   Z=20 SystemMenuComponent  (SystemComponent, activation=EDGE_DRAG TOP)
  */
 
 #include <Arduino.h>
@@ -22,10 +21,21 @@
 #include "relative_display.h"
 #include "animation_ticker.h"
 #include "input/touch_gesture_engine.h"
+#include "ui/widgets/wifi_list_widget.h"
 
 #include "../hal/display.h"
 #include "../hal/touch.h"
 #include "../hal/network.h"
+
+// --- Multi-WiFi Configuration ---
+// Populated by scripts/inject_config.py from config.json
+#ifdef LPAD_WIFI_COUNT
+static const WiFiListWidget::WiFiEntry g_wifi_config[] = { LPAD_WIFI_CONFIG };
+static const int g_wifi_count = LPAD_WIFI_COUNT;
+#else
+static const WiFiListWidget::WiFiEntry g_wifi_config[] = {};
+static const int g_wifi_count = 0;
+#endif
 
 // --- Static globals ---
 static AnimationTicker* g_ticker = nullptr;
@@ -49,7 +59,7 @@ void setup() {
     delay(500);
     yield();
 
-    Serial.println("\n\n\n=== LPad v0.70 (Standalone Components) ===");
+    Serial.println("\n\n\n=== LPad v0.72 (WiFi & Widgets) ===");
     Serial.flush();
     yield();
 
@@ -84,7 +94,7 @@ void setup() {
     Serial.println("  [PASS] Touch initialized");
     yield();
 
-    // [3/6] WiFi
+    // [3/6] WiFi (connect to first configured network)
     Serial.println("[3/6] Initializing WiFi...");
     Serial.flush();
 
@@ -94,6 +104,7 @@ void setup() {
     } else {
         Serial.println("  [WARN] Network init failed");
     }
+    Serial.printf("  [INFO] %d WiFi networks configured\n", g_wifi_count);
     #else
     Serial.println("  [INFO] No WiFi credentials configured");
     #endif
@@ -146,13 +157,13 @@ void setup() {
         while (1) delay(1000);
     }
 
-    // System Menu (Z=20)
+    // System Menu (Z=20) - Widget-based for v0.72
     g_systemMenu = new SystemMenuComponent();
     if (!g_systemMenu->begin(gfx, width, height)) {
         displayError("SystemMenuComponent init failed");
         while (1) delay(1000);
     }
-    g_systemMenu->setVersion("Version 0.70");
+    g_systemMenu->setVersion("Version 0.72");
     g_systemMenu->setSSIDProvider(hal_network_get_ssid);
     g_systemMenu->setSSID(hal_network_get_ssid());
     g_systemMenu->setBackgroundColor(theme->colors.system_menu_bg);
@@ -162,7 +173,25 @@ void setup() {
     g_systemMenu->setSSIDFont(theme->fonts.normal);
     g_systemMenu->setSSIDColor(theme->colors.text_status);
 
-    Serial.println("  [PASS] StockTicker + MiniLogo + SystemMenu created");
+    // Widget configuration
+    g_systemMenu->setHeadingFont(theme->fonts.heading);
+    g_systemMenu->setHeadingColor(theme->colors.text_main);
+    g_systemMenu->setListFont(theme->fonts.normal);
+    g_systemMenu->setWidgetColors(
+        theme->colors.text_main,        // normalText
+        theme->colors.text_highlight,   // highlight (connected)
+        theme->colors.bg_connecting,    // connectingBg
+        theme->colors.text_error,       // errorText (failed)
+        theme->colors.scroll_indicator  // scrollIndicator
+    );
+
+    // Populate WiFi list from compiled config
+    if (g_wifi_count > 0) {
+        g_systemMenu->setWiFiEntries(g_wifi_config, g_wifi_count);
+        Serial.printf("  [INFO] WiFi list populated with %d networks\n", g_wifi_count);
+    }
+
+    Serial.println("  [PASS] StockTicker + MiniLogo + SystemMenu(Widgets) created");
     yield();
 
     // [6/6] Register with UIRenderManager
@@ -186,14 +215,15 @@ void setup() {
     Serial.printf("    Components: %d\n", mgr.getComponentCount());
     Serial.println("    Z=1:  StockTicker  (App)");
     Serial.println("    Z=10: MiniLogo     (System, always visible)");
-    Serial.println("    Z=20: SystemMenu   (System, activation=EDGE_DRAG TOP)");
+    Serial.println("    Z=20: SystemMenu   (System, activation=EDGE_DRAG TOP, Widget-based)");
 
-    // Clear display with theme background (use HAL to populate shadow framebuffer)
+    // Clear display with theme background
     hal_display_clear(theme->colors.background);
     hal_display_flush();
 
-    Serial.println("\n=== LPad v0.70 Started ===");
-    Serial.println("Swipe up from bottom edge to open System Menu");
+    Serial.println("\n=== LPad v0.72 Started ===");
+    Serial.println("Swipe down from top edge to open System Menu");
+    Serial.println("Tap a WiFi network in the menu to connect");
     Serial.flush();
 }
 
@@ -208,7 +238,7 @@ void loop() {
         }
     }
 
-    // --- Touch input → gesture → UIRenderManager ---
+    // --- Touch input -> gesture -> UIRenderManager ---
     hal_touch_point_t touch_point;
     bool touch_ok = hal_touch_read(&touch_point);
 

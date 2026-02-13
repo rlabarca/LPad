@@ -1,15 +1,23 @@
 /**
  * @file ui_system_menu.cpp
- * @brief System Menu UI Component Implementation
+ * @brief System Menu UI Component Implementation (v0.72 - Widget-based)
  *
  * Renders to an off-screen PSRAM canvas via RelativeDisplay, then blits to
  * display in a single DMA transfer for flicker-free animation.
- * All layout uses relative 0-100% coordinates per ARCHITECTURE.md §E.1.
+ *
+ * Central content (heading + WiFi list) is managed by the Widget System.
+ * Legacy SSID and version overlays remain as direct GFX draws.
+ *
+ * Specification: features/ui_system_menu.md
+ * Architecture:  features/arch_ui_widgets.md
  */
 
 #include "ui_system_menu.h"
 #include "../relative_display.h"
 #include "../themes/default/theme_colors.h"
+#include "widgets/ui_widget.h"
+#include "widgets/text_widget.h"
+#include "widgets/wifi_list_widget.h"
 #include <Arduino_GFX_Library.h>
 #include "../../hal/display.h"
 
@@ -30,11 +38,19 @@ SystemMenu::SystemMenu()
     , m_canvas(nullptr)
     , m_relDisplay(nullptr)
     , m_canvasBuffer(nullptr)
+    , m_widgetEngine(nullptr)
+    , m_gridLayout(nullptr)
+    , m_headingWidget(nullptr)
+    , m_wifiList(nullptr)
     , m_dirty(false)
 {
 }
 
 SystemMenu::~SystemMenu() {
+    delete m_widgetEngine;
+    delete m_gridLayout;
+    delete m_headingWidget;
+    delete m_wifiList;
     delete m_relDisplay;
     delete m_canvas;
 }
@@ -71,7 +87,36 @@ bool SystemMenu::begin(Arduino_GFX* gfx, int32_t width, int32_t height) {
     m_relDisplay = new RelativeDisplay(m_canvas, width, height);
     m_relDisplay->init();
 
-    Serial.printf("[SystemMenu] Canvas + RelativeDisplay created: %dx%d\n", width, height);
+    // --- Widget System Setup ---
+    // GridWidgetLayout: 1 column x 5 rows
+    // Anchored at TOP_CENTER, 10% offset down from screen TOP_CENTER
+    // Size: 50% width, 50% height
+    m_gridLayout = new GridWidgetLayout(5, 1);
+    m_gridLayout->setAnchorPoint(ANCHOR_TOP_CENTER);
+    m_gridLayout->setScreenRefPoint(ANCHOR_TOP_CENTER);
+    m_gridLayout->setOffset(0.0f, 0.10f);  // 10% down
+    m_gridLayout->setSize(0.50f, 0.50f);   // 50% x 50%
+
+    // Heading widget (Row 0): "WiFi Networks"
+    m_headingWidget = new TextWidget();
+    m_headingWidget->setText("WiFi Networks");
+    m_headingWidget->justificationX = JUSTIFY_CENTER_X;
+    m_headingWidget->justificationY = JUSTIFY_CENTER_Y;
+    m_gridLayout->addWidget(m_headingWidget, 0, 0);
+
+    // WiFi list widget (Rows 1-4, spanning 4 rows)
+    m_wifiList = new WiFiListWidget();
+    m_wifiList->setSSIDChangeCallback(onWiFiSSIDChanged, this);
+    m_gridLayout->addWidget(m_wifiList, 1, 0, 4, 1);
+
+    // Widget layout engine
+    m_widgetEngine = new WidgetLayoutEngine();
+    m_widgetEngine->addLayout(m_gridLayout);
+
+    // Calculate initial layout
+    m_widgetEngine->calculateLayouts(width, height);
+
+    Serial.printf("[SystemMenu] Widget-based canvas + RelativeDisplay: %dx%d\n", width, height);
     return true;
 }
 
@@ -115,11 +160,65 @@ void SystemMenu::setSSIDColor(uint16_t color) {
     m_dirty = true;
 }
 
+void SystemMenu::setHeadingFont(const void* font) {
+    if (m_headingWidget) {
+        m_headingWidget->setFont(static_cast<const GFXfont*>(font));
+    }
+    m_dirty = true;
+}
+
+void SystemMenu::setHeadingColor(uint16_t color) {
+    if (m_headingWidget) {
+        m_headingWidget->setColor(color);
+    }
+    m_dirty = true;
+}
+
+void SystemMenu::setListFont(const void* font) {
+    if (m_wifiList) {
+        m_wifiList->setFont(font);
+    }
+    m_dirty = true;
+}
+
+void SystemMenu::setWiFiEntries(const WiFiListWidget::WiFiEntry* entries, int count) {
+    if (m_wifiList) {
+        m_wifiList->setEntries(entries, count);
+    }
+    m_dirty = true;
+}
+
+void SystemMenu::setWidgetColors(uint16_t normalText, uint16_t highlight,
+                                  uint16_t connectingBg, uint16_t errorText,
+                                  uint16_t scrollIndicator) {
+    if (m_wifiList) {
+        m_wifiList->setNormalColor(normalText);
+        m_wifiList->setHighlightColor(highlight);
+        m_wifiList->setConnectingBgColor(connectingBg);
+        m_wifiList->setErrorColor(errorText);
+        m_wifiList->setScrollIndicatorColor(scrollIndicator);
+    }
+    if (m_headingWidget) {
+        m_headingWidget->setColor(normalText);
+    }
+    m_dirty = true;
+}
+
 void SystemMenu::open() {
     if (m_state == CLOSED) {
         m_state = OPENING;
         m_progress = 0.0f;
         m_dirty = true;
+
+        // Recalculate layout on every open (handles orientation changes)
+        if (m_widgetEngine) {
+            m_widgetEngine->calculateLayouts(m_width, m_height);
+        }
+
+        // Refresh WiFi list status
+        if (m_wifiList) {
+            m_wifiList->refresh();
+        }
     }
 }
 
@@ -154,6 +253,13 @@ void SystemMenu::update(float deltaTime) {
             break;
 
         case OPEN:
+            // Poll widget updates (WiFi status polling)
+            if (m_widgetEngine) {
+                m_widgetEngine->update();
+                m_dirty = true;  // Widgets may have changed visual state
+            }
+            break;
+
         case CLOSED:
             break;
     }
@@ -168,7 +274,7 @@ void SystemMenu::render() {
     if (visiblePercent <= 0.0f) return;
     if (visiblePercent > 100.0f) visiblePercent = 100.0f;
 
-    // Fill visible menu area with background color (relative coordinates)
+    // Fill visible menu area with background color
     m_relDisplay->fillRect(0.0f, 0.0f, 100.0f, visiblePercent, m_bgColor);
 
     // Fill exposed area below menu with reveal color for smooth animation
@@ -176,10 +282,15 @@ void SystemMenu::render() {
         m_relDisplay->fillRect(0.0f, visiblePercent, 100.0f, 100.0f - visiblePercent, m_revealColor);
     }
 
-    // Absolute visible height for text clipping
+    // Absolute visible height for clipping
     int32_t visiblePx = m_relDisplay->relativeToAbsoluteHeight(visiblePercent);
 
-    // Draw SSID text (top-right corner)
+    // --- Render Widget System (heading + WiFi list) ---
+    if (m_widgetEngine) {
+        m_widgetEngine->render(m_canvas, visiblePx);
+    }
+
+    // --- Legacy SSID overlay (top-right corner) ---
     if (m_ssidText != nullptr && m_ssidText[0] != '\0') {
         m_canvas->setFont(static_cast<const GFXfont*>(m_ssidFont));
         m_canvas->setTextColor(m_ssidColor);
@@ -188,7 +299,6 @@ void SystemMenu::render() {
         uint16_t tw, th;
         m_canvas->getTextBounds(m_ssidText, 0, 0, &x1, &y1, &tw, &th);
 
-        // Position: MARGIN_PERCENT from top, MARGIN_PERCENT from right edge
         int32_t text_y = m_relDisplay->relativeToAbsoluteY(SSID_Y_PERCENT) - y1;
         int32_t right_edge = m_relDisplay->relativeToAbsoluteX(100.0f - MARGIN_PERCENT);
         int32_t text_x = right_edge - static_cast<int32_t>(tw);
@@ -199,7 +309,7 @@ void SystemMenu::render() {
         }
     }
 
-    // Draw version text (bottom-center)
+    // --- Legacy version overlay (bottom-center) ---
     if (m_versionText != nullptr && m_versionText[0] != '\0') {
         m_canvas->setFont(static_cast<const GFXfont*>(m_versionFont));
         m_canvas->setTextColor(m_versionColor);
@@ -208,10 +318,9 @@ void SystemMenu::render() {
         uint16_t tw, th;
         m_canvas->getTextBounds(m_versionText, 0, 0, &x1, &y1, &tw, &th);
 
-        // Position: centered horizontally, VERSION_Y_BOTTOM% from top (bottom edge of text)
         int32_t bottom_edge = m_relDisplay->relativeToAbsoluteY(VERSION_Y_BOTTOM);
-        int32_t text_y = bottom_edge - th - y1;  // Cursor position for bottom alignment
-        int32_t text_x = (m_width - static_cast<int32_t>(tw)) / 2;  // Centered
+        int32_t text_y = bottom_edge - th - y1;
+        int32_t text_x = (m_width - static_cast<int32_t>(tw)) / 2;
 
         if (text_y + y1 >= 0 && text_y + y1 + static_cast<int32_t>(th) <= visiblePx) {
             m_canvas->setCursor(text_x, text_y);
@@ -224,4 +333,16 @@ void SystemMenu::render() {
                           static_cast<int16_t>(m_height), m_canvasBuffer);
 
     m_dirty = false;
+}
+
+bool SystemMenu::handleInput(const touch_gesture_event_t& event) {
+    if (m_state != OPEN || m_widgetEngine == nullptr) return false;
+    return m_widgetEngine->handleInput(event);
+}
+
+void SystemMenu::onWiFiSSIDChanged(const char* ssid, void* context) {
+    SystemMenu* self = static_cast<SystemMenu*>(context);
+    if (self) {
+        self->setSSID(ssid);
+    }
 }

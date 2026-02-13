@@ -84,15 +84,33 @@ When a fresh agent instance starts or context is lost:
 
 ### Feature Refinement ("Living Specs")
 
+
+
 We **DO NOT** create v2/v3 feature files.
+
+
 
 1.  Edit the existing `.md` file in-place.
 
+
+
 2.  Preserve the `## Implementation Notes`.
+
+
 
 3.  Modifying the file automatically resets its status to `[TODO]`.
 
-4.  **Prohibition:** Creating superseding files (e.g., `feature_v2.md`) is strictly FORBIDDEN.
+
+
+4.  **Milestone Mutation:** For release files (`RELEASE_v*.md`), rename the existing file to the new version and update objectives. Preserve previous HIL tests as regression baselines.
+
+
+
+5.  **Prohibition:** Creating superseding files (e.g., `feature_v2.md`) is strictly FORBIDDEN.
+
+
+
+
 
 
 

@@ -14,18 +14,33 @@
 static hal_network_status_t g_status = HAL_NETWORK_STATUS_DISCONNECTED;
 static char g_ssid_buffer[64] = "N/A";
 
+// Connection timeout tracking
+static unsigned long g_connect_start_ms = 0;
+static constexpr unsigned long CONNECT_TIMEOUT_MS = 10000; // 10 seconds
+
 bool hal_network_init(const char* ssid, const char* password) {
     if (ssid == nullptr || password == nullptr) {
         g_status = HAL_NETWORK_STATUS_ERROR;
         return false;
     }
 
+    // Disconnect from any current network first
+    if (WiFi.status() == WL_CONNECTED) {
+        WiFi.disconnect(true);
+        delay(100);
+    }
+
     // Set WiFi mode to station (client)
     WiFi.mode(WIFI_STA);
+
+    // Store SSID for tracking
+    strncpy(g_ssid_buffer, ssid, sizeof(g_ssid_buffer) - 1);
+    g_ssid_buffer[sizeof(g_ssid_buffer) - 1] = '\0';
 
     // Start connection attempt
     WiFi.begin(ssid, password);
     g_status = HAL_NETWORK_STATUS_CONNECTING;
+    g_connect_start_ms = millis();
 
     return true;
 }
@@ -37,12 +52,16 @@ hal_network_status_t hal_network_get_status(void) {
 
         if (wifi_status == WL_CONNECTED) {
             g_status = HAL_NETWORK_STATUS_CONNECTED;
-        } else if (wifi_status == WL_CONNECT_FAILED ||
-                   wifi_status == WL_CONNECTION_LOST ||
-                   wifi_status == WL_DISCONNECTED) {
-            // Check if we've been trying for too long
-            // For now, we'll let it keep trying
-            // In a production system, you might want a timeout
+            // Update SSID buffer from actual connection
+            String ssid = WiFi.SSID();
+            strncpy(g_ssid_buffer, ssid.c_str(), sizeof(g_ssid_buffer) - 1);
+            g_ssid_buffer[sizeof(g_ssid_buffer) - 1] = '\0';
+        } else if (wifi_status == WL_CONNECT_FAILED) {
+            g_status = HAL_NETWORK_STATUS_ERROR;
+        } else if (millis() - g_connect_start_ms > CONNECT_TIMEOUT_MS) {
+            // Timeout — mark as error
+            g_status = HAL_NETWORK_STATUS_ERROR;
+            WiFi.disconnect(true);
         }
     } else if (g_status == HAL_NETWORK_STATUS_CONNECTED) {
         // Check if we've lost connection
@@ -52,6 +71,12 @@ hal_network_status_t hal_network_get_status(void) {
     }
 
     return g_status;
+}
+
+void hal_network_disconnect(void) {
+    WiFi.disconnect(true);
+    g_status = HAL_NETWORK_STATUS_DISCONNECTED;
+    strncpy(g_ssid_buffer, "N/A", sizeof(g_ssid_buffer));
 }
 
 bool hal_network_ping(const char* host) {

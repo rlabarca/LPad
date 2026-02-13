@@ -26,7 +26,11 @@ Theme ThemeManager::default_theme_ = {
         .axis_labels = THEME_AXIS_LABELS,
         .data_labels = THEME_DATA_LABELS,
 
-        .system_menu_bg = THEME_SYSTEM_MENU_BG
+        .system_menu_bg = THEME_SYSTEM_MENU_BG,
+
+        .text_highlight = THEME_TEXT_HIGHLIGHT,
+        .bg_connecting = THEME_BG_CONNECTING,
+        .scroll_indicator = THEME_SCROLL_INDICATOR
     },
     // fonts
     {

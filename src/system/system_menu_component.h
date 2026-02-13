@@ -1,15 +1,17 @@
 /**
  * @file system_menu_component.h
- * @brief System Menu SystemComponent (Z=20)
+ * @brief System Menu SystemComponent (Z=20) - v0.72 Widget-based
  *
  * Wraps SystemMenu as a managed SystemComponent with activation events,
- * close animation detection, and systemPause lifecycle.
+ * close animation detection, systemPause lifecycle, and widget-based
+ * WiFi selection.
  */
 
 #ifndef SYSTEM_MENU_COMPONENT_H
 #define SYSTEM_MENU_COMPONENT_H
 
 #include "../ui/ui_component.h"
+#include "../ui/widgets/wifi_list_widget.h"
 #include <stdint.h>
 
 class Arduino_GFX;
@@ -31,6 +33,15 @@ public:
     void setVersionColor(uint16_t color);
     void setSSIDFont(const void* font);
     void setSSIDColor(uint16_t color);
+
+    // Widget configuration (v0.72)
+    void setHeadingFont(const void* font);
+    void setHeadingColor(uint16_t color);
+    void setListFont(const void* font);
+    void setWiFiEntries(const WiFiListWidget::WiFiEntry* entries, int count);
+    void setWidgetColors(uint16_t normalText, uint16_t highlight,
+                         uint16_t connectingBg, uint16_t errorText,
+                         uint16_t scrollIndicator);
 
     /** Set a callback that returns the current SSID (called on menu open). */
     typedef const char* (*SSIDProvider)();

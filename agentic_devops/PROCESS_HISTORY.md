@@ -30,4 +30,10 @@ This log tracks the evolution of our DevOps processes and agentic protocols. Ent
 - **Architectural Cleanup:** Resolved circular dependencies in the core architecture and established the acyclic graph mandate.
 - **Documentation Standard:** Formalized the "No Emojis" mandate for all Markdown documentation.
 
+## [2026-02-13] Milestone: Release v0.72 Planning - UI Widgets & Multi-WiFi
+- **Widget Architecture:** Defined a formal `UI Widget System` architectural policy using relative positioning and layout heuristics.
+- **UI Framework Expansion:** Bootstrapped specifications for `WidgetLayoutEngine`, `GridWidgetLayout`, and standard widgets (`TextWidget`, `ScrollableListWidget`).
+- **Network Evolution:** Extended the HAL and Configuration system to support multiple APs and manual selection logic.
+- **Integrated Specs:** Updated `System Menu` specification to migrate from hardcoded rendering to the new widget-based layout.
+
 

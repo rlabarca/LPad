@@ -70,6 +70,11 @@ bool hal_network_ping(const char* host);
 bool hal_network_http_get(const char* url, char* response_buffer, size_t buffer_size);
 
 /**
+ * @brief Explicitly disconnects from the current network
+ */
+void hal_network_disconnect(void);
+
+/**
  * @brief Gets the SSID of the currently connected Wi-Fi network
  *
  * @return The SSID string, or "N/A" if not connected. Pointer is valid

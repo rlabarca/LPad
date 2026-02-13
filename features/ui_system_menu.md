@@ -7,16 +7,27 @@
 ## 1. Introduction
 The System Menu is a global, transient UI layer that provides system-level information (version, connectivity) and navigation. It remains hidden until summoned by a specific gesture and has the highest rendering priority, suppressing all underlying application rendering while active.
 
-## 2. Visual Specification
-- **Background:** Solid color defined by `colors.system_menu_background` in the active theme (e.g., solid black in the Default theme).
-- **Size:** Full screen (covers all underlying content).
-- **Typography:**
-    - **Connectivity Information:** Displays the active WiFi AP name in the top-right corner.
-        - **Font:** `fonts.normal` (12pt).
-        - **Color:** `colors.text_main` (normal).
-    - **Version Information:** Displays "Version <version_number>" centered at the bottom of the screen.
-        - **Font:** `fonts.smallest` (9pt).
-        - **Color:** `colors.text_secondary` (subtle).
+## 2. Visual Specification (Widget-Based)
+The System Menu layout is managed by a `WidgetLayoutEngine` using a `GridWidgetLayout`.
+
+- **Background:** Solid color defined by `colors.system_menu_background`.
+- **Layout Configuration:**
+    - **Type:** `GridWidgetLayout` (1 column x 5 rows).
+    - **Position:** Anchored at `TOP_CENTER`, 10% offset down from screen `TOP_CENTER`.
+    - **Size:** 50% screen width, 50% screen height.
+- **Widgets:**
+    1. **Heading (Row 0):** `TextWidget`
+        - **Text:** "WiFi Networks"
+        - **Font:** `fonts.heading`
+        - **Color:** `colors.text_heading`
+        - **Justification:** `CENTER`, `CENTER`
+    2. **WiFi List (Rows 1-4):** `WiFiListWidget`
+        - **Content:** List of available pre-configured APs.
+        - **Font:** `fonts.normal`
+        - **Behavior:** See `features/ui_wifi_list_widget.md`.
+
+- **Legacy Status Items (Overlay):**
+    - The active WiFi SSID and Version number remain in their corners (Top-Right and Bottom-Center) as independent elements or could be migrated to a separate layout in the future. For v0.72, they remain as is, but the SSID must update when selection changes.
 
 ## 3. Interaction & Animation
 - **Activation Gesture:** `EDGE_DRAG: TOP` (swipe down from the top edge).

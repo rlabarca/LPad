@@ -1,8 +1,9 @@
 /**
  * @file system_menu_component.cpp
- * @brief System Menu SystemComponent Implementation
+ * @brief System Menu SystemComponent Implementation (v0.72)
  *
- * Extracted from SystemMenuAdapter in v070_demo_app.cpp.
+ * Forwards touch events to the widget-based SystemMenu for interactive
+ * WiFi selection.
  */
 
 #include "system_menu_component.h"
@@ -62,6 +63,29 @@ void SystemMenuComponent::setSSIDColor(uint16_t color) {
     if (m_inner) m_inner->setSSIDColor(color);
 }
 
+void SystemMenuComponent::setHeadingFont(const void* font) {
+    if (m_inner) m_inner->setHeadingFont(font);
+}
+
+void SystemMenuComponent::setHeadingColor(uint16_t color) {
+    if (m_inner) m_inner->setHeadingColor(color);
+}
+
+void SystemMenuComponent::setListFont(const void* font) {
+    if (m_inner) m_inner->setListFont(font);
+}
+
+void SystemMenuComponent::setWiFiEntries(const WiFiListWidget::WiFiEntry* entries, int count) {
+    if (m_inner) m_inner->setWiFiEntries(entries, count);
+}
+
+void SystemMenuComponent::setWidgetColors(uint16_t normalText, uint16_t highlight,
+                                           uint16_t connectingBg, uint16_t errorText,
+                                           uint16_t scrollIndicator) {
+    if (m_inner) m_inner->setWidgetColors(normalText, highlight, connectingBg,
+                                           errorText, scrollIndicator);
+}
+
 void SystemMenuComponent::onUnpause() {
     if (m_inner) {
         m_inner->open();
@@ -103,6 +127,12 @@ bool SystemMenuComponent::handleInput(const touch_gesture_event_t& event) {
         Serial.println("[RenderMgr] SystemMenu: CLOSING via EDGE_DRAG BOTTOM");
         return true;
     }
-    // Consume all other input while menu is visible
+
+    // Forward touch events to widget system when menu is open
+    if (m_inner != nullptr && m_inner->getState() == SystemMenu::OPEN) {
+        m_inner->handleInput(event);
+    }
+
+    // Consume all input while menu is visible (prevent pass-through to app)
     return true;
 }

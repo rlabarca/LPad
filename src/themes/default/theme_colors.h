@@ -61,6 +61,13 @@ namespace LPad {
     static const uint16_t THEME_SYSTEM_MENU_BG = 0x0000;        // AMOLED black (pixels OFF)
 
     // ==========================================
+    // Widget System Colors
+    // ==========================================
+    static const uint16_t THEME_TEXT_HIGHLIGHT   = COLOR_SAGE_16;      // Connected/active network
+    static const uint16_t THEME_BG_CONNECTING    = COLOR_FOREST_16;    // Connecting state background
+    static const uint16_t THEME_SCROLL_INDICATOR = COLOR_RESEDA_16;    // Scroll bar indicator
+
+    // ==========================================
     // Graph Specific Semantic Usage
     // ==========================================
     static const uint16_t THEME_GRAPH_AXES   = COLOR_RESEDA_16; // Muted for background

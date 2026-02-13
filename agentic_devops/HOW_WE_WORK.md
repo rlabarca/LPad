@@ -34,8 +34,9 @@ We do not use a global implementation log. Tribal knowledge, hardware "gotchas,"
 ## 5. The Release Protocol
 Releases (e.g., "v0.70") are synchronization points where the entire project state—Specs, Architecture, Code, and Process—is validated and pushed to the remote repository.
 
-1.  **Integrity Validation:** The dependency tree is refreshed, and any unlinked or "orphaned" features are staged for removal (with Human approval).
-2.  **Spec-Code Audit:** The Human Executive directs the Builder to run a comprehensive integrity audit to remediate any architectural drift.
-3.  **HIL Verification:** All Hardware-in-the-Loop tests defined in the release specification must be verified on physical hardware.
-4.  **Documentation Sync:** `PROCESS_HISTORY.md` and the `README.md` evolution tables are synchronized to reflect the current state of the Agentic Workflow.
-5.  **Git Delivery:** A formal release commit is created, and the project is pushed to GitHub.
+### 5.1 Milestone Mutation (The "Single Release File" Rule)
+We do not maintain a history of release files in the `features/` directory.
+1. There is exactly ONE active Release Specification file (e.g., `RELEASE_v0.72_name.md`).
+2. When moving to a new release, the Architect **renames** the existing release file to the new version and updates the objectives.
+3. The previous release's HIL tests are preserved as **Regression Tests** in the new file.
+4. Historical release data is tracked via `agentic_devops/PROCESS_HISTORY.md` and the root `README.md`.

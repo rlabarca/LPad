@@ -1,23 +1,28 @@
 /**
  * @file ui_system_menu.h
- * @brief System Menu UI Component
+ * @brief System Menu UI Component (v0.72 - Widget-based)
  *
- * Global transient overlay providing system information (version, WiFi SSID).
+ * Global transient overlay providing system information (version, WiFi SSID)
+ * and interactive WiFi selection via the Widget System.
  * Activated by EDGE_DRAG TOP, dismissed by EDGE_DRAG BOTTOM.
- * While active, suppresses all underlying application rendering.
  *
  * Specification: features/ui_system_menu.md
+ * Architecture:  features/arch_ui_widgets.md
  */
 
 #ifndef UI_SYSTEM_MENU_H
 #define UI_SYSTEM_MENU_H
 
 #include <stdint.h>
+#include "widgets/wifi_list_widget.h"
 
 // Forward declarations
 class Arduino_GFX;
 class Arduino_Canvas;
 class RelativeDisplay;
+class WidgetLayoutEngine;
+class GridWidgetLayout;
+class TextWidget;
 
 class SystemMenu {
 public:
@@ -43,6 +48,19 @@ public:
     void setSSIDFont(const void* font);
     void setSSIDColor(uint16_t color);
 
+    // Widget configuration
+    void setHeadingFont(const void* font);
+    void setHeadingColor(uint16_t color);
+    void setListFont(const void* font);
+
+    /** Configure WiFi entries for the WiFiListWidget. */
+    void setWiFiEntries(const WiFiListWidget::WiFiEntry* entries, int count);
+
+    /** Set widget theme colors (avoids theme_manager.h in widget code). */
+    void setWidgetColors(uint16_t normalText, uint16_t highlight,
+                         uint16_t connectingBg, uint16_t errorText,
+                         uint16_t scrollIndicator);
+
     void open();
     void close();
 
@@ -51,6 +69,7 @@ public:
 
     void update(float deltaTime);
     void render();
+    bool handleInput(const touch_gesture_event_t& event);
 
 private:
     Arduino_GFX* m_gfx;
@@ -66,7 +85,7 @@ private:
 
     // Theme
     uint16_t m_bgColor;
-    uint16_t m_revealColor;  // Color shown below menu during closing animation
+    uint16_t m_revealColor;
     const void* m_versionFont;
     uint16_t m_versionColor;
     const void* m_ssidFont;
@@ -74,18 +93,26 @@ private:
 
     // Off-screen canvas for flicker-free rendering (PSRAM)
     Arduino_Canvas* m_canvas;
-    RelativeDisplay* m_relDisplay;  // Relative coordinate abstraction over canvas
+    RelativeDisplay* m_relDisplay;
     uint16_t* m_canvasBuffer;
 
-    // Dirty tracking - only render when content/state changes
+    // Widget System
+    WidgetLayoutEngine* m_widgetEngine;
+    GridWidgetLayout* m_gridLayout;
+    TextWidget* m_headingWidget;
+    WiFiListWidget* m_wifiList;
+
+    // Dirty tracking
     bool m_dirty;
 
     // Layout constants (relative coordinates, 0-100%)
-    static constexpr float MARGIN_PERCENT = 1.0f;       // Edge margin
-    static constexpr float SSID_Y_PERCENT = 1.0f;       // SSID top position
-    static constexpr float VERSION_Y_BOTTOM = 99.0f;    // Version bottom position
-
+    static constexpr float MARGIN_PERCENT = 1.0f;
+    static constexpr float SSID_Y_PERCENT = 1.0f;
+    static constexpr float VERSION_Y_BOTTOM = 99.0f;
     static constexpr float ANIMATION_DURATION = 0.25f;  // 250ms
+
+    // SSID change callback (wired to WiFiListWidget)
+    static void onWiFiSSIDChanged(const char* ssid, void* context);
 };
 
 #endif // UI_SYSTEM_MENU_H

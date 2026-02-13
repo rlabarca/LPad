@@ -34,6 +34,11 @@ struct ThemeColors {
 
     // System menu
     uint16_t system_menu_bg;
+
+    // Widget system
+    uint16_t text_highlight;
+    uint16_t bg_connecting;
+    uint16_t scroll_indicator;
 };
 
 /**
