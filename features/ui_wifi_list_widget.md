@@ -17,8 +17,13 @@ A specialized `ScrollableListWidget` for managing WiFi connections.
     - **Connecting:** When an entry is tapped:
         - The previously selected network (if it was Red/Failed) must return to the normal `THEME_TEXT` (Khaki) color immediately.
         - Background color alternates between `THEME_BG_CONNECTING` (Forest) and transparent at a 0.75s blink rate.
-    - **Failed:** If connection fails, the background returns to normal and the text turns red.
-    - **Connected:** On success, the text turns the highlight color and the blinking background is removed.
+    - **Failed:** If connection fails:
+        - The background returns to normal and the text turns red.
+        - **Fallback:** The system MUST automatically attempt to reconnect to the **last successfully connected network** (if any).
+        - If the fallback attempt also fails, or no previous network exists, the global status remains "NONE".
+    - **Connected:** On success:
+        - The text turns the highlight color and the blinking background is removed.
+        - **Status Update:** ONLY at this point should the global WiFi status display (top-right corner) be updated with the new SSID.
 - **Integration:** Calls `hal_network_init(ssid, password)` when a new item is selected.
 
 ## Scenario: Selecting a New Network
@@ -40,3 +45,5 @@ A specialized `ScrollableListWidget` for managing WiFi connections.
 - **Blink implementation:** Uses `millis()` in `update()` with 750ms toggle. `m_blinkOn` flag alternates `setItemBackground`/`clearItemBackground` on the connecting item. Native builds get a `millis()` stub.
 - **Failed index tracking:** `m_failedIndex` tracks the last failed (red) item so it can be reset to normal when the user selects a new network. Without this, red text would persist indefinitely.
 - **Status circles:** WiFiListWidget sets `CIRCLE_LEFT` on its parent ScrollableListWidget. Active/connected items get a filled circle via `setItemCircle()` in the same highlight color as their text. Circles are cleared on disconnect/new selection.
+- **Fallback reconnect:** On connection failure, `m_isFallback` flag prevents infinite retry loops. Only one fallback attempt to `m_lastGoodIndex` is made. If fallback also fails, system stays disconnected. `m_lastGoodIndex` is set on successful connection AND during `setEntries()`/`refresh()` when an already-connected network is found.
+- **SSID update policy:** The `m_ssidChangeCb` callback fires ONLY in the `HAL_NETWORK_STATUS_CONNECTED` case, ensuring the top-right SSID overlay never updates during connecting/failed states.

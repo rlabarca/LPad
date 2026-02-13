@@ -33,6 +33,7 @@ typedef enum {
 1. **Iterative Boot:** The system must support an iterative connection strategy where it tries a list of credentials sequentially.
 2. **Timeout:** Each attempt should have a non-blocking timeout mechanism to ensure the system doesn't hang on a single unavailable AP.
 3. **Manual Override:** Any call to `hal_network_init` while a previous attempt is in progress should cancel the previous attempt and prioritize the new credentials.
+4. **Persistence:** The system SHOULD track the "Last Known Good" SSID to facilitate automatic fallback if a new selection fails.
 
 ### `hal_network_get_status(void)`
 *   **Description:** Returns the current connectivity status.

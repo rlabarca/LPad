@@ -55,6 +55,8 @@ private:
     int m_connectingIndex = -1;
     int m_activeIndex = -1;
     int m_failedIndex = -1;
+    int m_lastGoodIndex = -1;  // Last successfully connected network (for fallback)
+    bool m_isFallback = false; // True when auto-reconnecting to last good network
 
     uint16_t m_highlightColor = 0x8D51;    // Default: SAGE
     uint16_t m_connectingBgColor = 0x4268;  // Default: FOREST

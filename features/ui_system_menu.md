@@ -30,7 +30,8 @@ The System Menu layout is managed by a `WidgetLayoutEngine` using a `GridWidgetL
         - **Behavior:** See `features/ui_wifi_list_widget.md`.
 
 - **Legacy Status Items (Overlay):**
-    - The active WiFi SSID and Version number remain in their corners (Top-Right and Bottom-Center) as independent elements or could be migrated to a separate layout in the future. For v0.72, they remain as is, but the SSID must update when selection changes.
+    - The active WiFi SSID and Version number remain in their corners (Top-Right and Bottom-Center).
+    - **SSID Update Policy:** The top-right SSID display MUST ONLY update when a connection is successfully established. It must continue showing the previous SSID (or "NONE") during connection attempts to a new network.
 
 ## 3. Interaction & Animation
 - **Activation Gesture:** `EDGE_DRAG: TOP` (swipe down from the top edge).

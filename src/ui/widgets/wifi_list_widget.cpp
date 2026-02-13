@@ -37,6 +37,8 @@ void WiFiListWidget::setEntries(const WiFiEntry* entries, int count) {
     m_activeIndex = -1;
     m_connectingIndex = -1;
     m_failedIndex = -1;
+    m_lastGoodIndex = -1;
+    m_isFallback = false;
 
     for (int i = 0; i < count; i++) {
         uint16_t color = m_normalColor;
@@ -45,6 +47,7 @@ void WiFiListWidget::setEntries(const WiFiEntry* entries, int count) {
             strcmp(entries[i].ssid, currentSSID) == 0) {
             color = m_highlightColor;
             m_activeIndex = i;
+            m_lastGoodIndex = i;  // Track as last known good
         }
         addItem(entries[i].ssid, color);
     }
@@ -62,6 +65,7 @@ void WiFiListWidget::refresh() {
     m_activeIndex = -1;
     m_connectingIndex = -1;
     m_failedIndex = -1;
+    m_isFallback = false;
 
     for (int i = 0; i < m_entryCount && i < m_itemCount; i++) {
         if (status == HAL_NETWORK_STATUS_CONNECTED &&
@@ -70,6 +74,7 @@ void WiFiListWidget::refresh() {
             setItemColor(i, m_highlightColor);
             setItemCircle(i, m_highlightColor);
             m_activeIndex = i;
+            m_lastGoodIndex = i;
         } else {
             setItemColor(i, m_normalColor);
             clearItemCircle(i);
@@ -109,6 +114,7 @@ void WiFiListWidget::handleSelection(int index) {
 
     // Mark new item as connecting (blink starts ON)
     m_connectingIndex = index;
+    m_isFallback = false;  // User-initiated, not a fallback
     m_blinkOn = true;
     m_lastBlinkMs = millis();
     setItemBackground(index, m_connectingBgColor);
@@ -130,9 +136,11 @@ void WiFiListWidget::update() {
             setItemColor(m_connectingIndex, m_highlightColor);
             setItemCircle(m_connectingIndex, m_highlightColor);
             m_activeIndex = m_connectingIndex;
+            m_lastGoodIndex = m_connectingIndex;  // Track as last known good
             m_connectingIndex = -1;
+            m_isFallback = false;
 
-            // Notify parent to update SSID display
+            // Notify parent to update SSID display (ONLY on success per spec)
             if (m_ssidChangeCb && m_activeIndex >= 0) {
                 m_ssidChangeCb(m_entries[m_activeIndex].ssid, m_ssidChangeCtx);
             }
@@ -141,12 +149,26 @@ void WiFiListWidget::update() {
 
         case HAL_NETWORK_STATUS_ERROR:
         case HAL_NETWORK_STATUS_DISCONNECTED: {
-            // Connection failed — red text, track failed index for reset
-            if (m_connectingIndex >= 0) {
-                clearItemBackground(m_connectingIndex);
-                setItemColor(m_connectingIndex, m_errorColor);
-                m_failedIndex = m_connectingIndex;
-                m_connectingIndex = -1;
+            if (m_connectingIndex < 0) break;
+
+            int failedIdx = m_connectingIndex;
+            clearItemBackground(failedIdx);
+            setItemColor(failedIdx, m_errorColor);
+            m_failedIndex = failedIdx;
+            m_connectingIndex = -1;
+
+            // Fallback: auto-reconnect to last good network (if not already a fallback)
+            if (!m_isFallback && m_lastGoodIndex >= 0 && m_lastGoodIndex != failedIdx) {
+                m_connectingIndex = m_lastGoodIndex;
+                m_isFallback = true;
+                m_blinkOn = true;
+                m_lastBlinkMs = millis();
+                setItemBackground(m_lastGoodIndex, m_connectingBgColor);
+                hal_network_init(m_entries[m_lastGoodIndex].ssid,
+                                 m_entries[m_lastGoodIndex].password);
+            } else {
+                // Fallback also failed or no previous network — stay disconnected
+                m_isFallback = false;
             }
             break;
         }
