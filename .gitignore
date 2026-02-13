@@ -23,6 +23,7 @@ compile_commands.json
 # Test artifacts
 test/output/
 config.json
+src/wifi_config_generated.h
 
 # Python
 __pycache__/

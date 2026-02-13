@@ -21,21 +21,11 @@
 #include "relative_display.h"
 #include "animation_ticker.h"
 #include "input/touch_gesture_engine.h"
-#include "ui/widgets/wifi_list_widget.h"
+#include "wifi_config_generated.h"
 
 #include "../hal/display.h"
 #include "../hal/touch.h"
 #include "../hal/network.h"
-
-// --- Multi-WiFi Configuration ---
-// Populated by scripts/inject_config.py from config.json
-#ifdef LPAD_WIFI_COUNT
-static const WiFiListWidget::WiFiEntry g_wifi_config[] = { LPAD_WIFI_CONFIG };
-static const int g_wifi_count = LPAD_WIFI_COUNT;
-#else
-static const WiFiListWidget::WiFiEntry g_wifi_config[] = {};
-static const int g_wifi_count = 0;
-#endif
 
 // --- Static globals ---
 static AnimationTicker* g_ticker = nullptr;
