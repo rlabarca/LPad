@@ -1,9 +1,10 @@
 > Prerequisite: features/hal_spec_display.md
+> Prerequisite: features/arch_ui_compositing.md
 
 # Feature: Display Relative Drawing
 
 > Label: "Relative Drawing"
-> Category: "Graphics Engine"
+> Category: "UI Framework"
 
 ## Introduction
 

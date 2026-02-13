@@ -104,6 +104,10 @@ void UIRenderManager::renderAll() {
             comp->render();
         }
     }
+
+    if (m_flushCallback) {
+        m_flushCallback();
+    }
 }
 
 // ---------------------------------------------------------------------------

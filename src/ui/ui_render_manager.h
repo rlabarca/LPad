@@ -29,6 +29,10 @@ public:
     void setActiveApp(AppComponent* app);
     AppComponent* getActiveApp() const { return m_activeApp; }
 
+    /** Set a callback invoked after renderAll() to flush the display buffer. */
+    using FlushCallback = void(*)();
+    void setFlushCallback(FlushCallback fn) { m_flushCallback = fn; }
+
     /** Render all visible, non-paused components in ascending Z-Order (Painter's Algorithm). */
     void renderAll();
 
@@ -57,6 +61,7 @@ private:
     UIComponent* m_components[MAX_COMPONENTS] = {};
     int m_componentCount = 0;
     AppComponent* m_activeApp = nullptr;
+    FlushCallback m_flushCallback = nullptr;
 
     void sortByZOrder();
     int findOcclusionFloor() const;

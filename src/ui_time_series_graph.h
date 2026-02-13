@@ -34,7 +34,6 @@ struct GraphTheme {
     LinearGradient backgroundGradient;  ///< Background gradient (optional)
     LinearGradient lineGradient;        ///< Data line gradient (optional)
     float lineThickness;                ///< Line thickness in relative percentage units
-    float axisThickness;                ///< Axis thickness in relative percentage units
     uint16_t tickColor;                 ///< Color of axis tick marks (RGB565)
     float tickLength;                   ///< Tick mark length in relative percentage units
     RadialGradient liveIndicatorGradient; ///< Pulsing live indicator gradient
@@ -42,8 +41,6 @@ struct GraphTheme {
 
     bool useBackgroundGradient;         ///< Whether to use background gradient
     bool useLineGradient;               ///< Whether to use line gradient
-    const GFXfont* axisTitleFont;       ///< Font for axis titles (nullptr = default)
-    const GFXfont* tickFont;            ///< Font for tick labels (nullptr = default)
 
     uint16_t watermarkColor;            ///< Color for ticker watermark text (RGB565)
 };
@@ -160,6 +157,19 @@ public:
      */
     void update(float deltaTime);
 
+    // Coordinate mapping (public for testability)
+    float mapYToScreen(double y_value, double y_min, double y_max);
+    float mapXToScreen(size_t x_index, size_t x_count);
+
+    // Dynamic margin computation
+    struct GraphMargins {
+        float left, right, top, bottom;
+    };
+    GraphMargins getMargins() const;
+
+    // Value formatting helper (3 significant digits)
+    static void formatValue(double value, char* buffer, size_t buffer_size);
+
 private:
     GraphTheme theme_;
     GraphData data_;
@@ -200,12 +210,6 @@ private:
     double cached_y_max_;
     bool range_cached_;
 
-    // Dynamic margin computation
-    struct GraphMargins {
-        float left, right, top, bottom;
-    };
-    GraphMargins getMargins() const;
-
     /**
      * @brief Draws the X and Y axes to the given RelativeDisplay
      */
@@ -222,7 +226,7 @@ private:
     void drawXTicks(RelativeDisplay* target);
 
     /**
-     * @brief Draws axis titles (X horizontal centered, Y vertical char-by-char)
+     * @brief Draws axis titles (X horizontal centered, Y rotated -90 degrees)
      */
     void drawAxisTitles(RelativeDisplay* target);
 
@@ -241,22 +245,6 @@ private:
      */
     void drawLiveIndicator();
 
-    /**
-     * @brief Maps a data Y value to screen percentage coordinate
-     * @param y_value The data value to map
-     * @param y_min Minimum Y value in dataset
-     * @param y_max Maximum Y value in dataset
-     * @return Y coordinate as percentage (0-100)
-     */
-    float mapYToScreen(double y_value, double y_min, double y_max);
-
-    /**
-     * @brief Maps a data X index to screen percentage coordinate
-     * @param x_index The index in the data array
-     * @param x_count Total number of data points
-     * @return X coordinate as percentage (0-100)
-     */
-    float mapXToScreen(size_t x_index, size_t x_count);
 };
 
 #endif // UI_TIME_SERIES_GRAPH_H

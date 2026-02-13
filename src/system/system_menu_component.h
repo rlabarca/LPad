@@ -32,6 +32,10 @@ public:
     void setSSIDFont(const void* font);
     void setSSIDColor(uint16_t color);
 
+    /** Set a callback that returns the current SSID (called on menu open). */
+    typedef const char* (*SSIDProvider)();
+    void setSSIDProvider(SSIDProvider fn) { m_ssidProvider = fn; }
+
     // UIComponent lifecycle
     void onUnpause() override;
     void update(float dt) override;
@@ -44,6 +48,7 @@ public:
 private:
     SystemMenu* m_inner;
     bool m_closing;
+    SSIDProvider m_ssidProvider = nullptr;
 };
 
 #endif // SYSTEM_MENU_COMPONENT_H

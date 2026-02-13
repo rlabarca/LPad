@@ -71,20 +71,24 @@ extern "C" {
     int32_t hal_display_get_height_pixels(void);
 }
 
-// Direct I2C register read (same pattern as FT3168 HAL)
+// Direct I2C register read with retry (same pattern as FT3168 HAL)
+// Single retry suppresses transient NACK errors caused by WiFi interrupt timing
 static bool cst_read_registers(uint8_t reg, uint8_t* buf, uint8_t len) {
-    Wire.beginTransmission(TOUCH_ADDR);
-    Wire.write(reg);
-    if (Wire.endTransmission(false) != 0) {
-        return false;
+    for (int attempt = 0; attempt < 2; attempt++) {
+        Wire.beginTransmission(TOUCH_ADDR);
+        Wire.write(reg);
+        if (Wire.endTransmission(false) != 0) {
+            continue;
+        }
+        if (Wire.requestFrom((uint8_t)TOUCH_ADDR, len) != len) {
+            continue;
+        }
+        for (uint8_t i = 0; i < len; i++) {
+            buf[i] = Wire.read();
+        }
+        return true;
     }
-    if (Wire.requestFrom((uint8_t)TOUCH_ADDR, len) != len) {
-        return false;
-    }
-    for (uint8_t i = 0; i < len; i++) {
-        buf[i] = Wire.read();
-    }
-    return true;
+    return false;
 }
 
 // Direct I2C single-byte write

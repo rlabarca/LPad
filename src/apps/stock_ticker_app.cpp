@@ -13,7 +13,6 @@
 #include "../data/stock_tracker.h"
 #include "../theme_manager.h"
 #include "../relative_display.h"
-#include "../../hal/display.h"
 
 StockTickerApp::StockTickerApp()
     : m_display(nullptr)
@@ -44,8 +43,8 @@ bool StockTickerApp::begin(RelativeDisplay* display) {
         return false;
     }
 
-    int32_t width = hal_display_get_width_pixels();
-    int32_t height = hal_display_get_height_pixels();
+    int32_t width = m_display->getWidth();
+    int32_t height = m_display->getHeight();
 
     m_graph = new TimeSeriesGraph(theme, gfx, width, height);
     if (!m_graph->begin()) {
@@ -148,16 +147,12 @@ GraphTheme StockTickerApp::createStockGraphTheme() {
 
     theme.axisColor = lpadTheme->colors.secondary;
     theme.lineThickness = 0.97f;
-    theme.axisThickness = 0.8f;
     theme.tickColor = lpadTheme->colors.graph_ticks;
     theme.tickLength = 5.0f;
 
     theme.liveIndicatorGradient.color_stops[0] = lpadTheme->colors.accent;
     theme.liveIndicatorGradient.color_stops[1] = lpadTheme->colors.accent;
     theme.liveIndicatorPulseSpeed = 0.5f;
-
-    theme.tickFont = lpadTheme->fonts.smallest;
-    theme.axisTitleFont = lpadTheme->fonts.ui;
 
     theme.watermarkColor = lpadTheme->colors.graph_ticks;
 

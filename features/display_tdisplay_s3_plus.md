@@ -3,7 +3,7 @@
 # Feature: Refactor Display HAL for T-Display-S3 AMOLED Plus using Arduino_GFX
 
 > Label: "T-Display S3+ Driver"
-> Category: "Board Drivers"
+> Category: "Hardware Layer"
 
 This feature describes the work required to refactor the Display HAL contract for the T-Display-S3 AMOLED Plus, replacing the manual SPI implementation with one based on the `Arduino_GFX` library. This standardizes the display driver architecture and enables more advanced features like canvas-based drawing.
 
@@ -48,3 +48,39 @@ The `platformio.ini` file must be updated for the `[env:tdisplay_s3_plus]` envir
 *   **When:** The agent updates the build configuration.
 *   **Then:** The `lib_extra_dirs` for `[env:tdisplay_s3_plus]` must be updated to include the path to the `GFX_Library_for_Arduino` and its dependencies.
 *   **And:** The `build_flags` must be updated to remove `-Ihw-examples/LilyGo-AMOLED-Series/src` and add includes for the GFX library similar to the `[env:esp32s3]` environment.
+
+## Implementation Notes
+
+### [2026-02-11] TE (Tearing Effect) Sync
+**Problem:** Visible tearing/shimmer during full-screen blits.
+**Root Cause:** DMA transfers starting mid-frame conflict with the panel's refresh scan.
+**Solution:** GPIO 9 is the TE output pin. `waitForTeSignal()` polls GPIO 9 for a rising edge (vertical blanking interval) before each `hal_display_fast_blit()` and `hal_display_fast_blit_transparent()`. This synchronizes DMA writes to the blanking period.
+**Result:** Tearing reduced from "noticeable shimmer" to "barely perceptible." Residual artifacts are hardware limits (AMOLED pixel response time + DMA transfer duration).
+
+### [2026-02-11] Brightness 255 Eliminates PWM Flicker
+**Problem:** Intermediate brightness levels (1–254) cause visible PWM flicker artifacts.
+**Root Cause:** The RM67162 panel driver modulates brightness via PWM. At sub-max duty cycles, the PWM frequency is perceptible.
+**Solution:** Always set brightness to 255 (full-on). This effectively makes the backlight DC, eliminating flicker.
+
+### [2026-02-08] Vendor Init Retry
+**Problem:** Occasional `hal_display_init` failure on cold boot.
+**Solution:** The RM67162 driver initialization includes a retry loop (up to 3 attempts) with a 100ms delay between attempts. This handles the panel's variable cold-start timing.
+
+### [2026-02-07] Y-Offset Register Fix
+**Problem:** Display content offset vertically on the T-Display S3 AMOLED Plus panel.
+**Root Cause:** The RM67162 panel on this board has a non-zero vertical RAM offset that differs from the Waveshare ESP32-S3 AMOLED.
+**Solution:** Set the correct Y-offset register during initialization to align the framebuffer with the physical panel origin.
+
+### [2026-02-07] TE Sync — Detailed Timing Analysis
+**Timing Mismatch:** Animation at 30fps (33.3ms/frame) vs display refresh at ~60Hz (16.6ms/frame). Without synchronization, beat frequency creates visible tearing when DMA blits occur mid-refresh.
+
+**waitForTeSignal() pattern:**
+1. Wait for LOW (display actively scanning)
+2. Wait for HIGH (vertical blanking begins — safe to update)
+3. Includes 10ms timeout to prevent infinite hangs if TE signal fails
+
+**Key Lessons:**
+- TE pin configuration ≠ TE pin usage — hardware init enables the signal, software must actively read it
+- Top-to-bottom shimmer indicates timing mismatch (tearing), not PWM dimming
+- Minimal performance impact: typically <1ms wait per frame at 30fps
+- Even with perfect TE sync, AMOLED pixel response time (~2-5ms) and SPI transfer duration (~2-3ms) create inherent artifacts — "very slight" residual flicker is the physical limit

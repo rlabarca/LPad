@@ -3,7 +3,7 @@
 # Feature: Display Baseline for ESP32-S3-Touch-AMOLED
 
 > Label: "ESP32-S3 AMOLED Driver"
-> Category: "Board Drivers"
+> Category: "Hardware Layer"
 
 This feature describes the work required to implement the Display HAL contract for the ESP32-S3-Touch-AMOLED target hardware.
 
@@ -40,3 +40,14 @@ The agent (Claude) will create a new HAL implementation file, `hal/display_esp32
 *   **And:** `hal_display_flush()` is called.
 *   **Then:** The driver commands for drawing a pixel and flushing the buffer should execute without errors.
 *   **And:** A single white pixel should be visible at coordinates (100, 100). (Visual confirmation step for user)
+
+## Implementation Notes
+
+### [2026-02-11] Brightness 255 — No PWM Flicker
+The Waveshare ESP32-S3 1.8" AMOLED uses the same RM67162 panel family. Brightness must be set to 255 to avoid PWM flicker (same issue as T-Display S3 Plus). See `features/display_tdisplay_s3_plus.md` for details.
+
+### [2026-02-11] No TE Sync Required
+Unlike the T-Display S3 Plus, this board does not expose a TE (Tearing Effect) pin. The QSPI bus is fast enough that tearing is minimal without explicit sync. If tearing is observed in future, consider adding a software vsync delay.
+
+### [2026-02-08] QSPI Bus Configuration
+This board uses a QSPI (quad SPI) bus for display communication, configured via `Arduino_ESP32QSPI`. The pin mapping differs from standard SPI and must match the vendor reference in `hw-examples/ESP32-S3-Touch-AMOLED-1.8-Demo/`.

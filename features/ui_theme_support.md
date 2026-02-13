@@ -3,6 +3,7 @@
 > Label: "Theme Support"
 > Category: "UI Framework"
 > Prerequisite: features/display_canvas_drawing.md
+> Prerequisite: features/arch_design_system.md
 
 ## Description
 This feature establishes the "LPad Design System" (Theme) for the application. It centralizes color definitions and typography handling, ensuring a consistent visual identity. Crucially, it provides a **runtime architecture** for dynamic theme switching (e.g., Light/Dark mode) without requiring recompilation.

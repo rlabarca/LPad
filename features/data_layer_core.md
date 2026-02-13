@@ -3,6 +3,7 @@
 > Label: "Base Data Model"
 > Category: "Data Layer"
 > Prerequisite: features/hal_core_contract.md
+> Prerequisite: features/arch_data_strategy.md
 
 ## Description
 This feature defines the foundational abstract class `DataItem`, which serves as the root for all data objects in the system. It establishes a uniform contract for metadata (name, modification time) and memory management, ensuring that higher-level components (like the UI or Persistence Layer) can interact with diverse data types polymorphically.

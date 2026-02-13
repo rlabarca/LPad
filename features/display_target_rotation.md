@@ -1,4 +1,4 @@
-> Prerequisite: `features/display_rotation_contract.md`
+> Prerequisite: features/hal_spec_display.md
 
 # Feature: Configure Device-Specific Display Rotation
 

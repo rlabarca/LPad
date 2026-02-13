@@ -1,9 +1,10 @@
 > Prerequisite: features/display_relative_drawing.md
+> Prerequisite: features/arch_design_system.md
 
 # Feature: Vector Asset Pipeline
 
 > Label: "Vector Asset Pipeline"
-> Category: "Graphics Engine"
+> Category: "UI Framework"
 
 ## Introduction
 

@@ -6,7 +6,7 @@
 
 ## Introduction
 
-This document defines the abstract interface for display operations within the Hardware Abstraction Layer (HAL). It focuses on pixel-level drawing, canvas management, and fast blitting.
+This document defines the abstract interface for display operations within the Hardware Abstraction Layer (HAL). It focuses on pixel-level drawing, canvas management, rotation, and fast blitting.
 
 ## Display HAL API
 
@@ -28,6 +28,22 @@ This document defines the abstract interface for display operations within the H
 
 ### `hal_display_set_rotation(int degrees)`
 *   **Description:** Sets orientation (0, 90, 180, 270).
+
+## Rotation Requirements (Consolidated)
+
+The display HAL MUST support screen rotation. This ensures that all display drivers can be instructed to rotate their output and that higher-level modules can query the resulting dimensions.
+
+### Scenario: Add Rotation Method to IDisplay Interface
+
+**Given** the `IDisplay` interface defined in `hal/display.h`,
+**When** the `setRotation(int degrees)` method is implemented,
+**Then** the following conditions must be met:
+1.  The `setRotation` method in each concrete implementation (`hal/display_tdisplay_s3_plus.cpp`, `hal/display_esp32_s3_amoled.cpp`) must call the underlying graphics library's rotation command.
+2.  After `setRotation` is called on a display instance, subsequent calls to its `getWidth()` and `getHeight()` methods must return the dimensions corresponding to the new orientation.
+3.  The `hal/display_stub.cpp` implementation must be updated:
+    *   It should store the original width and height provided during construction.
+    *   Its `setRotation` method should store the given rotation.
+    *   Its `getWidth()` and `getHeight()` methods must calculate and return the correct dimension (swapping if rotation is 90 or 270) based on the stored original dimensions and the current rotation.
 
 ## Canvas (Layered) Drawing API
 

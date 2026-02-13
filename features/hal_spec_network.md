@@ -3,6 +3,7 @@
 > Label: "HAL Network Specification"
 > Category: "Hardware Layer"
 > Prerequisite: features/hal_core_contract.md
+> Prerequisite: features/arch_data_strategy.md
 
 ## Introduction
 

@@ -31,6 +31,10 @@ public:
     // Direct access to the underlying GFX object if needed for advanced operations.
     Arduino_GFX* getGfx() const;
 
+    // Dimension accessors (pixel values passed at construction)
+    int32_t getWidth() const { return _width; }
+    int32_t getHeight() const { return _height; }
+
 private:
     Arduino_GFX* _gfx;
     int32_t _width;

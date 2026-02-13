@@ -2,7 +2,7 @@
 
 > Label: "HAL Core Contract"
 > Category: "Hardware Layer"
-> Prerequisite: None
+> Prerequisite: features/arch_hal_policy.md
 
 ## Introduction
 
@@ -35,3 +35,19 @@ The HAL Core Contract defines the fundamental architectural rules and coding sta
 
 All HAL functions must follow the prefix pattern: `hal_<domain>_<action>`.
 *   Example: `hal_display_init()`, `hal_network_connect()`.
+
+## Implementation Notes
+
+### [2026-02-06] Domain-Segmented HAL Architecture
+As the project expanded into Networking (v0.6), the monolithic `hal_contracts.md` was split into domain-specific specs (`hal_spec_display.md`, `hal_spec_timer.md`, `hal_spec_network.md`). Each domain has its own header to prevent cross-domain includes. Refactor HAL *before* it gets messy — segmenting by domain early prevents "Header Spaghetti."
+
+### [2026-02-06] Interactive Graph Viewer
+**Problem:** Terminal-rendered Mermaid graphs were not zoomable.
+**Solution:** `scripts/serve_graph.py` (Python server) + `scripts/graph_viewer.html` (Mermaid.js + svg-pan-zoom). Live-reloads on changes to `feature_graph.mmd`, preserving zoom level. Browser > Terminal for complex visualizations.
+
+### [2026-02-06] Gherkin Prerequisite Formatting
+The dependency parser is sensitive to formatting. Multiple prerequisites MUST be on separate lines, each with its own `> Prerequisite:` prefix.
+
+### [2026-02-05] PlatformIO Include Path Conventions
+**Problem:** Demo files in `demos/` with relative includes (`#include "../src/file.h"`) failed to compile.
+**Solution:** Use direct includes (`#include "file.h"`). PlatformIO's `-I` flags handle `src/` and `hal/` directories. Trust PlatformIO's conventions.

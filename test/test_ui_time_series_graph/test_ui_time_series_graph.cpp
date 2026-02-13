@@ -247,8 +247,6 @@ void test_gradient_background(void) {
     theme.backgroundGradient.color_stops[2] = RGB565_CYAN;
     theme.backgroundGradient.num_stops = 3;
 
-    theme.axisThickness = 0.5f;
-
     TimeSeriesGraph graph(theme,
                          (Arduino_GFX*)hal_display_get_gfx(),
                          hal_display_get_width_pixels(),
@@ -315,8 +313,6 @@ void test_axis_tick_marks(void) {
     theme.useLineGradient = false;
     theme.tickColor = RGB565_WHITE;
     theme.tickLength = 2.0f;
-    theme.axisThickness = 0.3f;
-
     TimeSeriesGraph graph(theme,
                          (Arduino_GFX*)hal_display_get_gfx(),
                          hal_display_get_width_pixels(),
@@ -384,6 +380,165 @@ void test_animate_live_indicator(void) {
     TEST_ASSERT_TRUE(true);
 }
 
+// ===== Behavioral Assertion Tests (Task 6: public API tests) =====
+
+/**
+ * Test: formatValue produces "0.00" for zero
+ */
+void test_format_value_zero(void) {
+    char buf[16];
+    TimeSeriesGraph::formatValue(0.0, buf, sizeof(buf));
+    TEST_ASSERT_EQUAL_STRING("0.00", buf);
+}
+
+/**
+ * Test: formatValue produces 3 significant digits for decimals
+ */
+void test_format_value_decimal(void) {
+    char buf[16];
+    TimeSeriesGraph::formatValue(4.19, buf, sizeof(buf));
+    TEST_ASSERT_EQUAL_STRING("4.19", buf);
+}
+
+/**
+ * Test: formatValue produces 1 decimal place for tens
+ */
+void test_format_value_tens(void) {
+    char buf[16];
+    TimeSeriesGraph::formatValue(42.5, buf, sizeof(buf));
+    TEST_ASSERT_EQUAL_STRING("42.5", buf);
+}
+
+/**
+ * Test: formatValue produces integer string for hundreds
+ */
+void test_format_value_hundreds(void) {
+    char buf[16];
+    TimeSeriesGraph::formatValue(100.0, buf, sizeof(buf));
+    TEST_ASSERT_EQUAL_STRING("100", buf);
+}
+
+/**
+ * Test: mapYToScreen maps y_min to bottom, y_max to top (inverted Y-axis)
+ */
+void test_map_y_min_bottom_max_top(void) {
+    GraphTheme theme = {};
+    theme.backgroundColor = RGB565_BLACK;
+    theme.lineColor = RGB565_CYAN;
+    theme.axisColor = RGB565_WHITE;
+    theme.useBackgroundGradient = false;
+    theme.useLineGradient = false;
+
+    TimeSeriesGraph graph(theme,
+                         (Arduino_GFX*)hal_display_get_gfx(),
+                         hal_display_get_width_pixels(),
+                         hal_display_get_height_pixels());
+
+    float y_at_min = graph.mapYToScreen(0.0, 0.0, 100.0);
+    float y_at_max = graph.mapYToScreen(100.0, 0.0, 100.0);
+
+    // Min maps to bottom (larger relative Y), max maps to top (smaller relative Y)
+    TEST_ASSERT_TRUE(y_at_min > y_at_max);
+}
+
+/**
+ * Test: mapYToScreen midpoint is centered between min and max
+ */
+void test_map_y_midpoint_centered(void) {
+    GraphTheme theme = {};
+    theme.backgroundColor = RGB565_BLACK;
+    theme.lineColor = RGB565_CYAN;
+    theme.axisColor = RGB565_WHITE;
+    theme.useBackgroundGradient = false;
+    theme.useLineGradient = false;
+
+    TimeSeriesGraph graph(theme,
+                         (Arduino_GFX*)hal_display_get_gfx(),
+                         hal_display_get_width_pixels(),
+                         hal_display_get_height_pixels());
+
+    float y_at_min = graph.mapYToScreen(0.0, 0.0, 100.0);
+    float y_at_max = graph.mapYToScreen(100.0, 0.0, 100.0);
+    float y_at_mid = graph.mapYToScreen(50.0, 0.0, 100.0);
+
+    float expected_mid = (y_at_min + y_at_max) / 2.0f;
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, expected_mid, y_at_mid);
+}
+
+/**
+ * Test: mapXToScreen maps first index to left, last to right
+ */
+void test_map_x_first_left_last_right(void) {
+    GraphTheme theme = {};
+    theme.backgroundColor = RGB565_BLACK;
+    theme.lineColor = RGB565_CYAN;
+    theme.axisColor = RGB565_WHITE;
+    theme.useBackgroundGradient = false;
+    theme.useLineGradient = false;
+
+    TimeSeriesGraph graph(theme,
+                         (Arduino_GFX*)hal_display_get_gfx(),
+                         hal_display_get_width_pixels(),
+                         hal_display_get_height_pixels());
+
+    float x_first = graph.mapXToScreen(0, 5);
+    float x_last = graph.mapXToScreen(4, 5);
+
+    TEST_ASSERT_TRUE(x_first < x_last);
+}
+
+/**
+ * Test: mapXToScreen midpoint is centered between first and last
+ */
+void test_map_x_midpoint_centered(void) {
+    GraphTheme theme = {};
+    theme.backgroundColor = RGB565_BLACK;
+    theme.lineColor = RGB565_CYAN;
+    theme.axisColor = RGB565_WHITE;
+    theme.useBackgroundGradient = false;
+    theme.useLineGradient = false;
+
+    TimeSeriesGraph graph(theme,
+                         (Arduino_GFX*)hal_display_get_gfx(),
+                         hal_display_get_width_pixels(),
+                         hal_display_get_height_pixels());
+
+    float x_first = graph.mapXToScreen(0, 5);
+    float x_last = graph.mapXToScreen(4, 5);
+    float x_mid = graph.mapXToScreen(2, 5);
+
+    float expected_mid = (x_first + x_last) / 2.0f;
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, expected_mid, x_mid);
+}
+
+/**
+ * Test: getMargins OUTSIDE produces wider margins than INSIDE
+ */
+void test_margins_outside_wider_than_inside(void) {
+    GraphTheme theme = {};
+    theme.backgroundColor = RGB565_BLACK;
+    theme.lineColor = RGB565_CYAN;
+    theme.axisColor = RGB565_WHITE;
+    theme.useBackgroundGradient = false;
+    theme.useLineGradient = false;
+
+    TimeSeriesGraph graph(theme,
+                         (Arduino_GFX*)hal_display_get_gfx(),
+                         hal_display_get_width_pixels(),
+                         hal_display_get_height_pixels());
+
+    // Default is OUTSIDE
+    auto outside = graph.getMargins();
+
+    graph.setTickLabelPosition(TickLabelPosition::INSIDE);
+    auto inside = graph.getMargins();
+
+    TEST_ASSERT_TRUE(outside.left > inside.left);
+    TEST_ASSERT_TRUE(outside.bottom > inside.bottom);
+}
+
+// ===== End Behavioral Assertion Tests =====
+
 /**
  * Test: Independent refresh (Scenario from features/ui_themeable_time_series_graph.md)
  * Given a fully drawn graph
@@ -443,6 +598,17 @@ int main(int argc, char **argv) {
     RUN_TEST(test_axis_tick_marks);
     RUN_TEST(test_animate_live_indicator);
     RUN_TEST(test_independent_refresh);
+
+    // Behavioral assertion tests (public API)
+    RUN_TEST(test_format_value_zero);
+    RUN_TEST(test_format_value_decimal);
+    RUN_TEST(test_format_value_tens);
+    RUN_TEST(test_format_value_hundreds);
+    RUN_TEST(test_map_y_min_bottom_max_top);
+    RUN_TEST(test_map_y_midpoint_centered);
+    RUN_TEST(test_map_x_first_left_last_right);
+    RUN_TEST(test_map_x_midpoint_centered);
+    RUN_TEST(test_margins_outside_wider_than_inside);
 
     UNITY_END();
 

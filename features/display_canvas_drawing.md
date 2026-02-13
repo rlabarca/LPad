@@ -1,9 +1,10 @@
 > Prerequisite: features/hal_spec_display.md
+> Prerequisite: features/hal_dma_blitting.md
 
 # Feature: Layered Canvas Drawing
 
 > Label: "Layered Canvas Drawing"
-> Category: "Graphics Engine"
+> Category: "UI Framework"
 
 This feature adds support for canvas-based, or layered, drawing. It extends the HAL contract with functions to create, manage, and draw off-screen canvases (also known as sprites or buffers). This enables rendering complex scenes with multiple layers that can be cleared and redrawn independently.
 

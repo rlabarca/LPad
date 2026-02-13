@@ -1,7 +1,6 @@
 #include "ui_mini_logo.h"
 #include "vector_renderer.h"
 #include "generated/vector_assets.h"
-#include "../hal/display.h"
 
 MiniLogo::MiniLogo(RelativeDisplay* display, Corner corner)
     : m_display(display)
@@ -21,8 +20,8 @@ void MiniLogo::render() {
     float logoAspectRatio = VectorAssets::Lpadlogo.original_width /
                            VectorAssets::Lpadlogo.original_height;  // 245/370 = 0.662
 
-    int32_t screen_width = hal_display_get_width_pixels();
-    int32_t screen_height = hal_display_get_height_pixels();
+    int32_t screen_width = m_display->getWidth();
+    int32_t screen_height = m_display->getHeight();
     float screenAspectRatio = static_cast<float>(screen_height) / static_cast<float>(screen_width);
 
     // Width percent needed to maintain logo aspect ratio at given height percent
@@ -40,9 +39,9 @@ void MiniLogo::setCorner(Corner corner) {
 
 void MiniLogo::calculatePositionAndAnchor(float& out_x, float& out_y,
                                          float& out_anchor_x, float& out_anchor_y) {
-    // Get screen dimensions
-    int32_t screen_width = hal_display_get_width_pixels();
-    int32_t screen_height = hal_display_get_height_pixels();
+    // Get screen dimensions from RelativeDisplay
+    int32_t screen_width = m_display->getWidth();
+    int32_t screen_height = m_display->getHeight();
 
     // Convert pixel offset to percentage
     float offsetX_percent = (CORNER_OFFSET_PX / static_cast<float>(screen_width)) * 100.0f;

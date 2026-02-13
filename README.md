@@ -6,24 +6,29 @@ The primary goal of this repository is not just the firmware itself, but the *pr
 
 ## 🤖 The Agentic Workflow
 
-In this project, **Code is Disposable**. The "Source of Truth" is the set of Feature Specifications (`features/*.md`). If we deleted `src/` today, the agents could rebuild it entirely from the specs.
+This project uses a rigorous **Two-Agent model** managed by a reusable **Agentic DevOps Framework**. This framework is designed to be project-agnostic and can be bootstrapped into any development environment (C++, Web, Data Science, etc.).
 
-### The Agents
+### The Framework ([`agentic_devops/`](agentic_devops/))
 
-*   **Gemini (The Architect):**
-    *   **Role:** Designs the system, writes Feature Specifications (`features/*.md`), enforces architectural constraints, and manages the DevOps process.
-    *   **Context:** Uses `GEMINI_ARCHITECT.md` to understand its role and mandates.
-    *   **Output:** Creates rigorous Gherkin-style specs and updates `docs/`.
-*   **Claude (The Builder):**
-    *   **Role:** Writes the C++/PlatformIO code to satisfy the specs.
-    *   **Context:** Uses `CLAUDE.md` for coding standards, git protocols, and command usage.
-    *   **Output:** Writes `src/`, `hal/`, and `test/` code.
+*   **[`HOW_WE_WORK.md`](agentic_devops/HOW_WE_WORK.md):** The core philosophy and constitutional rules of the agentic collaboration.
+*   **[`ARCHITECT_INSTRUCTIONS.md`](agentic_devops/ARCHITECT_INSTRUCTIONS.md):** The operational mandate for the Architect agent (Gemini).
+*   **[`BUILDER_INSTRUCTIONS.md`](agentic_devops/BUILDER_INSTRUCTIONS.md):** The coding standards and commit protocols for the Builder agent (Claude).
+*   **[Tools](agentic_devops/tools/):** Generic automation for tracking feature status (CDD) and visualizing dependencies (Software Map).
 
-### Documentation Structure (`docs/`)
+### Documentation Structure
 
-*   **`docs/ARCHITECTURE.md` (The Constitution):** Defines system invariants and constraints (e.g., "HAL must never include Arduino.h"). This is the rulebook the Builder must check before coding.
-*   **`docs/IMPLEMENTATION_LOG.md` (The Lab Notebook):** Captures "Tribal Knowledge" and the "Why" behind complex technical decisions to prevent regression.
-*   **`features/` (The Spec):** The actual requirements. The status of these files drives the development loop.
+*   **`features/arch_*.md` (The Constitution):** Defines system invariants and modular architectural policies (e.g., `arch_hal_policy.md`, `arch_ui_compositing.md`).
+*   **`features/*.md` (The Living Spec):** The single source of truth for functionality. Includes behavioral requirements and **Colocated Implementation Notes** capturing tribal knowledge and hardware "gotchas."
+
+## 🧬 Agentic Evolution
+
+This project evolves both its **Firmware Capabilities** and its **DevOps Processes** in parallel. We track these milestones together to show how better agentic workflows enable more complex software.
+
+| Release | Firmware Capabilities | Agentic DevOps Process |
+| :--- | :--- | :--- |
+| **v0.1 - v0.5** | **Foundation:** Basic Display/HAL, Relative Drawing, Time Series Graph (v1). | **Static Specs:** Traditional documentation. Manual validation. |
+| **v0.5 - v0.65** | **Feature Expansion:** WiFi, Stock Tracker, Touch Gestures, MiniLogo. | **Versioned Specs:** `feature_v2.md` files (superseding). Centralized `IMPLEMENTATION_LOG.md`. |
+| **v0.70** | **System Architecture:** UI Render Manager, Z-Order, Multi-App Support. | **Living Specs:** In-place editing (No v2). **Knowledge Colocation:** Implementation notes inside feature files. **Modular Architecture:** `arch_*.md` policies. |
 
 ## 🧪 Testing Strategy
 
@@ -59,7 +64,7 @@ A real-time dashboard that tracks the synchronization between Specs and Code.
 *   **Function:** Monitors git commit timestamps. If a Feature File is newer than its implementation commit, it flags the feature as `[TODO]`.
 *   **Usage:**
     ```bash
-    ./ai_dev_tools/cdd/start.sh
+    ./agentic_devops/tools/cdd/start.sh
     # Open http://localhost:8086
     ```
 
@@ -68,7 +73,7 @@ An interactive node graph of the project's feature dependencies.
 *   **Function:** Visualizes the hierarchy from `RELEASE` nodes down to specific hardware specs.
 *   **Usage:**
     ```bash
-    ./ai_dev_tools/software_map/start.sh
+    ./agentic_devops/tools/software_map/start.sh
     # Open http://localhost:8085
     ```
 
@@ -96,23 +101,24 @@ We currently support two primary boards from LilyGo:
 To build and upload the latest verified release:
 ```bash
 # For AMOLED version
-pio run -e demo_v065_esp32s3 -t upload
+pio run -e esp32s3 -t upload
 
 # For Plus version
-pio run -e demo_v065_tdisplay -t upload
+pio run -e tdisplay_s3_plus -t upload
 ```
 
 ---
 
 ## ✨ Current Features (Firmware)
 
-The firmware is currently at **Milestone v0.65**.
+The firmware is currently at **Milestone v0.70**.
 
-*   **Graph V2 Engine:** High-performance, thread-safe plotting engine with autonomous layout, collision avoidance, and significant-digit aware labeling.
+*   **UI Render Manager:** Centralized orchestration of Apps and System Tools with Z-Order and occlusion optimization.
+*   **System Components:** Global overlay Menu and MiniLogo managed independently of the active App.
+*   **Graph V2 Engine:** High-performance, thread-safe plotting engine with autonomous layout and collision avoidance.
 *   **Stock Tracker:** Real-time stock data tracking using the Yahoo Finance API (via WiFi).
-*   **Touch Interaction (New in v0.65):** Full gesture engine supporting Tap, Hold, and Edge Drag operations via the CST816 driver.
-*   **UI Framework:** Themeable components, MiniLogo vector rendering, and persistent overlays.
-*   **Agentic CI/CD:** Automated verification of feature states via the CDD Monitor.
+*   **Touch Interaction:** Full gesture engine supporting Tap, Hold, and Edge Drag operations.
+*   **Agentic CI/CD:** Automated verification of feature states via the CDD Monitor and Living Spec architecture.
 
 ## 📄 License
 This project is licensed under the **Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International (CC BY-NC-SA 4.0)**. See the [LICENSE.md](LICENSE.md) file for details.

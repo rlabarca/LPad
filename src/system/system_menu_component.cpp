@@ -8,7 +8,6 @@
 #include "system_menu_component.h"
 #include <Arduino.h>
 #include "../ui/ui_system_menu.h"
-#include "../../hal/network.h"
 
 SystemMenuComponent::SystemMenuComponent()
     : m_inner(nullptr)
@@ -66,7 +65,9 @@ void SystemMenuComponent::setSSIDColor(uint16_t color) {
 void SystemMenuComponent::onUnpause() {
     if (m_inner) {
         m_inner->open();
-        m_inner->setSSID(hal_network_get_ssid());
+        if (m_ssidProvider) {
+            m_inner->setSSID(m_ssidProvider());
+        }
     }
     m_closing = false;
     Serial.println("[RenderMgr] SystemMenu: ACTIVATED via EDGE_DRAG TOP");

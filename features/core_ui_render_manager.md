@@ -1,8 +1,9 @@
 # Core Feature: UI Render Manager
 
 > Label: "UI Render Manager"
-> Category: "Core Architecture"
+> Category: "System Architecture"
 > Prerequisite: features/touch_gesture_engine.md
+> Prerequisite: features/arch_ui_compositing.md
 
 ## 1. Overview
 The `UIRenderManager` is the central singleton responsible for managing the application lifecycle, rendering pipeline, and touch event distribution. It decouples individual UI components from the main loop, allowing for a composable system where Apps and System Components can be registered, prioritized (Z-Order), and managed dynamically.
@@ -22,15 +23,18 @@ The Manager maintains a registry of components sorted by Z-Order.
 *   **Storage:** A sorted list or vector of `UIComponent*`.
 
 ### 3.2 The Render Loop (Painter's Algorithm)
-On every system tick (frame):
-1.  The Manager iterates through the registered components in ascending Z-Order (Lowest -> Highest).
-2.  **Occlusion Check:** The Manager tracks if the screen is "Fully Occluded" by a higher-priority component.
+On every system tick (frame), the main loop calls `routeInput()`, `update()`, and `render()`.
+
+1.  **Input Routing:** `routeInput()` dispatches touch events to the active component stack.
+2.  **State Update:** `update()` advances animations for all active components.
+3.  **Rendering:** `render()` iterates through the registered components in ascending Z-Order (Lowest -> Highest).
+    *   **Occlusion Check:** The Manager tracks if the screen is "Fully Occluded" by a higher-priority component.
     *   *Note:* This requires components to report their `isOpaque()` and `isFullscreen()` state.
     *   If a higher component is opaque and full-screen, lower components are skipped (Performance Optimization).
-3.  If not occluded and component is `Visible`, call `component->render()`.
+    *   If not occluded and component is `Visible`, call `component->render()`.
 
 ### 3.3 Event Routing
-The Manager owns the `TouchGestureEngine` (or receives its events).
+The Manager receives gesture events from `main.cpp` via `routeInput()`. The `TouchGestureEngine` is owned and driven by `main.cpp`, not by the Manager.
 1.  **Global Activation Check:** Incoming events are first checked against registered **Activation Events** for SystemComponents.
     *   If Match: The target SystemComponent is `UnPaused` (if paused) and the event is consumed.
 2.  **Active Component Dispatch:** If no global activation matches, the event is passed to the currently **Active** components (Unpaused SystemComponents and the Running App), starting from Highest Z-Order to Lowest.
@@ -39,12 +43,13 @@ The Manager owns the `TouchGestureEngine` (or receives its events).
 ## 4. Lifecycle Methods
 
 ### 4.1 UIComponent Interface
-*   `init(Context* ctx)`: Called once on registration.
-*   `onRun()`: Called when the component is started.
+*   **Initialization:** Components are initialized externally via per-component `begin()` methods (e.g., `begin(RelativeDisplay*)`, `begin(Arduino_GFX*, width, height)`) **before** registration with the Manager. The Manager does not call any init method during `registerComponent()`.
+*   `onRun()`: Called by the Manager on an AppComponent when `setActiveApp()` is invoked. **Not called on SystemComponents** — passive SystemComponents rely on default `m_visible = true`.
 *   `onPause()`: Called when the component is backgrounded/suspended.
-*   `onUnpause()`: Called when the component is resumed.
-*   `render()`: Called every frame if visible and not occluded.
-*   `handleInput(Event e)`: Called when input is routed to this component.
+*   `onUnpause()`: Called when the component is resumed (e.g., SystemComponent activation, or App resumed after SystemComponent yields).
+*   `render()`: Called every frame if visible, not paused, and not occluded.
+*   `update(float dt)`: Called every frame with delta time for animations (e.g., live indicator pulse, menu close animation).
+*   `handleInput(const touch_gesture_event_t& event)`: Called when input is routed to this component. Returns `true` to consume, `false` to pass through.
 
 ### 4.2 AppComponent Specifics
 *   `onClose()`: Called when the App is shut down entirely (to free memory).

@@ -2,7 +2,7 @@
 
 > Label: "UI Mini Logo"
 > Category: "UI Framework"
-> Prerequisite: features/ui_logo_screen.md
+> Prerequisite: features/ui_vector_assets.md
 
 This feature defines a small, static logo component that can be drawn in any corner of the screen.
 
@@ -45,3 +45,26 @@ The `MiniLogo` class should:
 - **HIL Test:**
   - Create a simple demo that draws the mini logo in each of the four corners, pausing for a few seconds at each position.
   - This will be part of the main v0.60 demo.
+
+## Implementation Notes
+
+### [2026-02-09] VectorRenderer Aspect Ratio Bug
+**Problem:** Mini logo appeared vertically squashed — VectorRenderer calculated `target_height = width_percent * shape_aspect_ratio` without accounting for screen aspect ratio.
+**Fix:** `target_height = width_percent * shape_aspect_ratio * (screen_width / screen_height)`. Percentage-based coordinates must account for screen dimensions when converting between width% and height%.
+
+### [2026-02-09] Size Consistency Between LogoScreen and MiniLogo
+**Problem:** MiniLogo header defined 12% height vs LogoScreen's 10% end size, causing a visible jump during transition.
+**Fix:** Changed MiniLogo `LOGO_HEIGHT_PERCENT` from 12.0f to 10.0f to match LogoScreen end size. When one component transitions to another, sizes must match exactly.
+
+### [2026-02-06] LogoScreen Dirty-Rect Optimization
+**Problem:** Drawing logo directly to display each frame caused visible refresh artifacts during smooth EaseInOut animation.
+**Solution:** Same "Layered Rendering" approach as TimeSeriesGraph:
+1. Background Composite Buffer (PSRAM) stores clean background
+2. Dirty Rect = union of old and new logo bounding boxes
+3. Three-step atomic update: restore clean BG → rasterize new logo → single `hal_display_fast_blit`
+
+### [2026-02-06] LogoScreen Animation Parameters
+- **End size:** 10% of screen height
+- **End anchor point:** Top-right corner of the logo image (1.0, 0.0)
+- **End position:** Anchor point placed 10px from screen edges
+- **Critical:** Anchor (1.0, 0.0) = top-right of LOGO IMAGE, not screen. Logo extends leftward and downward from that point.
