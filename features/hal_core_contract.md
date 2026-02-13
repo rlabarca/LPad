@@ -2,7 +2,7 @@
 
 > Label: "HAL Core Contract"
 > Category: "Hardware Layer"
-> Prerequisite: features/arch_hal_policy.md
+> Prerequisite: None
 
 ## Introduction
 

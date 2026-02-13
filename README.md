@@ -4,7 +4,7 @@
 
 The primary goal of this repository is not just the firmware itself, but the *process* of building it. We use a rigorous "Two-Agent" model where **Gemini** acts as the Architect and **Claude** acts as the Developer, with **You** (the Human) as the Executive/Process Manager.
 
-## 🤖 The Agentic Workflow
+## The Agentic Workflow
 
 This project uses a rigorous **Two-Agent model** managed by a reusable **Agentic DevOps Framework**. This framework is designed to be project-agnostic and can be bootstrapped into any development environment (C++, Web, Data Science, etc.).
 
@@ -20,7 +20,7 @@ This project uses a rigorous **Two-Agent model** managed by a reusable **Agentic
 *   **`features/arch_*.md` (The Constitution):** Defines system invariants and modular architectural policies (e.g., `arch_hal_policy.md`, `arch_ui_compositing.md`).
 *   **`features/*.md` (The Living Spec):** The single source of truth for functionality. Includes behavioral requirements and **Colocated Implementation Notes** capturing tribal knowledge and hardware "gotchas."
 
-## 🧬 Agentic Evolution
+## Agentic Evolution
 
 This project evolves both its **Firmware Capabilities** and its **DevOps Processes** in parallel. We track these milestones together to show how better agentic workflows enable more complex software.
 
@@ -29,8 +29,9 @@ This project evolves both its **Firmware Capabilities** and its **DevOps Process
 | **v0.1 - v0.5** | **Foundation:** Basic Display/HAL, Relative Drawing, Time Series Graph (v1). | **Static Specs:** Traditional documentation. Manual validation. |
 | **v0.5 - v0.65** | **Feature Expansion:** WiFi, Stock Tracker, Touch Gestures, MiniLogo. | **Versioned Specs:** `feature_v2.md` files (superseding). Centralized `IMPLEMENTATION_LOG.md`. |
 | **v0.70** | **System Architecture:** UI Render Manager, Z-Order, Multi-App Support. | **Agentic DevOps Refactor:** Unified `agentic_devops/` hub. **Living Specs:** In-place editing (No v2). **Knowledge Colocation:** Implementation notes inside feature files. **Modular Architecture:** `arch_*.md` policies. |
+| **v0.71** | **Developer Utility:** Serial Screenshot Tool, PSRAM Shadow Framebuffer. | **Process Rigor:** Acyclic Dependency Mandate. Test Fidelity Mandate (Explicit HIL steps). Documentation Professionalism (No Emojis). |
 
-## 🧪 Testing Strategy
+## Testing Strategy
 
 We employ a dual-layer testing strategy to ensure both logic correctness and hardware fidelity.
 
@@ -55,7 +56,7 @@ The **Continuous Documentation Dashboard (CDD)** monitors the lifecycle of a fea
 
 ---
 
-## 🛠️ DevOps & Tooling
+## DevOps & Tooling
 
 We have built custom tooling to visualize and manage this workflow.
 
@@ -83,10 +84,17 @@ Ensure you have Python 3 installed. The tools use standard libraries or minimal 
     ```bash
     pip install platformio
     ```
+*   **Screenshot Tool:** Requires `pyserial` and `Pillow`. The capture scripts automatically activate the project's local `.venv`.
+    ```bash
+    # Ensure the virtual environment is prepared
+    python3 -m venv .venv
+    source .venv/bin/activate
+    pip install pyserial Pillow
+    ```
 
 ---
 
-## ⚡ Supported Hardware (HAL)
+## Supported Hardware (HAL)
 
 This project uses a strict **Hardware Abstraction Layer (HAL)**. Application code never touches hardware directly.
 
@@ -109,10 +117,11 @@ pio run -e tdisplay_s3_plus -t upload
 
 ---
 
-## ✨ Current Features (Firmware)
+## Current Features (Firmware)
 
-The firmware is currently at **Milestone v0.70**.
+The firmware is currently at **Milestone v0.71**.
 
+*   **Serial Screenshot Tool:** Host-side utility to capture the device screen over Serial using a PSRAM shadow buffer.
 *   **UI Render Manager:** Centralized orchestration of Apps and System Tools with Z-Order and occlusion optimization.
 *   **System Components:** Global overlay Menu and MiniLogo managed independently of the active App.
 *   **Graph V2 Engine:** High-performance, thread-safe plotting engine with autonomous layout and collision avoidance.
@@ -120,5 +129,6 @@ The firmware is currently at **Milestone v0.70**.
 *   **Touch Interaction:** Full gesture engine supporting Tap, Hold, and Edge Drag operations.
 *   **Agentic CI/CD:** Automated verification of feature states via the CDD Monitor and Living Spec architecture.
 
-## 📄 License
+
+## License
 This project is licensed under the **Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International (CC BY-NC-SA 4.0)**. See the [LICENSE.md](LICENSE.md) file for details.

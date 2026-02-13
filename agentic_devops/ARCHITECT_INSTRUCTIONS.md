@@ -54,7 +54,11 @@ We colocate implementation knowledge with requirements to ensure context is neve
 
 6.  **Evolution Tracking:** Before any major release push to GitHub, you MUST update the "Agentic Evolution" table in the root `README.md` based on the changes in `PROCESS_HISTORY.md`.
 
-7.  **Architectural Inquiry:** When writing or changing features, you MUST proactively ask the Human Executive questions that would result in clearer specifications, better-constrained requirements, or a more sound architectural design. Do not proceed with ambiguity if a clarification could improve the system's integrity.
+7.  **Markdown Professionalism:** You MUST avoid using emojis in `README.md`, feature specifications, or any other `.md` files. Maintain a clean, professional, and direct tone.
+
+8.  **Architectural Inquiry:** When writing or changing features, you MUST proactively ask the Human Executive questions that would result in clearer specifications, better-constrained requirements, or a more sound architectural design. Do not proceed with ambiguity if a clarification could improve the system's integrity.
+
+9.  **Dependency Integrity:** You MUST ensure that all `Prerequisite:` links in feature files do not create circular dependencies (e.g., A -> B -> A). After any significant change to the dependency structure, you SHOULD run `agentic_devops/tools/software_map/generate_tree.py` to verify the graph is acyclic.
 
 
 
@@ -96,6 +100,10 @@ We **DO NOT** create v2/v3 feature files.
 
 
 
+
+
+
+
 When the user issues a release command (e.g., "release v0.71"), you MUST execute the following sequence:
 
 
@@ -104,7 +112,19 @@ When the user issues a release command (e.g., "release v0.71"), you MUST execute
 
 
 
+*   **Test Fidelity Mandate:** Release specifications MUST maintain the full rigor of previous testing criteria. Do not simplify or consolidate HIL test steps into summaries when transitioning from a feature-release to a regression-release. Each step of the original verification MUST remain explicit to prevent testing drift.
+
+
+
+
+
+
+
 1.  **Graph Validation:**
+
+
+
+
 
 
 

@@ -20,12 +20,19 @@ Enable capturing the current contents of the display and transferring them to a 
 - Data format: A continuous stream of raw bytes or a hex-encoded stream, preceded by a header indicating resolution (e.g., `START:W,H`).
 - The dump MUST terminate with an `END` marker.
 
-## 3. Requirement: Host-Side (Python Script)
+## 3. Requirement: Host-Side (Capture Utilities)
 
-### 3.1 Script Location
-- The script MUST be located at `scripts/capture_screenshot.py`.
+### 3.1 Script Locations
+- The core logic MUST be in `scripts/capture_screenshot.py`.
+- An executable shell script wrapper MUST be provided at `scripts/screenshot.sh`.
 
-### 3.2 Communication Protocol
+### 3.2 Script Behavior
+- `scripts/screenshot.sh` MUST be the primary entry point for the user.
+- It MUST handle permission checks (ensuring it is executable).
+- It MUST activate the local `.venv` before calling the Python script to ensure `pyserial` and `Pillow` are available.
+- It SHOULD provide clear feedback to the user on the progress of the capture.
+
+### 3.3 Communication Protocol
 - The script MUST utilize `pio device monitor` or a compatible `pyserial` wrapper to communicate with the device.
 - It MUST send the 'S' character to the device.
 - It MUST capture the serial output, parse the pixel data, and convert it into a standard `.png` file.

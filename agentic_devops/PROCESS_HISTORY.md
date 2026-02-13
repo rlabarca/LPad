@@ -19,4 +19,15 @@ This log tracks the evolution of our DevOps processes and agentic protocols. Ent
 *   **Role Maturity:** Successfully executed the first release under the new "Architect/Builder" role separation.
 *   **HIL Success:** Verified multi-layer rendering and system-level gesture interception on physical hardware.
 *   **Tree Integrity:** Re-anchored all HAL and Infrastructure specifications to policy nodes, resolving dependency orphans.
+*   **Style Mandate:** Formalized the "No Emojis" rule for all Markdown documentation in `ARCHITECT_INSTRUCTIONS.md`.
+*   **Screenshot Protocol:** Defined requirements for a Serial Screenshot Utility with an executable shell wrapper and automated `.venv` activation.
+*   **Acyclic Mandate:** Formalized the requirement to avoid and verify circular dependencies in `ARCHITECT_INSTRUCTIONS.md` following a graph recursion error.
+*   **Test Fidelity Mandate:** Codified the requirement in `ARCHITECT_INSTRUCTIONS.md` to maintain explicit, high-rigor HIL testing steps in all release specifications to prevent regression drift.
+
+## [2026-02-13] Milestone: Release v0.71 - Serial Screenshot Utility
+- **Feature Capability:** Implemented a Serial-triggered screenshot tool that dumps the display shadow buffer from PSRAM to a host PNG.
+- **Developer Utility:** Introduced \`scripts/screenshot.sh\` as a cross-platform capture tool with automated \`.venv\` management.
+- **Architectural Cleanup:** Resolved circular dependencies in the core architecture and established the acyclic graph mandate.
+- **Documentation Standard:** Formalized the "No Emojis" mandate for all Markdown documentation.
+
 

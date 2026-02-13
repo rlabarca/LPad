@@ -29,6 +29,14 @@ This document defines the abstract interface for display operations within the H
 ### `hal_display_set_rotation(int degrees)`
 *   **Description:** Sets orientation (0, 90, 180, 270).
 
+### `hal_display_read_pixel(int32_t x, int32_t y)`
+*   **Description:** Reads a single RGB565 pixel from the display memory or back-buffer.
+*   **Returns:** `uint16_t` - RGB565 color value.
+
+### `hal_display_dump_screen(void)`
+*   **Description:** Triggers a sequential read of the entire screen buffer and outputs it to Serial.
+*   **Constraint:** This MUST be non-blocking for other high-priority interrupts if possible, but the `UIRenderManager` should be paused.
+
 ## Rotation Requirements (Consolidated)
 
 The display HAL MUST support screen rotation. This ensures that all display drivers can be instructed to rotate their output and that higher-level modules can query the resulting dimensions.

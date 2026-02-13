@@ -61,8 +61,8 @@ flowchart TD
 
     subgraph RELEASES [" "]
         title_RELEASES["RELEASES"]
-        RELEASE_v0_70_ui_render_manager["Release v0.70: UI Render Manager<br/><small>RELEASE_v0.70_ui_render_manager.md</small>"]
-        title_RELEASES ~~~ RELEASE_v0_70_ui_render_manager
+        RELEASE_v0_71_serial_screenshot["Release v0.71: Serial Screenshot<br/><small>RELEASE_v0.71_serial_screenshot.md</small>"]
+        title_RELEASES ~~~ RELEASE_v0_71_serial_screenshot
     end
 
     subgraph System_Architecture [" "]
@@ -73,6 +73,8 @@ flowchart TD
         title_System_Architecture ~~~ sys_animation_ticker
         sys_config_system["Config Injection System<br/><small>sys_config_system.md</small>"]
         title_System_Architecture ~~~ sys_config_system
+        sys_serial_screenshot["Serial Screenshot<br/><small>sys_serial_screenshot.md</small>"]
+        title_System_Architecture ~~~ sys_serial_screenshot
         touch_gesture_engine["Touch Gesture Engine<br/><small>touch_gesture_engine.md</small>"]
         title_System_Architecture ~~~ touch_gesture_engine
     end
@@ -106,15 +108,26 @@ flowchart TD
     end
 
     %% Relationships
-    core_ui_render_manager --> RELEASE_v0_70_ui_render_manager
-    sys_system_menu --> RELEASE_v0_70_ui_render_manager
-    sys_mini_logo --> RELEASE_v0_70_ui_render_manager
-    app_stock_ticker --> RELEASE_v0_70_ui_render_manager
-    display_target_rotation --> RELEASE_v0_70_ui_render_manager
+    sys_serial_screenshot --> RELEASE_v0_71_serial_screenshot
+    sys_animation_ticker --> RELEASE_v0_71_serial_screenshot
+    sys_config_system --> RELEASE_v0_71_serial_screenshot
+    core_ui_render_manager --> RELEASE_v0_71_serial_screenshot
+    sys_system_menu --> RELEASE_v0_71_serial_screenshot
+    sys_mini_logo --> RELEASE_v0_71_serial_screenshot
+    app_stock_ticker --> RELEASE_v0_71_serial_screenshot
+    display_target_rotation --> RELEASE_v0_71_serial_screenshot
     core_ui_render_manager --> app_stock_ticker
     data_layer_stock_tracker --> app_stock_ticker
     ui_themeable_time_series_graph --> app_stock_ticker
     arch_infrastructure --> arch_build_system
+    hal_spec_display --> arch_hal_policy
+    hal_spec_network --> arch_hal_policy
+    hal_spec_touch --> arch_hal_policy
+    hal_spec_timer --> arch_hal_policy
+    display_esp32s3_amoled --> arch_hal_policy
+    display_tdisplay_s3_plus --> arch_hal_policy
+    touch_cst816_implementation --> arch_hal_policy
+    hal_timer_esp32 --> arch_hal_policy
     touch_gesture_engine --> core_ui_render_manager
     arch_ui_compositing --> core_ui_render_manager
     hal_core_contract --> data_layer_core
@@ -128,7 +141,6 @@ flowchart TD
     arch_ui_compositing --> display_relative_drawing
     hal_spec_display --> display_target_rotation
     hal_spec_display --> display_tdisplay_s3_plus
-    arch_hal_policy --> hal_core_contract
     hal_core_contract --> hal_spec_display
     hal_core_contract --> hal_spec_network
     arch_data_strategy --> hal_spec_network
@@ -140,6 +152,8 @@ flowchart TD
     arch_infrastructure --> sys_config_system
     core_ui_render_manager --> sys_mini_logo
     ui_mini_logo --> sys_mini_logo
+    hal_spec_display --> sys_serial_screenshot
+    arch_infrastructure --> sys_serial_screenshot
     core_ui_render_manager --> sys_system_menu
     ui_system_menu --> sys_system_menu
     hal_spec_touch --> touch_cst816_implementation
