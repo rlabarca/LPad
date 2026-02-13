@@ -1,1 +1,0 @@
-agentic_devops/ARCHITECT_INSTRUCTIONS.md
