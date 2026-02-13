@@ -56,6 +56,10 @@ static void format_3_sig_digits(double value, char* buffer, size_t buffer_size) 
     snprintf(buffer, buffer_size, "%.*f", decimal_places, value);
 }
 
+void TimeSeriesGraph::formatValue(double value, char* buffer, size_t buffer_size) {
+    format_3_sig_digits(value, buffer, buffer_size);
+}
+
 TimeSeriesGraph::TimeSeriesGraph(const GraphTheme& theme, Arduino_GFX* main_display,
                                  int32_t width, int32_t height)
     : theme_(theme), main_display_(main_display), width_(width), height_(height),
@@ -197,6 +201,9 @@ TimeSeriesGraph::GraphMargins TimeSeriesGraph::getMargins() const {
         m.left = 3.0f;
         m.top = 3.0f;
         m.right = 3.0f;
+        // INSIDE mode: Y-axis title (rotated -90°) sits in the left margin
+        // Built-in font size 2 is ~20px wide after rotation, needs clearance from axis
+        if (y_axis_title_) m.left += 4.0f;
         // INSIDE mode: need more bottom margin for X-axis title
         // Text size 2 is ~14px tall, need room for title below axis line
         m.bottom = x_axis_title_ ? 12.0f : 3.0f;
@@ -372,30 +379,57 @@ void TimeSeriesGraph::drawAxisTitles(RelativeDisplay* target) {
         canvas->print(x_axis_title_);
     }
 
-    // Y-axis title: character by character, vertically centered
+    // Y-axis title: rotated -90 degrees (text reads bottom-to-top)
     if (y_axis_title_) {
-        int len = static_cast<int>(strlen(y_axis_title_));
-        if (len == 0 || len > 32) return;
+        // Measure horizontal text dimensions
+        int16_t tx1, ty1;
+        uint16_t tw, th;
+        canvas->getTextBounds(y_axis_title_, 0, 0, &tx1, &ty1, &tw, &th);
 
-        // Built-in font at size 2: each char is 10w x 14h (with spacing 12x16)
-        int32_t char_h = 14;
-        int32_t char_w = 10;
-        int32_t char_spacing = char_h + 2;
-        int32_t total_height = len * char_spacing;
+        if (tw == 0 || th == 0) return;
 
-        // Center vertically in graph area
-        float graph_center_y = (m.top + (100.0f - m.bottom)) / 2.0f;
-        int32_t center_py = target->relativeToAbsoluteY(graph_center_y);
-        int32_t start_y = center_py - total_height / 2;
-        int32_t title_x = 2;
+        // Render text horizontally to a small temp canvas, then blit rotated.
+        // Built-in fonts work on PSRAM canvases; this temp canvas is small enough
+        // for either SRAM or PSRAM (typically < 2KB for short titles).
+        int16_t buf_w = tw + 4;
+        int16_t buf_h = th + 4;
+        constexpr uint16_t ROT_KEY = 0x0001;
 
-        for (int i = 0; i < len; i++) {
-            int32_t char_y = start_y + i * char_spacing;
+        Arduino_Canvas* tempCanvas = new Arduino_Canvas(buf_w, buf_h, nullptr);
+        if (tempCanvas && tempCanvas->begin(GFX_SKIP_OUTPUT_BEGIN)) {
+            tempCanvas->fillScreen(ROT_KEY);
+            tempCanvas->setFont(nullptr);
+            tempCanvas->setTextSize(2);
+            tempCanvas->setTextColor(theme_.tickColor);
+            tempCanvas->setCursor(-tx1 + 2, -ty1 + 2);
+            tempCanvas->print(y_axis_title_);
 
-            if (char_y >= 0 && char_y + char_h < height_ && title_x >= 0) {
-                canvas->setCursor(title_x, char_y);
-                canvas->write(static_cast<uint8_t>(y_axis_title_[i]));
+            uint16_t* src = tempCanvas->getFramebuffer();
+            if (src) {
+                // After -90° rotation: (buf_w x buf_h) becomes (buf_h x buf_w)
+                float graph_center_y = (m.top + (100.0f - m.bottom)) / 2.0f;
+                int32_t center_py = target->relativeToAbsoluteY(graph_center_y);
+                int32_t rotated_h = buf_w;  // height of rotated image
+                int32_t start_x = 2;
+                int32_t start_y = center_py - rotated_h / 2;
+
+                for (int32_t sy = 0; sy < buf_h; sy++) {
+                    for (int32_t sx = 0; sx < buf_w; sx++) {
+                        uint16_t pixel = src[sy * buf_w + sx];
+                        if (pixel != ROT_KEY) {
+                            // -90° rotation: (sx, sy) -> (sy, buf_w - 1 - sx)
+                            int32_t dx = start_x + sy;
+                            int32_t dy = start_y + (buf_w - 1 - sx);
+                            if (dx >= 0 && dx < width_ && dy >= 0 && dy < height_) {
+                                canvas->drawPixel(dx, dy, pixel);
+                            }
+                        }
+                    }
+                }
             }
+            delete tempCanvas;
+        } else {
+            delete tempCanvas;
         }
     }
 }
