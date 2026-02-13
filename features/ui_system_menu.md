@@ -19,11 +19,13 @@ The System Menu layout is managed by a `WidgetLayoutEngine` using a `GridWidgetL
     1. **Heading (Row 0):** `TextWidget`
         - **Text:** "WiFi Networks"
         - **Font:** `fonts.heading`
-        - **Color:** `colors.text_heading`
+        - **Color:** `colors.text_heading` (Cream/Bright)
         - **Justification:** `CENTER`, `CENTER`
     2. **WiFi List (Rows 1-4):** `WiFiListWidget`
         - **Content:** List of available pre-configured APs.
         - **Font:** `fonts.normal`
+        - **Color (Normal):** `colors.text_secondary` (Muted Green)
+        - **Color (Active):** `colors.text_highlight` (Cream/Bright)
         - **Behavior:** See `features/ui_wifi_list_widget.md`.
 
 - **Legacy Status Items (Overlay):**
@@ -32,9 +34,11 @@ The System Menu layout is managed by a `WidgetLayoutEngine` using a `GridWidgetL
 ## 3. Interaction & Animation
 - **Activation Gesture:** `EDGE_DRAG: TOP` (swipe down from the top edge).
 - **Dismissal Gesture:** `EDGE_DRAG: BOTTOM` (swipe up from the bottom edge).
-- **Animation:** 
-    - **Summoning:** The menu must animate down from the top.
-    - **Dismissing:** The menu must animate back up to the top in the same manner.
+- **Animation (Window Shade):** 
+    - The menu MUST animate as a clean "window shade".
+    - **Widget Synchronization:** All widgets and layouts MUST move with the background. No widgets or bounding boxes should remain in place or be visible on the screen outside of the animating menu area.
+    - **Summoning:** The menu and its content slide down from the top.
+    - **Dismissing:** The menu and its content slide back up to the top.
     - **Frame Rate:** 30 FPS.
     - **Speed:** "Quick" (e.g., < 300ms for full transition).
 - **State Management:** While the menu is in the "OPEN" or "OPENING" state, it must capture all touch events, preventing them from reaching the underlying application layers (e.g., the graph).

@@ -20,8 +20,15 @@ Themes are defined as C++ structures containing color palettes and font pointers
     - `secondary`: Secondary brand color.
     - `accent`: Attention-grabbing color.
     - `text_main`: Primary text color.
+    - `text_heading`: High-contrast color for section headers (e.g., Cream).
     - `text_secondary`: Subtle text color.
+    - `text_highlight`: Highlight color for active selections (e.g., Cream).
+    - `text_status`: Network/SSID info (readable).
+    - `text_version`: Subtle system metadata.
+    - `text_error`: Pure red for critical alerts.
     - `system_menu_background`: Dedicated background color for the overlay system menu.
+    - `bg_connecting`: Background color for widgets in a "connecting" state.
+    - `scroll_indicator`: Color for the scroll bar indicator.
 2.  **`ThemeFonts` Struct:** Holds pointers to `GFXfont` objects for the 5 standardized typography levels.
 3.  **`Theme` Struct:** Aggregates `ThemeColors` and `ThemeFonts`.
 

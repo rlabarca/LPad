@@ -12,6 +12,13 @@
 #include "wifi_list_widget.h"
 #include "../../../hal/network.h"
 #include <string.h>
+#ifdef ARDUINO
+#include <Arduino.h>
+#else
+// Native test fallback
+static unsigned long s_fake_millis = 0;
+static unsigned long millis() { return s_fake_millis; }
+#endif
 
 WiFiListWidget::WiFiListWidget() {
     setSelectionCallback(onItemSelected, this);
@@ -82,8 +89,10 @@ void WiFiListWidget::handleSelection(int index) {
         clearItemBackground(m_connectingIndex);
     }
 
-    // Mark new item as connecting
+    // Mark new item as connecting (blink starts ON)
     m_connectingIndex = index;
+    m_blinkOn = true;
+    m_lastBlinkMs = millis();
     setItemBackground(index, m_connectingBgColor);
     m_activeIndex = -1;
 
@@ -122,8 +131,19 @@ void WiFiListWidget::update() {
             break;
         }
 
-        case HAL_NETWORK_STATUS_CONNECTING:
-            // Still waiting — no visual change needed
+        case HAL_NETWORK_STATUS_CONNECTING: {
+            // Blink background at 0.75s intervals per spec
+            unsigned long now = millis();
+            if (now - m_lastBlinkMs >= BLINK_INTERVAL_MS) {
+                m_blinkOn = !m_blinkOn;
+                m_lastBlinkMs = now;
+                if (m_blinkOn) {
+                    setItemBackground(m_connectingIndex, m_connectingBgColor);
+                } else {
+                    clearItemBackground(m_connectingIndex);
+                }
+            }
             break;
+        }
     }
 }

@@ -47,7 +47,7 @@ namespace LPad {
     // Semantic Usage
     // ==========================================
     static const uint16_t THEME_BACKGROUND   = COLOR_NIGHT_16;
-    static const uint16_t THEME_TEXT         = COLOR_CREAM_16;
+    static const uint16_t THEME_TEXT         = COLOR_KHAKI_16;  // Normal text is Khaki
     static const uint16_t THEME_ACCENT       = COLOR_CHAMOISEE_16;
     static const uint16_t THEME_PRIMARY      = COLOR_SAGE_16;
     static const uint16_t THEME_SECONDARY    = COLOR_RESEDA_16;
@@ -57,13 +57,13 @@ namespace LPad {
     // ==========================================
     static const uint16_t THEME_TEXT_ERROR    = 0xF800;          // Pure red for critical alerts
     static const uint16_t THEME_TEXT_VERSION  = COLOR_FOREST_16; // Subtle system metadata
-    static const uint16_t THEME_TEXT_STATUS   = COLOR_CREAM_16;  // Network/SSID info (readable)
+    static const uint16_t THEME_TEXT_STATUS   = COLOR_CHAMOISEE_16; // Network/SSID info is Chamoisee
     static const uint16_t THEME_SYSTEM_MENU_BG = 0x0000;        // AMOLED black (pixels OFF)
 
     // ==========================================
     // Widget System Colors
     // ==========================================
-    static const uint16_t THEME_TEXT_HIGHLIGHT   = COLOR_SAGE_16;      // Connected/active network
+    static const uint16_t THEME_TEXT_HIGHLIGHT   = COLOR_CHAMOISEE_16; // Connected/active network
     static const uint16_t THEME_BG_CONNECTING    = COLOR_FOREST_16;    // Connecting state background
     static const uint16_t THEME_SCROLL_INDICATOR = COLOR_RESEDA_16;    // Scroll bar indicator
 

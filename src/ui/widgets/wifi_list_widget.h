@@ -63,6 +63,11 @@ private:
     SSIDChangeCallback m_ssidChangeCb = nullptr;
     void* m_ssidChangeCtx = nullptr;
 
+    // Blink state for connecting animation (0.75s period per spec)
+    bool m_blinkOn = false;
+    unsigned long m_lastBlinkMs = 0;
+    static constexpr unsigned long BLINK_INTERVAL_MS = 750;
+
     static void onItemSelected(int index, void* context);
     void handleSelection(int index);
 };

@@ -253,15 +253,14 @@ void SystemMenu::update(float deltaTime) {
             break;
 
         case OPEN:
-            // Poll widget updates (WiFi status polling)
-            if (m_widgetEngine) {
-                m_widgetEngine->update();
-                m_dirty = true;  // Widgets may have changed visual state
-            }
-            break;
-
         case CLOSED:
             break;
+    }
+
+    // Poll widget updates while visible (blink animation + WiFi status)
+    if (m_state != CLOSED && m_widgetEngine) {
+        m_widgetEngine->update();
+        m_dirty = true;
     }
 }
 
