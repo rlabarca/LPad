@@ -32,5 +32,5 @@ __pycache__/
 captures/
 
 # CDD Tool
-ai_dev_tools/cdd/cdd.log
-ai_dev_tools/cdd/.pid
+agentic_devops/tools/cdd/cdd.log
+agentic_devops/tools/cdd/.pid
