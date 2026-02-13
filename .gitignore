@@ -5,6 +5,8 @@
 .piolibdeps/
 lib/
 
+compile_commands.json
+
 # Build artifacts
 *.o
 *.a
