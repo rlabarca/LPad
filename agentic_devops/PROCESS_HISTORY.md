@@ -13,3 +13,10 @@ This log tracks the evolution of our DevOps processes and agentic protocols. Ent
 *   **Modular Architecture:** Replaced monolithic `ARCHITECTURE.md` with granular `arch_*.md` policy nodes in the dependency graph.
 *   **Instruction Refactoring:** Separated "Theory" (`HOW_WE_WORK.md`) from "Practice" (`*_INSTRUCTIONS.md`).
 *   **Evolution Tracking:** Codified the requirement to track process changes in parallel with software releases.
+
+## [2026-02-13] Milestone: Release v0.70 - UI Render Manager
+*   **Architectural Shift:** Migrated from monolithic "Demo Apps" to a managed `UIRenderManager` with Z-order compositing and input routing.
+*   **Role Maturity:** Successfully executed the first release under the new "Architect/Builder" role separation.
+*   **HIL Success:** Verified multi-layer rendering and system-level gesture interception on physical hardware.
+*   **Tree Integrity:** Re-anchored all HAL and Infrastructure specifications to policy nodes, resolving dependency orphans.
+

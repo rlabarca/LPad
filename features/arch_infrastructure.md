@@ -2,7 +2,9 @@
 
 > Label: "Infrastructure Policy"
 > Category: "ARCHITECTURES"
-> Prerequisite: None
+> Prerequisite: features/sys_animation_ticker.md
+> Prerequisite: features/sys_config_system.md
+> Prerequisite: features/arch_build_system.md
 
 ## 1. Configuration Management (The Secret Store)
 *   **Zero-Secret Repository:** Credentials (Wi-Fi SSID, API Keys) **MUST NEVER** be committed to the repository.

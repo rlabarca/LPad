@@ -2,7 +2,14 @@
 
 > Label: "HAL Policy"
 > Category: "ARCHITECTURES"
-> Prerequisite: None
+> Prerequisite: features/hal_spec_display.md
+> Prerequisite: features/hal_spec_network.md
+> Prerequisite: features/hal_spec_touch.md
+> Prerequisite: features/hal_spec_timer.md
+> Prerequisite: features/display_esp32s3_amoled.md
+> Prerequisite: features/display_tdisplay_s3_plus.md
+> Prerequisite: features/touch_cst816_implementation.md
+> Prerequisite: features/hal_timer_esp32.md
 
 ## 1. Strict Separation
 Application code (`src/*.cpp`) **MUST NOT** include hardware-specific headers (e.g., `esp_lcd_panel_io.h`) or vendor libraries directly. It must **ONLY** include domain-specific HAL headers (e.g., `hal/display.h`, `hal/network.h`).
