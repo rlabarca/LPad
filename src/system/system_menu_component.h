@@ -37,6 +37,7 @@ public:
     // Widget configuration (v0.72)
     void setHeadingFont(const void* font);
     void setHeadingColor(uint16_t color);
+    void setHeadingUnderlined(bool underlined);
     void setListFont(const void* font);
     void setWiFiEntries(const WiFiListWidget::WiFiEntry* entries, int count);
     void setWidgetColors(uint16_t normalText, uint16_t highlight,

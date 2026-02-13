@@ -71,6 +71,10 @@ void SystemMenuComponent::setHeadingColor(uint16_t color) {
     if (m_inner) m_inner->setHeadingColor(color);
 }
 
+void SystemMenuComponent::setHeadingUnderlined(bool underlined) {
+    if (m_inner) m_inner->setHeadingUnderlined(underlined);
+}
+
 void SystemMenuComponent::setListFont(const void* font) {
     if (m_inner) m_inner->setListFont(font);
 }

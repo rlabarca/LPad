@@ -20,6 +20,7 @@ public:
     void setFont(const void* font) { m_font = font; }
     void setColor(uint16_t color) { m_color = color; }
     void setBackgroundColor(uint16_t color) { m_bgColor = color; m_hasBg = true; }
+    void setUnderlined(bool underlined) { m_underlined = underlined; }
 
     void render(Arduino_GFX* gfx, int32_t x, int32_t y, int32_t w, int32_t h) override;
 
@@ -29,6 +30,7 @@ private:
     uint16_t m_color = 0xFFFF;
     uint16_t m_bgColor = 0x0000;
     bool m_hasBg = false;
+    bool m_underlined = false;
 };
 
 #endif // TEXT_WIDGET_H

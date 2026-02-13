@@ -12,7 +12,9 @@ A simple widget for displaying text.
 - **Wrapping:** Text wraps to next line if it exceeds width.
 - **Clipping:** Text is clipped if it exceeds the height of the bounding box.
 - **Justification:** Supports X (Left, Center, Right) and Y (Top, Center, Bottom) alignment.
-- **Styling:** Configurable font (via theme), size, color, and background color.
+- **Styling:**
+    - Configurable font (via theme), size, color, and background color.
+    - **isUnderlined:** If true, a 1px line is drawn 2 pixels below the text baseline, matching the text color.
 
 ## 2. ScrollableListWidget
 A list of text items that can be scrolled.

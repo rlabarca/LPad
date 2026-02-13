@@ -174,6 +174,13 @@ void SystemMenu::setHeadingColor(uint16_t color) {
     m_dirty = true;
 }
 
+void SystemMenu::setHeadingUnderlined(bool underlined) {
+    if (m_headingWidget) {
+        m_headingWidget->setUnderlined(underlined);
+    }
+    m_dirty = true;
+}
+
 void SystemMenu::setListFont(const void* font) {
     if (m_wifiList) {
         m_wifiList->setFont(font);

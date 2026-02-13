@@ -27,7 +27,7 @@ Theme ThemeManager::default_theme_ = {
         .data_labels = THEME_DATA_LABELS,
 
         .system_menu_bg = THEME_SYSTEM_MENU_BG,
-        .text_heading = COLOR_CREAM_16,
+        .text_heading = THEME_TEXT,  // Khaki per ui_system_menu.md
 
         .text_highlight = THEME_TEXT_HIGHLIGHT,
         .bg_connecting = THEME_BG_CONNECTING,

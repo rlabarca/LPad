@@ -184,8 +184,9 @@ void setup() {
     g_systemMenu->setSSIDColor(theme->colors.text_status);
 
     // Widget configuration (colors per ui_system_menu.md §2)
-    g_systemMenu->setHeadingFont(theme->fonts.ui);              // 18pt per spec
-    g_systemMenu->setHeadingColor(theme->colors.text_heading);  // Cream/Bright
+    g_systemMenu->setHeadingFont(theme->fonts.normal);          // 12pt per spec
+    g_systemMenu->setHeadingColor(theme->colors.text_heading);  // Khaki
+    g_systemMenu->setHeadingUnderlined(true);
     g_systemMenu->setListFont(theme->fonts.normal);
     g_systemMenu->setWidgetColors(
         theme->colors.text_main,        // normalText (Khaki per spec)

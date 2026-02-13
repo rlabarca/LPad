@@ -57,6 +57,12 @@ void TextWidget::render(Arduino_GFX* gfx, int32_t x, int32_t y, int32_t w, int32
 
         gfx->setCursor(textX, textY);
         gfx->print(m_text);
+
+        // Underline: 1px line, 2px below baseline, matching text color
+        if (m_underlined) {
+            int32_t ulY = textY + 2;
+            gfx->drawFastHLine(textX, ulY, (int16_t)tw, m_color);
+        }
         return;
     }
 
@@ -114,6 +120,11 @@ void TextWidget::render(Arduino_GFX* gfx, int32_t x, int32_t y, int32_t w, int32
 
         gfx->setCursor(lx, lineY);
         gfx->print(lineBuf);
+
+        if (m_underlined) {
+            int32_t ulY = lineY + 2;
+            gfx->drawFastHLine(lx, ulY, (int16_t)lineW, m_color);
+        }
 
         ptr += fitLen;
         while (*ptr == ' ') ptr++;  // Skip whitespace between lines

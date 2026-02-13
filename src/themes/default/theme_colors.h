@@ -48,6 +48,7 @@ namespace LPad {
     // ==========================================
     static const uint16_t THEME_BACKGROUND   = COLOR_NIGHT_16;
     static const uint16_t THEME_TEXT         = COLOR_KHAKI_16;  // Normal text is Khaki
+    static const uint16_t THEME_TEXT_HEADING = COLOR_KHAKI_16;  // Section headers match normal text
     static const uint16_t THEME_ACCENT       = COLOR_CHAMOISEE_16;
     static const uint16_t THEME_PRIMARY      = COLOR_SAGE_16;
     static const uint16_t THEME_SECONDARY    = COLOR_RESEDA_16;

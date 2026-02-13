@@ -51,6 +51,7 @@ public:
     // Widget configuration
     void setHeadingFont(const void* font);
     void setHeadingColor(uint16_t color);
+    void setHeadingUnderlined(bool underlined);
     void setListFont(const void* font);
 
     /** Configure WiFi entries for the WiFiListWidget. */
