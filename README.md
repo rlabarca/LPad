@@ -1,5 +1,8 @@
 # LPad: Agentic Embedded Development
 
+![LilyGo T-Display-S3 AMOLED Plus](LilyGoT-Display-S3AMOLEDPlus.png)
+![Waveshare ESP32-S3 1.8 AMOLED Touch](WaveshareESP32S31.png)
+
 **LPad** is an experimental ESP32 project that serves as a proving ground for a **Spec-Driven Agentic Workflow**.
 
 The primary goal of this repository is not just the firmware itself, but the *process* of building it. We use a rigorous "Two-Agent" model where **Gemini** acts as the Architect and **Claude** acts as the Developer, with **You** (the Human) as the Executive/Process Manager.
