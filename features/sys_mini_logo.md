@@ -11,14 +11,15 @@ Adapt the existing `UIMiniLogo` (from `features/ui_mini_logo.md`) to function as
 ## 2. Configuration
 *   **Type:** SystemComponent
 *   **Z-Order:** 10
-*   **ShowOnRun:** TRUE (Always visible by default)
+*   **Default Visibility:** TRUE (Always visible — `m_visible` defaults to `true` in UIComponent base class)
 *   **Activation Event:** None (Passive component)
 
 ## 3. Behavior
 
 ### 3.1 Lifecycle
-*   **Init:** Loads the "gemini_logo_tiny.png" asset (or vector equivalent) and pre-renders to a small sprite buffer if necessary.
-*   **Run:** Sets `visible = true`.
+*   **Implementation:** `src/system/mini_logo_component.cpp`
+*   **Init:** Component is constructed and `begin(RelativeDisplay*)` is called by `main.cpp` before registration. Loads the vector logo asset via the inner `MiniLogo` class.
+*   **Visibility:** Starts visible immediately after registration. Unlike activated SystemComponents, `onRun()` is never called — visibility relies on the UIComponent default (`m_visible = true`).
 *   **Render:**
     *   Uses `hal_display_fast_blit_transparent` (Chroma Key 0x0001) to draw the logo at the top-right corner.
     *   Adheres to the 30fps animation ticker (if animated).

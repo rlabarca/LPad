@@ -6,6 +6,7 @@
 > Prerequisite: features/sys_system_menu.md
 > Prerequisite: features/sys_mini_logo.md
 > Prerequisite: features/app_stock_ticker.md
+> Prerequisite: features/display_target_rotation.md
 
 ## 1. Objective
 Introduce a managed UI architecture that allows multiple independent components (Apps and System Tools) to coexist, managing rendering order (Z-Order) and input routing. Move away from monolithic "Demo Apps" to a "System + App" model.
