@@ -33,6 +33,7 @@ This project evolves both its **Firmware Capabilities** and its **DevOps Process
 | **v0.5 - v0.65** | **Feature Expansion:** WiFi, Stock Tracker, Touch Gestures, MiniLogo. | **Versioned Specs:** `feature_v2.md` files (superseding). Centralized `IMPLEMENTATION_LOG.md`. |
 | **v0.70** | **System Architecture:** UI Render Manager, Z-Order, Multi-App Support. | **Agentic DevOps Refactor:** Unified `agentic_devops/` hub. **Living Specs:** In-place editing (No v2). **Knowledge Colocation:** Implementation notes inside feature files. **Modular Architecture:** `arch_*.md` policies. |
 | **v0.71** | **Developer Utility:** Serial Screenshot Tool, PSRAM Shadow Framebuffer. | **Process Rigor:** Acyclic Dependency Mandate. Test Fidelity Mandate (Explicit HIL steps). Documentation Professionalism (No Emojis). |
+| **v0.72** | **UI Widgets & WiFi:** Formal Widget System (Layouts/Relative Positioning); Multi-WiFi HAL with fallback; "Window Shade" menu. | **Milestone Mutation:** Single active Release Specification rule. Consistent visual hierarchy refinement (The "Section" style). |
 
 ## Testing Strategy
 
@@ -122,8 +123,11 @@ pio run -e tdisplay_s3_plus -t upload
 
 ## Current Features (Firmware)
 
-The firmware is currently at **Milestone v0.71**.
+The firmware is currently at **Milestone v0.72**.
 
+*   **UI Widget System:** Modular framework for building interactive UI elements using relative coordinates and grid-based layout heuristics.
+*   **Multi-WiFi Management:** Support for multiple APs with automated boot-time fallback and manual runtime selection via a scrollable list.
+*   **System Menu v2:** Refactored widget-based menu with "window shade" animation and real-time connectivity status.
 *   **Serial Screenshot Tool:** Host-side utility to capture the device screen over Serial using a PSRAM shadow buffer.
 *   **UI Render Manager:** Centralized orchestration of Apps and System Tools with Z-Order and occlusion optimization.
 *   **System Components:** Global overlay Menu and MiniLogo managed independently of the active App.
