@@ -184,12 +184,12 @@ void setup() {
     g_systemMenu->setSSIDColor(theme->colors.text_status);
 
     // Widget configuration (colors per ui_system_menu.md §2)
-    g_systemMenu->setHeadingFont(theme->fonts.heading);
+    g_systemMenu->setHeadingFont(theme->fonts.ui);              // 18pt per spec
     g_systemMenu->setHeadingColor(theme->colors.text_heading);  // Cream/Bright
     g_systemMenu->setListFont(theme->fonts.normal);
     g_systemMenu->setWidgetColors(
-        theme->colors.text_secondary,   // normalText (Muted Green per spec)
-        theme->colors.text_highlight,   // highlight (connected)
+        theme->colors.text_main,        // normalText (Khaki per spec)
+        theme->colors.text_highlight,   // highlight (connected/Chamoisee)
         theme->colors.bg_connecting,    // connectingBg
         theme->colors.text_error,       // errorText (failed)
         theme->colors.scroll_indicator  // scrollIndicator

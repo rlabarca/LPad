@@ -18,7 +18,7 @@ The System Menu layout is managed by a `WidgetLayoutEngine` using a `GridWidgetL
 - **Widgets:**
     1. **Heading (Row 0):** `TextWidget`
         - **Text:** "WiFi Networks"
-        - **Font:** `fonts.heading`
+        - **Font:** `fonts.ui` (18pt)
         - **Color:** `colors.text_heading` (Cream/Bright)
         - **Justification:** `CENTER`, `CENTER`
     2. **WiFi List (Rows 1-4):** `WiFiListWidget`
