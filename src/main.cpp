@@ -84,20 +84,40 @@ void setup() {
     Serial.println("  [PASS] Touch initialized");
     yield();
 
-    // [3/6] WiFi (connect to first configured network)
+    // [3/6] WiFi (iterative boot — try each configured network in order)
     Serial.println("[3/6] Initializing WiFi...");
     Serial.flush();
-
-    #ifdef LPAD_WIFI_SSID
-    if (hal_network_init(LPAD_WIFI_SSID, LPAD_WIFI_PASSWORD)) {
-        Serial.printf("  [INFO] Connecting to: %s\n", LPAD_WIFI_SSID);
-    } else {
-        Serial.println("  [WARN] Network init failed");
-    }
     Serial.printf("  [INFO] %d WiFi networks configured\n", g_wifi_count);
-    #else
-    Serial.println("  [INFO] No WiFi credentials configured");
-    #endif
+
+    for (int i = 0; i < g_wifi_count; i++) {
+        const char* ssid = g_wifi_config[i].ssid;
+        Serial.printf("  [INFO] Trying %d/%d: %s ...\n", i + 1, g_wifi_count, ssid);
+        Serial.flush();
+
+        if (!hal_network_init(ssid, g_wifi_config[i].password)) {
+            Serial.printf("  [FAIL] Init failed for %s\n", ssid);
+            continue;
+        }
+
+        // Poll until connected, failed, or timeout (HAL handles 10s timeout internally)
+        hal_network_status_t status = HAL_NETWORK_STATUS_CONNECTING;
+        while (status == HAL_NETWORK_STATUS_CONNECTING) {
+            delay(250);
+            yield();
+            status = hal_network_get_status();
+        }
+
+        if (status == HAL_NETWORK_STATUS_CONNECTED) {
+            Serial.printf("  [PASS] Connected to %s\n", ssid);
+            break;
+        }
+
+        Serial.printf("  [FAIL] Could not connect to %s\n", ssid);
+    }
+
+    if (hal_network_get_status() != HAL_NETWORK_STATUS_CONNECTED) {
+        Serial.println("  [WARN] All WiFi networks failed — status: NONE");
+    }
     yield();
 
     // [4/6] RelativeDisplay + AnimationTicker + TouchGestureEngine

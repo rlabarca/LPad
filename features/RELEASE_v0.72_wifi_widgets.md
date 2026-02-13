@@ -23,9 +23,12 @@ Enable manual WiFi selection through a new widget-based System Menu. This releas
 - **WidgetLayoutEngine:** Must manage the registration and rendering of the `GridWidgetLayout`.
 - **System Menu:** Must be refactored to use the Widget System instead of direct GFX calls for its central content.
 
-### 2.2 Multi-WiFi HAL
+### 2.2 Multi-WiFi HAL & Boot Logic
 - The system must support multiple SSIDs configured in `config.json`.
-- The `hal_network` implementation must allow switching networks at runtime without a reboot.
+- **Boot Sequence:** On startup, the system MUST iterate through the configured WiFi networks in the order they appear in `config.json`. 
+- **Fast Fallback:** It must attempt to connect to each network. If a connection cannot be established within a reasonable timeout (e.g., 5-10s), it must immediately move to the next network in the list.
+- **Terminal State:** If all networks fail, the system menu status MUST display "NONE".
+- **Runtime Switching:** Manual selection in the `WiFiListWidget` overrides the auto-connect sequence.
 
 ## 3. Verification Criteria
 
