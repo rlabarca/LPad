@@ -188,8 +188,8 @@ void setup() {
     Serial.println("    Z=10: MiniLogo     (System, always visible)");
     Serial.println("    Z=20: SystemMenu   (System, activation=EDGE_DRAG TOP)");
 
-    // Clear display with theme background
-    gfx->fillScreen(theme->colors.background);
+    // Clear display with theme background (use HAL to populate shadow framebuffer)
+    hal_display_clear(theme->colors.background);
     hal_display_flush();
 
     Serial.println("\n=== LPad v0.70 Started ===");
@@ -199,6 +199,14 @@ void setup() {
 
 void loop() {
     float deltaTime = g_ticker->waitForNextFrame();
+
+    // --- Serial screenshot trigger ---
+    if (Serial.available()) {
+        char c = Serial.read();
+        if (c == 'S') {
+            hal_display_dump_screen();
+        }
+    }
 
     // --- Touch input → gesture → UIRenderManager ---
     hal_touch_point_t touch_point;

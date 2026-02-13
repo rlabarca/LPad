@@ -170,6 +170,32 @@ void hal_display_fast_blit(int16_t x, int16_t y, int16_t w, int16_t h, const uin
 void hal_display_fast_blit_transparent(int16_t x, int16_t y, int16_t w, int16_t h,
                                        const uint16_t* data, uint16_t transparent_color);
 
+/**
+ * @brief Reads a single pixel from the display shadow buffer
+ *
+ * Returns the RGB565 color of the pixel at the given coordinates.
+ * On hardware targets, reads from a PSRAM shadow framebuffer that mirrors
+ * all HAL draw operations. On the stub, returns 0x0000.
+ *
+ * @param x The X-coordinate of the pixel
+ * @param y The Y-coordinate of the pixel
+ * @return uint16_t The RGB565 color value at (x, y)
+ */
+uint16_t hal_display_read_pixel(int32_t x, int32_t y);
+
+/**
+ * @brief Dumps the entire screen contents to Serial as raw RGB565 data
+ *
+ * Outputs the shadow framebuffer to Serial with the following protocol:
+ *   START:<width>,<height>\n
+ *   <width * height * 2 bytes of raw RGB565 pixel data, row-major>
+ *   \nEND\n
+ *
+ * The UIRenderManager should be idle (single-threaded loop) when this is called
+ * to ensure frame consistency. Yields periodically to prevent watchdog timeout.
+ */
+void hal_display_dump_screen(void);
+
 #ifdef __cplusplus
 }
 #endif

@@ -50,6 +50,9 @@ static bool g_initialized = false;
 // Canvas support
 static Arduino_Canvas *g_selected_canvas = nullptr;
 
+// Shadow framebuffer for screenshot capture (allocated in PSRAM)
+static uint16_t* g_shadow_fb = nullptr;
+
 bool hal_display_init(void) {
     if (g_initialized) {
         return true;  // Already initialized
@@ -107,6 +110,12 @@ bool hal_display_init(void) {
     // Set maximum brightness
     g_gfx->setBrightness(255);
 
+    // Allocate shadow framebuffer in PSRAM for screenshot capture
+    g_shadow_fb = (uint16_t*)ps_malloc(LCD_WIDTH * LCD_HEIGHT * sizeof(uint16_t));
+    if (g_shadow_fb) {
+        memset(g_shadow_fb, 0, LCD_WIDTH * LCD_HEIGHT * sizeof(uint16_t));
+    }
+
     g_initialized = true;
     return true;
 }
@@ -121,6 +130,13 @@ void hal_display_clear(uint16_t color) {
         g_selected_canvas->fillScreen(color);
     } else {
         g_gfx->fillScreen(color);
+        // Mirror to shadow framebuffer
+        if (g_shadow_fb) {
+            int32_t total = LCD_WIDTH * LCD_HEIGHT;
+            for (int32_t i = 0; i < total; i++) {
+                g_shadow_fb[i] = color;
+            }
+        }
     }
 }
 
@@ -144,6 +160,11 @@ void hal_display_draw_pixel(int32_t x, int32_t y, uint16_t color) {
     }
 
     target->drawPixel(x, y, color);
+
+    // Mirror to shadow framebuffer (only when drawing to main display)
+    if (g_selected_canvas == nullptr && g_shadow_fb) {
+        g_shadow_fb[y * width + x] = color;
+    }
 }
 
 void hal_display_flush(void) {
@@ -253,6 +274,26 @@ void hal_display_canvas_draw(hal_canvas_handle_t canvas, int32_t x, int32_t y) {
 
     if (buffer != nullptr) {
         g_gfx->draw16bitRGBBitmap(x, y, buffer, width, height);
+
+        // Mirror to shadow framebuffer
+        if (g_shadow_fb) {
+            int32_t screen_w = hal_display_get_width_pixels();
+            int32_t screen_h = hal_display_get_height_pixels();
+            for (int16_t row = 0; row < height; row++) {
+                int32_t dy = y + row;
+                if (dy < 0 || dy >= screen_h) continue;
+                int32_t dx = x;
+                int32_t src_off = 0;
+                int32_t copy_w = width;
+                if (dx < 0) { src_off = -dx; copy_w += dx; dx = 0; }
+                if (dx + copy_w > screen_w) { copy_w = screen_w - dx; }
+                if (copy_w > 0) {
+                    memcpy(&g_shadow_fb[dy * screen_w + dx],
+                           &buffer[row * width + src_off],
+                           copy_w * sizeof(uint16_t));
+                }
+            }
+        }
     }
 }
 
@@ -276,19 +317,30 @@ void hal_display_fast_blit(int16_t x, int16_t y, int16_t w, int16_t h, const uin
 
     // Use Arduino_GFX's optimized bulk transfer method
     // This uses DMA/hardware acceleration instead of pixel-by-pixel loops
-    //
-    // The sequence is:
-    // 1. startWrite() - begin a write transaction
-    // 2. writeAddrWindow() - set the rectangular region
-    // 3. writePixels() - bulk DMA transfer of the entire buffer
-    // 4. endWrite() - end the transaction
-    //
-    // This is significantly faster than draw16bitRGBBitmap() which loops pixel-by-pixel
-
     g_gfx->startWrite();
     g_gfx->writeAddrWindow(x, y, w, h);
     g_gfx->writePixels(const_cast<uint16_t*>(data), static_cast<uint32_t>(w) * static_cast<uint32_t>(h));
     g_gfx->endWrite();
+
+    // Mirror to shadow framebuffer
+    if (g_shadow_fb) {
+        int32_t screen_w = hal_display_get_width_pixels();
+        int32_t screen_h = hal_display_get_height_pixels();
+        for (int16_t row = 0; row < h; row++) {
+            int32_t dy = y + row;
+            if (dy < 0 || dy >= screen_h) continue;
+            int32_t dx = x;
+            int32_t src_off = 0;
+            int32_t copy_w = w;
+            if (dx < 0) { src_off = -dx; copy_w += dx; dx = 0; }
+            if (dx + copy_w > screen_w) { copy_w = screen_w - dx; }
+            if (copy_w > 0) {
+                memcpy(&g_shadow_fb[dy * screen_w + dx],
+                       &data[row * w + src_off],
+                       copy_w * sizeof(uint16_t));
+            }
+        }
+    }
 }
 
 void hal_display_fast_blit_transparent(int16_t x, int16_t y, int16_t w, int16_t h,
@@ -298,11 +350,6 @@ void hal_display_fast_blit_transparent(int16_t x, int16_t y, int16_t w, int16_t 
     }
 
     // Optimized transparent blit using scanline DMA transfers
-    // Instead of checking every pixel individually, we:
-    // 1. Scan each row to find runs of non-transparent pixels
-    // 2. Use DMA (writePixels) to transfer each contiguous run
-    // This is much faster than pixel-by-pixel drawing
-
     g_gfx->startWrite();
 
     for (int16_t row = 0; row < h; row++) {
@@ -310,24 +357,17 @@ void hal_display_fast_blit_transparent(int16_t x, int16_t y, int16_t w, int16_t 
         int16_t col = 0;
 
         while (col < w) {
-            // Skip transparent pixels
             while (col < w && row_data[col] == transparent_color) {
                 col++;
             }
-
             if (col >= w) break;
 
-            // Find the start of a non-transparent run
             int16_t run_start = col;
-
-            // Find the end of this run
             while (col < w && row_data[col] != transparent_color) {
                 col++;
             }
-
             int16_t run_length = col - run_start;
 
-            // Blit this run using DMA
             if (run_length > 0) {
                 g_gfx->writeAddrWindow(x + run_start, y + row, run_length, 1);
                 g_gfx->writePixels(const_cast<uint16_t*>(&row_data[run_start]), run_length);
@@ -336,6 +376,50 @@ void hal_display_fast_blit_transparent(int16_t x, int16_t y, int16_t w, int16_t 
     }
 
     g_gfx->endWrite();
+
+    // Mirror non-transparent pixels to shadow framebuffer
+    if (g_shadow_fb) {
+        int32_t screen_w = hal_display_get_width_pixels();
+        int32_t screen_h = hal_display_get_height_pixels();
+        for (int16_t row = 0; row < h; row++) {
+            int32_t dy = y + row;
+            if (dy < 0 || dy >= screen_h) continue;
+            for (int16_t col = 0; col < w; col++) {
+                int32_t dx = x + col;
+                if (dx < 0 || dx >= screen_w) continue;
+                uint16_t pixel = data[row * w + col];
+                if (pixel != transparent_color) {
+                    g_shadow_fb[dy * screen_w + dx] = pixel;
+                }
+            }
+        }
+    }
+}
+
+uint16_t hal_display_read_pixel(int32_t x, int32_t y) {
+    if (!g_shadow_fb) return 0;
+    int32_t w = hal_display_get_width_pixels();
+    int32_t h = hal_display_get_height_pixels();
+    if (x < 0 || x >= w || y < 0 || y >= h) return 0;
+    return g_shadow_fb[y * w + x];
+}
+
+void hal_display_dump_screen(void) {
+    if (!g_shadow_fb) return;
+
+    int32_t w = hal_display_get_width_pixels();
+    int32_t h = hal_display_get_height_pixels();
+
+    Serial.printf("START:%d,%d\n", (int)w, (int)h);
+
+    // Write row by row, yielding to prevent watchdog timeout
+    for (int32_t row = 0; row < h; row++) {
+        Serial.write((const uint8_t*)&g_shadow_fb[row * w], w * sizeof(uint16_t));
+        yield();
+    }
+
+    Serial.print("\nEND\n");
+    Serial.flush();
 }
 
 #endif  // !UNIT_TEST

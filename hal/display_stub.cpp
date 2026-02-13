@@ -106,3 +106,13 @@ void hal_display_fast_blit_transparent(int16_t x, int16_t y, int16_t w, int16_t 
     (void)data;
     (void)transparent_color;  // Stub doesn't support transparent blitting
 }
+
+uint16_t hal_display_read_pixel(int32_t x, int32_t y) {
+    (void)x;
+    (void)y;
+    return 0x0000;  // Stub has no pixel data
+}
+
+void hal_display_dump_screen(void) {
+    // No-op in stub - no display hardware or shadow buffer
+}
