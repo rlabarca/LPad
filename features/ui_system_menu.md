@@ -35,10 +35,10 @@ The System Menu layout is managed by a `WidgetLayoutEngine` using a `GridWidgetL
 - **Activation Gesture:** `EDGE_DRAG: TOP` (swipe down from the top edge).
 - **Dismissal Gesture:** `EDGE_DRAG: BOTTOM` (swipe up from the bottom edge).
 - **Animation (Window Shade):** 
-    - The menu MUST animate as a clean "window shade".
-    - **Widget Synchronization:** All widgets and layouts MUST move with the background. No widgets or bounding boxes should remain in place or be visible on the screen outside of the animating menu area.
-    - **Summoning:** The menu and its content slide down from the top.
-    - **Dismissing:** The menu and its content slide back up to the top.
+    - The menu background MUST animate as a clean "window shade" sliding from the top.
+    - **Widget Visibility:** To ensure a clean transition, NO widgets or layout elements should be drawn while the menu is in the "Opening" or "Closing" animation states.
+    - **Summoning:** The background slides down; widgets only appear once the menu has reached its fully "OPEN" state.
+    - **Dismissing:** Widgets MUST be hidden immediately before the background begins its slide back up to the top.
     - **Frame Rate:** 30 FPS.
     - **Speed:** "Quick" (e.g., < 300ms for full transition).
 - **State Management:** While the menu is in the "OPEN" or "OPENING" state, it must capture all touch events, preventing them from reaching the underlying application layers (e.g., the graph).

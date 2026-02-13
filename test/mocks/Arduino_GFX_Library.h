@@ -50,6 +50,7 @@ public:
     virtual void drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color) {}
     virtual void fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color) {}
     virtual void fillTriangle(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, uint16_t color) {}
+    virtual void fillCircle(int16_t x, int16_t y, int16_t r, uint16_t color) { (void)x; (void)y; (void)r; (void)color; }
 
     // Text methods
     virtual void setFont(const GFXfont* f = nullptr) { (void)f; }

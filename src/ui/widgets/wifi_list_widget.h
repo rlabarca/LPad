@@ -54,6 +54,7 @@ private:
     int m_entryCount = 0;
     int m_connectingIndex = -1;
     int m_activeIndex = -1;
+    int m_failedIndex = -1;
 
     uint16_t m_highlightColor = 0x8D51;    // Default: SAGE
     uint16_t m_connectingBgColor = 0x4268;  // Default: FOREST

@@ -16,11 +16,15 @@ class ScrollableListWidget : public UIWidget {
 public:
     static constexpr int MAX_ITEMS = 32;
 
+    enum CirclePosition { CIRCLE_NONE, CIRCLE_LEFT, CIRCLE_RIGHT };
+
     struct ListItem {
         const char* text = nullptr;
         uint16_t textColor = 0xFFFF;
         uint16_t bgColor = 0x0000;
+        uint16_t circleColor = 0xFFFF;
         bool hasBg = false;
+        bool hasCircle = false;
     };
 
     ScrollableListWidget();
@@ -29,11 +33,14 @@ public:
     void setBackgroundColor(uint16_t color) { m_bgColor = color; }
     void setItemPadding(int32_t padding) { m_itemPadding = padding; }
     void setScrollIndicatorColor(uint16_t color) { m_scrollIndicatorColor = color; }
+    void setCirclePosition(CirclePosition pos) { m_circlePosition = pos; }
 
     int addItem(const char* text, uint16_t color = 0xFFFF);
     void setItemColor(int index, uint16_t color);
     void setItemBackground(int index, uint16_t color);
     void clearItemBackground(int index);
+    void setItemCircle(int index, uint16_t color);
+    void clearItemCircle(int index);
     void clearItems();
 
     int getItemCount() const { return m_itemCount; }
@@ -62,6 +69,9 @@ protected:
     int32_t m_itemPadding = 4;
     uint16_t m_scrollIndicatorColor = 0x7BEF;
     int32_t m_lineHeight = 20;  // Computed from font, fallback 20px
+    CirclePosition m_circlePosition = CIRCLE_NONE;
+    static constexpr int32_t CIRCLE_RADIUS = 3;
+    static constexpr int32_t CIRCLE_INDENT = 12; // space reserved when circles enabled
 
     SelectionCallback m_callback = nullptr;
     void* m_callbackCtx = nullptr;

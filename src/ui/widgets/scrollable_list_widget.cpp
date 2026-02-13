@@ -22,7 +22,9 @@ int ScrollableListWidget::addItem(const char* text, uint16_t color) {
     m_items[m_itemCount].text = text;
     m_items[m_itemCount].textColor = color;
     m_items[m_itemCount].bgColor = 0x0000;
+    m_items[m_itemCount].circleColor = 0xFFFF;
     m_items[m_itemCount].hasBg = false;
+    m_items[m_itemCount].hasCircle = false;
     return m_itemCount++;
 }
 
@@ -42,6 +44,19 @@ void ScrollableListWidget::setItemBackground(int index, uint16_t color) {
 void ScrollableListWidget::clearItemBackground(int index) {
     if (index >= 0 && index < m_itemCount) {
         m_items[index].hasBg = false;
+    }
+}
+
+void ScrollableListWidget::setItemCircle(int index, uint16_t color) {
+    if (index >= 0 && index < m_itemCount) {
+        m_items[index].circleColor = color;
+        m_items[index].hasCircle = true;
+    }
+}
+
+void ScrollableListWidget::clearItemCircle(int index) {
+    if (index >= 0 && index < m_itemCount) {
+        m_items[index].hasCircle = false;
     }
 }
 
@@ -85,6 +100,12 @@ void ScrollableListWidget::render(Arduino_GFX* gfx, int32_t x, int32_t y, int32_
     int visible = getVisibleItemCount(h);
     int32_t itemY = y;
 
+    // Text indent when circles on LEFT (spec: all items shift right for alignment)
+    int32_t textIndent = 0;
+    if (m_circlePosition == CIRCLE_LEFT) {
+        textIndent = CIRCLE_INDENT;
+    }
+
     for (int i = m_scrollOffset; i < m_itemCount && i < m_scrollOffset + visible; i++) {
         const ListItem& item = m_items[i];
 
@@ -93,12 +114,24 @@ void ScrollableListWidget::render(Arduino_GFX* gfx, int32_t x, int32_t y, int32_
             gfx->fillRect(x, itemY, w - 3, m_lineHeight, item.bgColor);
         }
 
+        // Status circle (LEFT or RIGHT of text)
+        if (item.hasCircle && m_circlePosition != CIRCLE_NONE) {
+            int32_t cy = itemY + m_lineHeight / 2;
+            int32_t cx;
+            if (m_circlePosition == CIRCLE_LEFT) {
+                cx = x + paddingX + CIRCLE_RADIUS;
+            } else {
+                cx = x + w - 3 - paddingX - CIRCLE_RADIUS;
+            }
+            gfx->fillCircle(cx, cy, CIRCLE_RADIUS, item.circleColor);
+        }
+
         // Item text
         if (item.text != nullptr) {
             gfx->setFont(static_cast<const GFXfont*>(m_font));
             gfx->setTextColor(item.textColor);
-            // Position: left-padded, vertically centered within line
-            gfx->setCursor(x + paddingX, itemY + m_lineHeight - m_itemPadding);
+            // Position: left-padded (+ indent if circles on LEFT)
+            gfx->setCursor(x + paddingX + textIndent, itemY + m_lineHeight - m_itemPadding);
             gfx->print(item.text);
         }
 

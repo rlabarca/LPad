@@ -198,9 +198,7 @@ void SystemMenu::setWidgetColors(uint16_t normalText, uint16_t highlight,
         m_wifiList->setErrorColor(errorText);
         m_wifiList->setScrollIndicatorColor(scrollIndicator);
     }
-    if (m_headingWidget) {
-        m_headingWidget->setColor(normalText);
-    }
+    // Heading color is set independently via setHeadingColor() per spec
     m_dirty = true;
 }
 
@@ -285,45 +283,49 @@ void SystemMenu::render() {
     int32_t visiblePx = m_relDisplay->relativeToAbsoluteHeight(visiblePercent);
 
     // --- Render Widget System (heading + WiFi list) ---
-    if (m_widgetEngine) {
+    // Spec: NO widgets during OPENING/CLOSING; only visible once fully OPEN
+    if (m_state == OPEN && m_widgetEngine) {
         m_widgetEngine->render(m_canvas, visiblePx);
     }
 
-    // --- Legacy SSID overlay (top-right corner) ---
-    if (m_ssidText != nullptr && m_ssidText[0] != '\0') {
-        m_canvas->setFont(static_cast<const GFXfont*>(m_ssidFont));
-        m_canvas->setTextColor(m_ssidColor);
+    // Legacy overlays also only drawn when fully OPEN (same as widgets)
+    if (m_state == OPEN) {
+        // --- Legacy SSID overlay (top-right corner) ---
+        if (m_ssidText != nullptr && m_ssidText[0] != '\0') {
+            m_canvas->setFont(static_cast<const GFXfont*>(m_ssidFont));
+            m_canvas->setTextColor(m_ssidColor);
 
-        int16_t x1, y1;
-        uint16_t tw, th;
-        m_canvas->getTextBounds(m_ssidText, 0, 0, &x1, &y1, &tw, &th);
+            int16_t x1, y1;
+            uint16_t tw, th;
+            m_canvas->getTextBounds(m_ssidText, 0, 0, &x1, &y1, &tw, &th);
 
-        int32_t text_y = m_relDisplay->relativeToAbsoluteY(SSID_Y_PERCENT) - y1;
-        int32_t right_edge = m_relDisplay->relativeToAbsoluteX(100.0f - MARGIN_PERCENT);
-        int32_t text_x = right_edge - static_cast<int32_t>(tw);
+            int32_t text_y = m_relDisplay->relativeToAbsoluteY(SSID_Y_PERCENT) - y1;
+            int32_t right_edge = m_relDisplay->relativeToAbsoluteX(100.0f - MARGIN_PERCENT);
+            int32_t text_x = right_edge - static_cast<int32_t>(tw);
 
-        if (text_y + y1 >= 0 && text_y + y1 + static_cast<int32_t>(th) <= visiblePx) {
-            m_canvas->setCursor(text_x, text_y);
-            m_canvas->print(m_ssidText);
+            if (text_y + y1 >= 0 && text_y + y1 + static_cast<int32_t>(th) <= visiblePx) {
+                m_canvas->setCursor(text_x, text_y);
+                m_canvas->print(m_ssidText);
+            }
         }
-    }
 
-    // --- Legacy version overlay (bottom-center) ---
-    if (m_versionText != nullptr && m_versionText[0] != '\0') {
-        m_canvas->setFont(static_cast<const GFXfont*>(m_versionFont));
-        m_canvas->setTextColor(m_versionColor);
+        // --- Legacy version overlay (bottom-center) ---
+        if (m_versionText != nullptr && m_versionText[0] != '\0') {
+            m_canvas->setFont(static_cast<const GFXfont*>(m_versionFont));
+            m_canvas->setTextColor(m_versionColor);
 
-        int16_t x1, y1;
-        uint16_t tw, th;
-        m_canvas->getTextBounds(m_versionText, 0, 0, &x1, &y1, &tw, &th);
+            int16_t x1, y1;
+            uint16_t tw, th;
+            m_canvas->getTextBounds(m_versionText, 0, 0, &x1, &y1, &tw, &th);
 
-        int32_t bottom_edge = m_relDisplay->relativeToAbsoluteY(VERSION_Y_BOTTOM);
-        int32_t text_y = bottom_edge - th - y1;
-        int32_t text_x = (m_width - static_cast<int32_t>(tw)) / 2;
+            int32_t bottom_edge = m_relDisplay->relativeToAbsoluteY(VERSION_Y_BOTTOM);
+            int32_t text_y = bottom_edge - th - y1;
+            int32_t text_x = (m_width - static_cast<int32_t>(tw)) / 2;
 
-        if (text_y + y1 >= 0 && text_y + y1 + static_cast<int32_t>(th) <= visiblePx) {
-            m_canvas->setCursor(text_x, text_y);
-            m_canvas->print(m_versionText);
+            if (text_y + y1 >= 0 && text_y + y1 + static_cast<int32_t>(th) <= visiblePx) {
+                m_canvas->setCursor(text_x, text_y);
+                m_canvas->print(m_versionText);
+            }
         }
     }
 

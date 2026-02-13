@@ -22,6 +22,7 @@ static unsigned long millis() { return s_fake_millis; }
 
 WiFiListWidget::WiFiListWidget() {
     setSelectionCallback(onItemSelected, this);
+    setCirclePosition(CIRCLE_LEFT);
 }
 
 void WiFiListWidget::setEntries(const WiFiEntry* entries, int count) {
@@ -35,6 +36,7 @@ void WiFiListWidget::setEntries(const WiFiEntry* entries, int count) {
 
     m_activeIndex = -1;
     m_connectingIndex = -1;
+    m_failedIndex = -1;
 
     for (int i = 0; i < count; i++) {
         uint16_t color = m_normalColor;
@@ -46,6 +48,11 @@ void WiFiListWidget::setEntries(const WiFiEntry* entries, int count) {
         }
         addItem(entries[i].ssid, color);
     }
+
+    // Draw circle on active/connected item
+    if (m_activeIndex >= 0) {
+        setItemCircle(m_activeIndex, m_highlightColor);
+    }
 }
 
 void WiFiListWidget::refresh() {
@@ -54,15 +61,18 @@ void WiFiListWidget::refresh() {
 
     m_activeIndex = -1;
     m_connectingIndex = -1;
+    m_failedIndex = -1;
 
     for (int i = 0; i < m_entryCount && i < m_itemCount; i++) {
         if (status == HAL_NETWORK_STATUS_CONNECTED &&
             currentSSID != nullptr &&
             strcmp(m_entries[i].ssid, currentSSID) == 0) {
             setItemColor(i, m_highlightColor);
+            setItemCircle(i, m_highlightColor);
             m_activeIndex = i;
         } else {
             setItemColor(i, m_normalColor);
+            clearItemCircle(i);
         }
         clearItemBackground(i);
     }
@@ -77,10 +87,18 @@ void WiFiListWidget::handleSelection(int index) {
     if (index < 0 || index >= m_entryCount) return;
     if (index == m_activeIndex) return;  // Already connected to this one
 
-    // Reset previous active item to normal
+    // Reset previous failed item to normal (spec: Red/Failed must return to normal immediately)
+    if (m_failedIndex >= 0) {
+        setItemColor(m_failedIndex, m_normalColor);
+        clearItemBackground(m_failedIndex);
+        m_failedIndex = -1;
+    }
+
+    // Reset previous active item to normal and remove circle
     if (m_activeIndex >= 0) {
         setItemColor(m_activeIndex, m_normalColor);
         clearItemBackground(m_activeIndex);
+        clearItemCircle(m_activeIndex);
     }
 
     // Reset previous connecting item if different
@@ -107,9 +125,10 @@ void WiFiListWidget::update() {
 
     switch (status) {
         case HAL_NETWORK_STATUS_CONNECTED: {
-            // Connection succeeded
+            // Connection succeeded — highlight text + circle, remove blink bg
             clearItemBackground(m_connectingIndex);
             setItemColor(m_connectingIndex, m_highlightColor);
+            setItemCircle(m_connectingIndex, m_highlightColor);
             m_activeIndex = m_connectingIndex;
             m_connectingIndex = -1;
 
@@ -122,10 +141,11 @@ void WiFiListWidget::update() {
 
         case HAL_NETWORK_STATUS_ERROR:
         case HAL_NETWORK_STATUS_DISCONNECTED: {
-            // Connection failed
+            // Connection failed — red text, track failed index for reset
             if (m_connectingIndex >= 0) {
                 clearItemBackground(m_connectingIndex);
                 setItemColor(m_connectingIndex, m_errorColor);
+                m_failedIndex = m_connectingIndex;
                 m_connectingIndex = -1;
             }
             break;
