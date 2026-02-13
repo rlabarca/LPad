@@ -100,7 +100,7 @@ bool SystemMenu::begin(Arduino_GFX* gfx, int32_t width, int32_t height) {
     // Heading widget (Row 0): "WiFi Networks"
     m_headingWidget = new TextWidget();
     m_headingWidget->setText("WiFi Networks");
-    m_headingWidget->justificationX = JUSTIFY_CENTER_X;
+    m_headingWidget->justificationX = JUSTIFY_LEFT;
     m_headingWidget->justificationY = JUSTIFY_CENTER_Y;
     m_gridLayout->addWidget(m_headingWidget, 0, 0);
 
