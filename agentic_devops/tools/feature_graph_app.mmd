@@ -13,6 +13,8 @@ flowchart TD
         title_ARCHITECTURES ~~~ arch_hal_policy
         arch_infrastructure["Infrastructure Policy<br/><small>arch_infrastructure.md</small>"]
         title_ARCHITECTURES ~~~ arch_infrastructure
+        arch_power_management["Power Policy<br/><small>arch_power_management.md</small>"]
+        title_ARCHITECTURES ~~~ arch_power_management
         arch_ui_compositing["UI Compositing Policy<br/><small>arch_ui_compositing.md</small>"]
         title_ARCHITECTURES ~~~ arch_ui_compositing
         arch_ui_widgets["UI Widget Policy<br/><small>arch_ui_widgets.md</small>"]
@@ -51,6 +53,8 @@ flowchart TD
         title_Hardware_Layer ~~~ hal_spec_display
         hal_spec_network["HAL Network Specification<br/><small>hal_spec_network.md</small>"]
         title_Hardware_Layer ~~~ hal_spec_network
+        hal_spec_power["HAL Power<br/><small>hal_spec_power.md</small>"]
+        title_Hardware_Layer ~~~ hal_spec_power
         hal_spec_timer["HAL Timer Specification<br/><small>hal_spec_timer.md</small>"]
         title_Hardware_Layer ~~~ hal_spec_timer
         hal_spec_touch["HAL: Touch Spec<br/><small>hal_spec_touch.md</small>"]
@@ -65,6 +69,8 @@ flowchart TD
         title_RELEASES["RELEASES"]
         RELEASE_v0_72_wifi_widgets["Release v0.72: WiFi & Widgets<br/><small>RELEASE_v0.72_wifi_widgets.md</small>"]
         title_RELEASES ~~~ RELEASE_v0_72_wifi_widgets
+        RELEASE_v0_74_battery_metering["Release 0.74<br/><small>RELEASE_v0.74_battery_metering.md</small>"]
+        title_RELEASES ~~~ RELEASE_v0_74_battery_metering
     end
 
     subgraph System_Architecture [" "]
@@ -87,6 +93,12 @@ flowchart TD
         title_System_Components ~~~ sys_mini_logo
         sys_system_menu["System Component: System Menu<br/><small>sys_system_menu.md</small>"]
         title_System_Components ~~~ sys_system_menu
+    end
+
+    subgraph System_Services [" "]
+        title_System_Services["SYSTEM SERVICES"]
+        sys_battery_metering["Battery Status<br/><small>sys_battery_metering.md</small>"]
+        title_System_Services ~~~ sys_battery_metering
     end
 
     subgraph UI_Framework [" "]
@@ -127,6 +139,7 @@ flowchart TD
     sys_mini_logo --> RELEASE_v0_72_wifi_widgets
     app_stock_ticker --> RELEASE_v0_72_wifi_widgets
     display_target_rotation --> RELEASE_v0_72_wifi_widgets
+    sys_battery_metering --> RELEASE_v0_74_battery_metering
     core_ui_render_manager --> app_stock_ticker
     data_layer_stock_tracker --> app_stock_ticker
     ui_themeable_time_series_graph --> app_stock_ticker
@@ -139,6 +152,8 @@ flowchart TD
     display_tdisplay_s3_plus --> arch_hal_policy
     touch_cst816_implementation --> arch_hal_policy
     hal_timer_esp32 --> arch_hal_policy
+    hal_spec_power --> arch_power_management
+    arch_data_strategy --> arch_power_management
     arch_ui_compositing --> arch_ui_widgets
     display_relative_drawing --> arch_ui_widgets
     touch_gesture_engine --> core_ui_render_manager
@@ -157,11 +172,14 @@ flowchart TD
     hal_core_contract --> hal_spec_display
     hal_core_contract --> hal_spec_network
     arch_data_strategy --> hal_spec_network
+    hal_core_contract --> hal_spec_power
     hal_core_contract --> hal_spec_timer
     hal_core_contract --> hal_spec_touch
     hal_spec_timer --> hal_timer_esp32
     hal_spec_timer --> sys_animation_ticker
     arch_infrastructure --> sys_animation_ticker
+    arch_power_management --> sys_battery_metering
+    ui_system_menu --> sys_battery_metering
     arch_infrastructure --> sys_config_system
     core_ui_render_manager --> sys_mini_logo
     ui_mini_logo --> sys_mini_logo
@@ -212,6 +230,7 @@ flowchart TD
     class hal_dma_blitting hardware;
     class hal_spec_display hardware;
     class hal_spec_network hardware;
+    class hal_spec_power hardware;
     class hal_spec_timer hardware;
     class hal_spec_touch hardware;
     class hal_timer_esp32 hardware;
@@ -219,6 +238,7 @@ flowchart TD
     class title_RELEASES subgraphTitle;
     class title_System_Architecture subgraphTitle;
     class title_System_Components subgraphTitle;
+    class title_System_Services subgraphTitle;
     class title_UI_Framework subgraphTitle;
     class display_canvas_drawing ui;
     class display_relative_drawing ui;

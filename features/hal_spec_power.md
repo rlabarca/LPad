@@ -65,5 +65,11 @@ GPIO 4 on the Waveshare ESP32-S3 AMOLED 1.8" is the QSPI display data line (`LCD
 ### [2026-02-14] AXP2101 PMU via I2C (Waveshare esp32s3)
 The Waveshare board uses an AXP2101 PMU at I2C address 0x34 on the shared bus (SDA=15, SCL=14). Wire is already initialized by the display/touch HAL. The PMU provides `isBatteryConnect()`, `isCharging()`, `getBattVoltage()`, `getBatteryPercent()`, and `getChargerStatus()` — no GPIO ADC needed. Init is non-fatal: if PMU is absent, functions return UNKNOWN/-1/0.
 
+### [2026-02-14] MUST Use Callback-Based I2C Init (Shared Bus)
+XPowersLib's `pmu.begin(Wire, addr, sda, scl)` calls `Wire.begin(sda, scl)` internally (XPowersCommon.tpp line 160), which reinitializes the I2C bus already running for the touch controller (FT3168). This causes `i2cWriteReadNonStop Error -1` during runtime polling. **Fix:** Use the callback-based `pmu.begin(addr, readCb, writeCb)` which skips all Wire management and uses the already-initialized bus via custom read/write functions.
+
+### [2026-02-14] Voltage-Based % Over Coulomb Counter
+`getBatteryPercent()` reads the AXP2101 coulomb counter register which defaults to 100% on fresh init and requires a full charge/discharge cycle to calibrate. Use `getBattVoltage()` with LiPo curve (3270mV=0%, 4200mV=100%) for immediate accuracy.
+
 ### [2026-02-14] T-Display S3 Plus Still Safe Passthrough
 The LilyGo `power_tdisplay_s3_plus.cpp` remains a safe passthrough (returns NO_BATTERY) until the correct power monitoring method is identified for that board during HIL.

@@ -2,9 +2,9 @@
  * @file power_esp32_s3.cpp
  * @brief Power HAL implementation for Waveshare ESP32-S3 Touch AMOLED 1.8"
  *
- * Uses the AXP2101 PMU chip over I2C (shared bus with touch/display on
- * SDA=15, SCL=14). Wire.begin() is already called by the display/touch HAL
- * before hal_power_init(), so we only attach to the existing bus.
+ * Uses the AXP2101 PMU chip over I2C (shared bus with touch on SDA=15, SCL=14).
+ * Wire.begin() is already called by the touch HAL before hal_power_init(),
+ * so we use CALLBACK-BASED init to avoid reinitializing the bus.
  *
  * See features/hal_spec_power.md for contract specification.
  */
@@ -19,10 +19,37 @@
 static XPowersPMU pmu;
 static bool g_pmu_ready = false;
 
+// LiPo discharge curve thresholds (millivolts)
+static const uint16_t LIPO_MIN_MV = 3270;
+static const uint16_t LIPO_MAX_MV = 4200;
+
+// ---- Callback I2C (avoids Wire.begin() reinit on shared bus) ----
+
+static int pmu_register_read(uint8_t devAddr, uint8_t regAddr, uint8_t *data, uint8_t len) {
+    Wire.beginTransmission(devAddr);
+    Wire.write(regAddr);
+    if (Wire.endTransmission(false) != 0) return -1;  // repeated start
+    uint8_t got = Wire.requestFrom(devAddr, len);
+    if (got != len) return -1;
+    for (uint8_t i = 0; i < len; i++) {
+        data[i] = Wire.read();
+    }
+    return 0;
+}
+
+static int pmu_register_write(uint8_t devAddr, uint8_t regAddr, uint8_t *data, uint8_t len) {
+    Wire.beginTransmission(devAddr);
+    Wire.write(regAddr);
+    for (uint8_t i = 0; i < len; i++) {
+        Wire.write(data[i]);
+    }
+    return (Wire.endTransmission() == 0) ? 0 : -1;
+}
+
 bool hal_power_init(void) {
-    // Wire is already started by display/touch HAL (SDA=15, SCL=14).
-    // Just attach the PMU to the existing bus.
-    g_pmu_ready = pmu.begin(Wire, AXP2101_SLAVE_ADDRESS, 15, 14);
+    // Wire is already started by touch HAL (SDA=15, SCL=14).
+    // Use callback-based init to avoid calling Wire.begin() again.
+    g_pmu_ready = pmu.begin(AXP2101_SLAVE_ADDRESS, pmu_register_read, pmu_register_write);
 
     if (!g_pmu_ready) {
         Serial.println("[PowerHAL] AXP2101 not found on I2C bus");
@@ -35,7 +62,8 @@ bool hal_power_init(void) {
     pmu.enableVbusVoltageMeasure();
     pmu.enableSystemVoltageMeasure();
 
-    Serial.println("[PowerHAL] AXP2101 initialized");
+    Serial.printf("[PowerHAL] AXP2101 initialized (callback I2C), Vbat=%dmV\n",
+                  pmu.getBattVoltage());
     return true;
 }
 
@@ -66,10 +94,15 @@ int8_t hal_power_get_charge_level(void) {
         return -1;
     }
 
-    int percent = pmu.getBatteryPercent();
-    if (percent < 0) return -1;
-    if (percent > 100) percent = 100;
-    return (int8_t)percent;
+    // Voltage-based percentage (more reliable than coulomb counter which
+    // needs calibration and defaults to 100% on fresh init)
+    uint16_t mv = pmu.getBattVoltage();
+    if (mv == 0) return -1;
+
+    int32_t level = ((int32_t)mv - LIPO_MIN_MV) * 100 / (LIPO_MAX_MV - LIPO_MIN_MV);
+    if (level < 0) level = 0;
+    if (level > 100) level = 100;
+    return (int8_t)level;
 }
 
 uint16_t hal_power_get_voltage_mv(void) {
