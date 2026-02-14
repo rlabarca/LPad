@@ -32,7 +32,9 @@ Defines the implementation protocols and domain-aware requirements for the Build
 
 ### 2.5 Domain-Specific Test Execution
 *   **Command Isolation:** The Builder MUST NOT use the global `./scripts/test_local.sh` or `pio test` when working in the Agentic domain.
-*   **Local Test Runners:** The Builder must look for and execute test scripts located within the specific tool's directory (e.g., `agentic_devops/tools/cdd/run_tests.sh`).
+*   **Local Test Runners:** The Builder must look for and execute test scripts located within the specific tool's directory.
+*   **Standard Reporting (MANDATORY):** Every DevOps test execution MUST generate or update a `test_status.json` file in the tool's directory.
+    *   **Format:** `{"status": "PASS" | "FAIL", "timestamp": "...", "message": "..."}`
 *   **No Pollution:** Running Agentic tests must never trigger a re-compilation or execution of LPad firmware tests.
 
 ## 3. Scenarios

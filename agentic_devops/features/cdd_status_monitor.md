@@ -21,7 +21,11 @@ The Continuous Deployment-Driven (CDD) Monitor tracks the status of all feature 
 
 ### 2.3 Verification Signals
 *   **LPad Tests:** Monitor `.pio/testing/last_summary.json` for firmware logic status.
-*   **DevOps Tests:** Monitor a new `agentic_devops/tools/test_summary.json` (if it exists) or verify the success of the last `software_map` generation.
+*   **DevOps Tests (Standardized Protocol):** 
+    *   The monitor must scan all subdirectories in `agentic_devops/tools/` for a file named `test_status.json`.
+    *   **Aggregation:** If ANY `test_status.json` reports a failure, the "DevOps Test Status" must show **FAIL**. 
+    *   **Success:** Only shows **PASS** if all existing status files report success.
+    *   **Missing:** If a tool directory has no `test_status.json`, it is ignored (assumed no tests implemented yet).
 
 ## 3. Scenarios
 

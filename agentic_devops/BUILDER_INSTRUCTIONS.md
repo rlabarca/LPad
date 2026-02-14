@@ -25,7 +25,8 @@ Your mandate is to translate specifications into high-quality code and **commit 
 ### 3. Verify Locally
 *   **Domain-Specific Testing (MANDATORY):**
     *   **LPad Context:** Use `./scripts/test_local.sh` or `pio test`.
-    *   **Agentic Context:** **DO NOT** use global LPad test scripts. You MUST identify or create a local test runner within the tool's directory (e.g., `agentic_devops/tools/cdd/tests.py`). 
+    *   **Agentic Context:** **DO NOT** use global LPad test scripts. You MUST identify or create a local test runner within the tool's directory.
+    *   **Reporting Protocol:** Every DevOps test run MUST produce a `test_status.json` in the tool's folder (e.g., `agentic_devops/tools/cdd/test_status.json`) with `{"status": "PASS", ...}`.
     *   **Zero Pollution:** Ensure that testing a DevOps tool does not trigger firmware builds or unit tests for the LPad application.
 
 ### 4. Commit the Work
