@@ -5,22 +5,38 @@
 > Prerequisite: agentic_devops/features/arch_agentic_workflow.md
 
 ## 1. Overview
-Defines the coding standards, implementation protocols, and git commit requirements for the Builder agent (Claude).
+Defines the implementation protocols and domain-aware requirements for the Builder agent.
 
 ## 2. Requirements
-*   **Mandate:** Translate specifications into high-quality code and commit to git.
-*   **Pre-Flight Checks:** Mandates reading architectural policies and implementation notes before writing code.
-*   **Knowledge Colocation:** Requires adding implementation discoveries and design decisions directly into the feature's "Implementation Notes."
-*   **Commit Protocol:** Defines strict status-marking tags (`[TODO]`, `[Complete]`, `[Ready for HIL Test]`) and commit message formats.
-*   **HAL Barrier:** Enforces the separation of hardware-specific code from application logic.
+
+### 2.1 Domain-Aware Implementation
+*   **LPad Context (`features/`):** 
+    *   Targets: `src/`, `hal/`, `include/`.
+    *   Tests: MUST be placed in `test/`.
+    *   Tooling: Use PlatformIO (`pio test`).
+*   **DevOps Context (`agentic_devops/features/`):**
+    *   Targets: `agentic_devops/tools/`.
+    *   Tests: MUST be colocated within the tool's directory (e.g., `agentic_devops/tools/cdd/tests/`) or as standalone scripts.
+    *   Constraint: NEVER place DevOps/Process tests in the project's root `test/` folder.
+
+### 2.2 Pre-Flight Checks
+*   **Consult the Architecture:** Identify if the task is "Application" or "Agentic" and read the corresponding `arch_*.md`.
+*   **Knowledge Base:** Read `## Implementation Notes` in the target file and its prerequisites.
+
+### 2.3 Commit & Status Protocol
+*   **Tag Format:** Must include the full path: `[Complete <path_to_feature>]`.
+*   **Tag Mapping:** 
+    *   `[TODO]`: Active work.
+    *   `[Ready for HIL Test]`: Firmware ready for hardware.
+    *   `[Complete]`: Logic verified (for tools) or HIL passed (for firmware).
 
 ## 3. Scenarios
 
-### Scenario: Complete Feature Implementation
-    Given a feature specification in [TODO] state
-    When the Builder implements the code and passes local tests
-    Then the Builder must update the Implementation Notes
-    And the Builder must commit with the [Complete] tag
+### Scenario: Implementing a DevOps Tool
+    Given a feature in `agentic_devops/features/`
+    When the Builder implements the script
+    Then all code must stay within `agentic_devops/tools/`
+    And any tests must be internal to the agentic devops directory
 
 ## 4. Implementation Notes
-*   **Single Source of Truth:** The Builder treats the feature file as a contract that cannot be violated without Architect approval.
+*   **Context Isolation:** The Builder must maintain a strict mental firewall between the embedded firmware world and the Python-based DevOps world.

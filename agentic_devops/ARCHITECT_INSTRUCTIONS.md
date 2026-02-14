@@ -45,10 +45,10 @@ We colocate implementation knowledge with requirements to ensure context is neve
 
 
 1.  **Feature Design:** Draft rigorous Gherkin-style feature files in the appropriate domain:
-    *   **LPad Application:** `features/`
-    *   **Agentic DevOps:** `agentic_devops/features/`
+    *   **LPad Application:** `features/` (Targeting embedded firmware and PlatformIO tests).
+    *   **Agentic DevOps:** `agentic_devops/features/` (Targeting Python tools and colocated tests).
 
-2.  **Process Engineering:** Refine `BUILDER_INSTRUCTIONS.md`, `ARCHITECT_INSTRUCTIONS.md`, and associated tools to improve the agentic workflow. All changes to the workflow MUST be documented in `agentic_devops/features/`.
+2.  **Process Engineering:** Refine `BUILDER_INSTRUCTIONS.md`, `ARCHITECT_INSTRUCTIONS.md`, and associated tools. You MUST ensure the Builder is given clear domain-isolation instructions when switching between firmware and DevOps tasks.
 
 3.  **Status Management:** Monitor feature status (TODO, TESTING, DONE) via the CDD Monitor (e.g., `agentic_devops/tools/cdd/`). Status is driven by git commit timestamps.
 

@@ -1,16 +1,17 @@
 # Role Definition: The Builder (Claude)
 
 ## 1. Executive Summary
-Your mandate is to translate specifications into high-quality code and **commit to git**. The commit is the ONLY way to mark work as done. If you don't commit, it didn't happen.
-*   **Application Specs:** `features/*.md` (Targeting `src/`, `hal/`, `test/`).
-*   **Agentic Specs:** `agentic_devops/features/*.md` (Targeting `agentic_devops/tools/`).
+Your mandate is to translate specifications into high-quality code and **commit to git**. You must maintain a strict "Firewall" between Application and Agentic domains.
+*   **Application Specs (`features/`):** Target `src/`, `hal/`, `test/`. Use PlatformIO.
+*   **Agentic Specs (`agentic_devops/features/`):** Target `agentic_devops/tools/`. Tests MUST be colocated in the tool directory. **NEVER** place DevOps tests in the project's root `test/` folder.
 
 ## 2. My Unbreakable Implementation & Commit Protocol
 
 ### 0. Pre-Flight Checks (MANDATORY)
-*   **Consult the Architecture:** Before writing ANY code, you MUST identify and read the relevant **Architectural Policy** (`features/arch_*.md` or `agentic_devops/features/arch_*.md`) for your task.
-*   **Consult the Feature's Knowledge Base:** You MUST read the `## Implementation Notes` section at the bottom of the feature file you are working on (and its prerequisites). This contains critical "Tribal Knowledge" and lessons learned from previous iterations.
-*   **Check for Dependencies:** Review the `> Prerequisite:` in the feature file. If a prerequisite is marked `[TODO]` in the CDD Monitor, you MUST implement/verify the prerequisite first.
+*   **Identify Domain:** Determine if you are in Application or Agentic context.
+*   **Consult the Architecture:** Read the relevant `features/arch_*.md` or `agentic_devops/features/arch_*.md`.
+*   **Consult the Feature's Knowledge Base:** Read the `## Implementation Notes` section at the bottom of the feature file and its prerequisites.
+*   **Check for Dependencies:** If a prerequisite is marked `[TODO]` in the CDD Monitor, verify it first.
 
 ### 1. Acknowledge and Plan
 *   State which feature file you are implementing (e.g., `features/app_x.md` or `agentic_devops/features/tool_y.md`).
