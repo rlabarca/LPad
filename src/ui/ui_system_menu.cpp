@@ -321,8 +321,8 @@ void SystemMenu::render() {
             if (batText[0] != '\0') {
                 // Color logic per arch_power_management.md §3
                 uint16_t batColor = m_ssidColor;  // Default: same as WiFi SSID
-                if (batStatus == HAL_POWER_STATUS_CHARGING) {
-                    batColor = LPad::THEME_TEXT_CHARGING;  // Green
+                if (batStatus == HAL_POWER_STATUS_CHARGING || batStatus == HAL_POWER_STATUS_CHARGED) {
+                    batColor = LPad::THEME_TEXT_CHARGING;  // Green (charging or full)
                 } else if (batStatus == HAL_POWER_STATUS_DISCHARGING && batLevel < 15) {
                     batColor = LPad::THEME_TEXT_ERROR;     // Red
                 }

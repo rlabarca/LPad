@@ -26,24 +26,37 @@ static const uint16_t LIPO_MAX_MV = 4200;
 // ---- Callback I2C (avoids Wire.begin() reinit on shared bus) ----
 
 static int pmu_register_read(uint8_t devAddr, uint8_t regAddr, uint8_t *data, uint8_t len) {
-    Wire.beginTransmission(devAddr);
-    Wire.write(regAddr);
-    if (Wire.endTransmission(false) != 0) return -1;  // repeated start
-    uint8_t got = Wire.requestFrom(devAddr, len);
-    if (got != len) return -1;
-    for (uint8_t i = 0; i < len; i++) {
-        data[i] = Wire.read();
+    // Retry up to 3 times — shared bus with touch controller causes occasional NACK
+    for (int attempt = 0; attempt < 3; attempt++) {
+        Wire.beginTransmission(devAddr);
+        Wire.write(regAddr);
+        if (Wire.endTransmission(false) != 0) {  // repeated start
+            delayMicroseconds(200);
+            continue;
+        }
+        uint8_t got = Wire.requestFrom(devAddr, len);
+        if (got == len) {
+            for (uint8_t i = 0; i < len; i++) {
+                data[i] = Wire.read();
+            }
+            return 0;
+        }
+        delayMicroseconds(200);
     }
-    return 0;
+    return -1;
 }
 
 static int pmu_register_write(uint8_t devAddr, uint8_t regAddr, uint8_t *data, uint8_t len) {
-    Wire.beginTransmission(devAddr);
-    Wire.write(regAddr);
-    for (uint8_t i = 0; i < len; i++) {
-        Wire.write(data[i]);
+    for (int attempt = 0; attempt < 3; attempt++) {
+        Wire.beginTransmission(devAddr);
+        Wire.write(regAddr);
+        for (uint8_t i = 0; i < len; i++) {
+            Wire.write(data[i]);
+        }
+        if (Wire.endTransmission() == 0) return 0;
+        delayMicroseconds(200);
     }
-    return (Wire.endTransmission() == 0) ? 0 : -1;
+    return -1;
 }
 
 bool hal_power_init(void) {

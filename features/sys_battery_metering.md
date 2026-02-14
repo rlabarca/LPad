@@ -30,12 +30,12 @@ This feature implements the background monitoring of battery health and the visu
 - **Styling:**
     - **Font:** Same as WiFi SSID (`fonts.normal`).
     - **Color:** 
-        - Green if `CHARGING`.
+        - Green if `CHARGING` or `CHARGED`.
         - Red if `DISCHARGING` and level < 15%.
         - Otherwise same as WiFi SSID color (`colors.text_status`).
 - **Padding:**
-    - Add **10px of left padding** to the battery status text.
-    - Add **10px of right padding** to the WiFi SSID text (to avoid screen corner occlusion).
+    - Add **15px of left padding** to the battery status text.
+    - Add **15px of right padding** to the WiFi SSID text (to avoid screen corner occlusion).
 
 ## 3. Scenarios
 
@@ -58,10 +58,13 @@ This feature implements the background monitoring of battery health and the visu
 ## 4. Implementation Notes
 
 ### [2026-02-14] Padding for Rounded Corners
-The 10px padding is a hard requirement for the Waveshare and LilyGo AMOLED displays which have significant corner rounding. Do not use relative percentages for this padding; use absolute pixels after the relative positioning is calculated.
+15px padding (`CORNER_PADDING_PX`) is used for the Waveshare and LilyGo AMOLED displays which have significant corner rounding. Do not use relative percentages for this padding; use absolute pixels after the relative positioning is calculated.
 
 ### [2026-02-14] Battery Text Uses SSID Font
-The battery status text reuses `m_ssidFont` (fonts.normal, 12pt) and shares the same Y-position (`SSID_Y_PERCENT`) as the WiFi SSID for visual alignment. The SSID text also received 10px right padding (`CORNER_PADDING_PX`) to symmetrically avoid corner clipping on both sides.
+The battery status text reuses `m_ssidFont` (fonts.normal, 12pt) and shares the same Y-position (`SSID_Y_PERCENT`) as the WiFi SSID for visual alignment. The SSID text also received 15px right padding (`CORNER_PADDING_PX`) to symmetrically avoid corner clipping on both sides.
+
+### [2026-02-14] CHARGED Shows Green (Same as CHARGING)
+On boot while plugged in, the AXP2101 often reports `CHARGED` (charge done) rather than `CHARGING` if the battery is near-full. Both states now show green since both indicate external power is connected. Without this, the battery text appeared in default Chamoisee on boot, only turning green after unplug/replug triggered a `CHARGING` transition.
 
 ### [2026-02-14] Color Constants
 `THEME_TEXT_CHARGING` (0x07E0, pure green) was added to `theme_colors.h`. Low-battery red reuses `THEME_TEXT_ERROR` (0xF800). Default color is `m_ssidColor` (Chamoisee / `text_status`).
