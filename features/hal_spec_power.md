@@ -59,5 +59,11 @@ typedef enum {
 
 ## Implementation Notes
 
-### [2026-02-14] GPIO 4 Causes Watchdog Boot Loop
-GPIO 4 on the ESP32-S3 WROOM conflicts with PSRAM/Flash data lines. Calling `pinMode(4, INPUT)` or `analogRead(4)` crashes the memory bus, triggering TG1WDT_SYS_RST in a loop. Both hardware drivers are now safe passthroughs (return `NO_BATTERY` / 0mV) with no GPIO access. The correct battery ADC pin MUST be identified from the board schematics before enabling ADC reads. LiPo curve constants (3270mV=0%, 4200mV=100%) are ready for use once the pin is known.
+### [2026-02-14] GPIO 4 = LCD_SDIO0 (Display Data Line)
+GPIO 4 on the Waveshare ESP32-S3 AMOLED 1.8" is the QSPI display data line (`LCD_SDIO0` in pin_config.h). Calling `pinMode(4, INPUT)` destroys the display bus and triggers a TG1WDT_SYS_RST boot loop.
+
+### [2026-02-14] AXP2101 PMU via I2C (Waveshare esp32s3)
+The Waveshare board uses an AXP2101 PMU at I2C address 0x34 on the shared bus (SDA=15, SCL=14). Wire is already initialized by the display/touch HAL. The PMU provides `isBatteryConnect()`, `isCharging()`, `getBattVoltage()`, `getBatteryPercent()`, and `getChargerStatus()` — no GPIO ADC needed. Init is non-fatal: if PMU is absent, functions return UNKNOWN/-1/0.
+
+### [2026-02-14] T-Display S3 Plus Still Safe Passthrough
+The LilyGo `power_tdisplay_s3_plus.cpp` remains a safe passthrough (returns NO_BATTERY) until the correct power monitoring method is identified for that board during HIL.
