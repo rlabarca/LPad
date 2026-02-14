@@ -12,8 +12,9 @@ The Release Protocol is a synchronized system audit that ensures both the Applic
 ### 2.1 Verification Gates
 *   **Application Gate:** MUST verify a PASS status from the primary project's native tests.
 *   **DevOps Gate:** MUST verify a PASS status from the aggregated `test_status.json` files in `agentic_devops/tools/`.
+*   **Zero-Queue Mandate:** ALL features in both the Application and Agentic DevOps domains MUST be in the **[Complete]** state. No features may be left in [TODO] or [Ready for HIL Test] status at the time of push.
 *   **Partial Releases:** If a domain (Application or Agentic) has no functional changes, it is marked as **[STABLE]** in the evolution table. It MUST still pass its verification gate as a regression check.
-*   **Blocker:** The Architect is forbidden from initiating a push if either domain reports a failure.
+*   **Blocker:** The Architect is forbidden from initiating a push if either domain reports a failure or if any feature status is not [Complete].
 
 ### 2.2 Synchronization Mandates
 *   **Software Map:** MUST regenerate both Application and Agentic DevOps feature maps. The Architect must verify the absence of orphans or circular dependencies in both domains.

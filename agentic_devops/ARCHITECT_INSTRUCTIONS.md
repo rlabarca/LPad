@@ -125,7 +125,8 @@ When the user issues a release command or prepares a push to GitHub, you MUST ex
 1.  **Dual-Domain Verification:**
     - **Application:** Verify PASS status from project-specific native tests.
     - **DevOps:** Verify PASS status from aggregated `agentic_devops/tools/*/test_status.json` files.
-    - **BLOCKER:** Do not proceed if either domain is in a FAIL or UNKNOWN state.
+    - **Zero-Queue Mandate:** Verify that ALL features in both domains are marked as [Complete] in the CDD monitor.
+    - **BLOCKER:** Do not proceed if either domain is in a FAIL or UNKNOWN state, or if any feature is [TODO] or [Testing].
 
 2.  **Synchronized Mapping:**
     - Run `agentic_devops/tools/software_map/generate_tree.py`.

@@ -33,6 +33,7 @@ This log tracks the evolution of our DevOps processes and agentic protocols. Ent
 ## [2026-02-14] Milestone: Release v0.73 - Meta-Process Evolution
 - **Universal Framework Refactor:** Decoupled the `agentic_devops` framework from the specific project context. All instructions, meta-features, and tools now use project-agnostic terminology, enabling the framework to be ported to any development domain.
 - **Synchronized Release Protocol:** Established a dual-domain audit requirement for GitHub pushes, ensuring application stability and DevOps toolchain health are validated in parallel.
+- **Zero-Queue Mandate:** Codified the requirement that ALL features must be in the [Complete] state before a push or release, ensuring no unresolved tasks or pending tests are committed to main.
 - **Stable Application Mandate:** Formalized the ability to release process improvements (DevOps) independently of application changes, while maintaining regression verification.
 - **Recursive Governance:** Applied the Spec-Driven Workflow to the `agentic_devops` framework itself.
 - **Domain Separation:** Established `agentic_devops/features/` for meta-specifications, separating them from the `features/` application domain.
