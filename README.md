@@ -40,7 +40,7 @@ This project evolves both its **Firmware Capabilities** and its **DevOps Process
 | **v0.70** | **System Architecture:** UI Render Manager, Z-Order, Multi-App Support. | **Agentic DevOps Refactor:** Unified `agentic_devops/` hub. **Living Specs:** In-place editing (No v2). **Knowledge Colocation:** Implementation notes inside feature files. **Modular Architecture:** `arch_*.md` policies. |
 | **v0.71** | **Developer Utility:** Serial Screenshot Tool, PSRAM Shadow Framebuffer. | **Process Rigor:** Acyclic Dependency Mandate. Test Fidelity Mandate (Explicit HIL steps). Documentation Professionalism (No Emojis). |
 | **v0.72** | **UI Widgets & WiFi:** Formal Widget System (Layouts/Relative Positioning); Multi-WiFi HAL with fallback; "Window Shade" menu. | **Milestone Mutation:** Single active Release Specification rule. Consistent visual hierarchy refinement (The "Section" style). |
-| **v0.73** | **[STABLE]** No firmware changes. | **Meta-Process Evolution:** Spec-Driven Agentic DevOps; Recursive Governance; Domain-Specific Feature Maps (LPad vs. Agentic). |
+| **v0.73** | **[STABLE]** No firmware changes. | **Meta-Process Evolution:** Spec-Driven Agentic DevOps; Recursive Governance; Universal/Portable Framework Refactor. |
 
 ## Testing Strategy
 
