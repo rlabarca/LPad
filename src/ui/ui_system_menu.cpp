@@ -162,7 +162,7 @@ void SystemMenu::setSSIDColor(uint16_t color) {
 
 void SystemMenu::setHeadingFont(const void* font) {
     if (m_headingWidget) {
-        m_headingWidget->setFont(static_cast<const GFXfont*>(font));
+        m_headingWidget->setFont(font);
     }
     m_dirty = true;
 }
