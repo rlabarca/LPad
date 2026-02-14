@@ -427,7 +427,8 @@
                         panZoom.zoom(savedState.zoom);
                         panZoom.pan(savedState.pan);
                     } else {
-                        resetZoom();
+                        // Small delay to ensure browser has handled SVG sizing/layout
+                        setTimeout(resetZoom, 50);
                     }
 
                     lastMtime = data.mtime;
