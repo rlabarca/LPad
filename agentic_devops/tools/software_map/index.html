@@ -429,8 +429,9 @@
                         panZoom.pan(savedState.pan);
                     } else {
                         // Small delay to ensure browser has handled SVG sizing/layout
-                        // Use the function that includes padding
-                        setTimeout(resetZoom, 50);
+                        setTimeout(() => {
+                            resetZoom();
+                        }, 50);
                     }
 
                     lastMtime = data.mtime;
