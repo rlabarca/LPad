@@ -59,5 +59,5 @@ typedef enum {
 
 ## Implementation Notes
 
-### [2026-02-14] ADC Pin Configuration
-Both `power_esp32_s3.cpp` and `power_tdisplay_s3_plus.cpp` default to GPIO 4 with a 2:1 voltage divider. These values MUST be verified during HIL testing for each board. The LiPo discharge curve uses 3270mV=0% and 4200mV=100%. Charging detection uses >4250mV threshold. `NO_BATTERY` triggers below 100mV.
+### [2026-02-14] GPIO 4 Causes Watchdog Boot Loop
+GPIO 4 on the ESP32-S3 WROOM conflicts with PSRAM/Flash data lines. Calling `pinMode(4, INPUT)` or `analogRead(4)` crashes the memory bus, triggering TG1WDT_SYS_RST in a loop. Both hardware drivers are now safe passthroughs (return `NO_BATTERY` / 0mV) with no GPIO access. The correct battery ADC pin MUST be identified from the board schematics before enabling ADC reads. LiPo curve constants (3270mV=0%, 4200mV=100%) are ready for use once the pin is known.

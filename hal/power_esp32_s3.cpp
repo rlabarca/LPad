@@ -2,8 +2,13 @@
  * @file power_esp32_s3.cpp
  * @brief Power HAL implementation for Waveshare ESP32-S3 Touch AMOLED 1.8"
  *
- * Uses ADC-based battery voltage reading with a standard LiPo discharge curve.
- * Pin configuration and voltage divider ratio should be verified during HIL testing.
+ * SAFE PASSTHROUGH: Returns NO_BATTERY until the correct ADC pin is
+ * identified during HIL testing. GPIO 4 was found to conflict with
+ * PSRAM/Flash data lines on the ESP32-S3 WROOM module, causing a
+ * watchdog-reset boot loop.
+ *
+ * TODO(HIL): Identify the battery voltage ADC pin from the board
+ * schematic, then enable analogRead() here.
  *
  * See features/hal_spec_power.md for contract specification.
  */
@@ -11,30 +16,28 @@
 #include "power.h"
 #include <Arduino.h>
 
-// ADC pin for battery voltage (via voltage divider)
-// NOTE: Verify this pin during HIL testing for the Waveshare board
-static const uint8_t BATTERY_ADC_PIN = 4;
+// ==========================================================
+// ADC configuration — DISABLED until HIL pin verification
+// ==========================================================
+// static const uint8_t BATTERY_ADC_PIN = ???;  // TBD from schematic
+// static const float VOLTAGE_DIVIDER_RATIO = 2.0f;
 
-// Voltage divider ratio (Vbat = Vadc * ratio)
-// Typical 2:1 divider (100K/100K) → ratio = 2.0
-static const float VOLTAGE_DIVIDER_RATIO = 2.0f;
-
-// LiPo discharge curve thresholds (millivolts)
+// LiPo discharge curve thresholds (millivolts) — ready for use
+// once the ADC pin is known.
 static const uint16_t LIPO_MIN_MV = 3270;   // 0% — cutoff voltage
 static const uint16_t LIPO_MAX_MV = 4200;   // 100% — fully charged
 static const uint16_t NO_BATTERY_THRESHOLD_MV = 100;
-static const uint16_t CHARGING_THRESHOLD_MV = 4250;  // Above max → charging
+static const uint16_t CHARGING_THRESHOLD_MV = 4250;
 
 bool hal_power_init(void) {
-    analogSetAttenuation(ADC_11db);
-    pinMode(BATTERY_ADC_PIN, INPUT);
+    // No GPIO configuration until correct pin is known
+    Serial.println("[PowerHAL] esp32s3: safe mode (no ADC pin configured)");
     return true;
 }
 
 uint16_t hal_power_get_voltage_mv(void) {
-    uint32_t raw_mv = analogReadMilliVolts(BATTERY_ADC_PIN);
-    uint16_t battery_mv = (uint16_t)(raw_mv * VOLTAGE_DIVIDER_RATIO);
-    return battery_mv;
+    // ADC disabled — return 0 (triggers NO_BATTERY path)
+    return 0;
 }
 
 hal_power_status_t hal_power_get_status(void) {
