@@ -38,3 +38,5 @@ The Continuous Deployment-Driven (CDD) Monitor tracks the status of all feature 
 ## 4. Implementation Notes
 *   **Git Efficiency:** Use `git log --grep` with the full relative path to avoid collision between domains.
 *   **Visual Polish:** Use a dark, high-contrast theme suitable for 24/7 monitoring.
+*   **Test Mode Dispatch:** The DOMAINS config uses a `test_mode` field (`pio_summary` vs `devops_aggregate`) to dispatch to the correct test status reader. The DevOps aggregator scans `tools/*/test_status.json` and treats malformed JSON as FAIL.
+*   **Test Coverage:** `test_cdd.py` covers aggregation (all pass, one fail, no files, missing dir, malformed JSON, ignored dirs), PIO reader, domain dispatch, and DONE capping (18 test cases).

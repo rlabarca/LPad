@@ -1,4 +1,5 @@
 import http.server
+import json
 import socketserver
 import subprocess
 import os
@@ -12,6 +13,7 @@ DOMAINS = [
         "label": "LPad Application",
         "features_rel": "features",
         "features_abs": os.path.join(PROJECT_ROOT, "features"),
+        "test_mode": "pio_summary",
         "test_summary": os.path.join(PROJECT_ROOT, ".pio/testing/last_summary.json"),
         "test_label": "Firmware Tests",
     },
@@ -19,7 +21,8 @@ DOMAINS = [
         "label": "Agentic DevOps",
         "features_rel": "agentic_devops/features",
         "features_abs": os.path.join(PROJECT_ROOT, "agentic_devops/features"),
-        "test_summary": os.path.join(PROJECT_ROOT, "agentic_devops/tools/test_summary.json"),
+        "test_mode": "devops_aggregate",
+        "tools_dir": os.path.join(PROJECT_ROOT, "agentic_devops/tools"),
         "test_label": "DevOps Tests",
     },
 ]
@@ -87,8 +90,8 @@ def get_feature_status(features_rel, features_abs):
     return done, sorted(testing), sorted(todo)
 
 
-def get_test_status(summary_path):
-    """Gets the test status from a summary JSON file."""
+def get_pio_test_status(summary_path):
+    """Gets the test status from a PlatformIO summary JSON file."""
     if not os.path.exists(summary_path):
         return "UNKNOWN", "No Test History"
 
@@ -97,6 +100,49 @@ def get_test_status(summary_path):
         if '"error_nums": 0' in content and '"failure_nums": 0' in content:
             return "PASS", "Systems Nominal"
         return "FAIL", "Logic Broken"
+
+
+def get_devops_aggregated_test_status(tools_dir):
+    """Aggregates test_status.json from all tool subdirectories.
+
+    Scans agentic_devops/tools/*/test_status.json.
+    ANY FAIL -> overall FAIL. All PASS -> overall PASS.
+    Directories without test_status.json are ignored.
+    """
+    if not os.path.isdir(tools_dir):
+        return "UNKNOWN", "No tools directory"
+
+    found_any = False
+    failures = []
+
+    for entry in sorted(os.listdir(tools_dir)):
+        status_path = os.path.join(tools_dir, entry, "test_status.json")
+        if not os.path.isfile(status_path):
+            continue
+
+        found_any = True
+        try:
+            with open(status_path, 'r') as f:
+                data = json.load(f)
+            if data.get("status") != "PASS":
+                failures.append(entry)
+        except (json.JSONDecodeError, KeyError):
+            failures.append(entry)
+
+    if not found_any:
+        return "UNKNOWN", "No test reports found"
+
+    if failures:
+        return "FAIL", f"Failing: {', '.join(failures)}"
+
+    return "PASS", "All tools nominal"
+
+
+def get_domain_test_status(domain):
+    """Dispatches to the correct test status reader based on domain config."""
+    if domain.get("test_mode") == "devops_aggregate":
+        return get_devops_aggregated_test_status(domain["tools_dir"])
+    return get_pio_test_status(domain.get("test_summary", ""))
 
 
 def get_git_status():
@@ -138,7 +184,7 @@ def _domain_column_html(domain):
         f'<p class="dim">and {overflow} more&hellip;</p>' if overflow > 0 else ""
     )
 
-    test_status, test_msg = get_test_status(domain["test_summary"])
+    test_status, test_msg = get_domain_test_status(domain)
 
     return f"""
     <div class="domain-col">
