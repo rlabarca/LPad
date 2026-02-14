@@ -1,8 +1,8 @@
-# How We Work: The LPad Agentic Workflow
+# How We Work: The Agentic Workflow
 
 ## 1. Core Philosophy: "Code is Disposable"
 The single source of truth for this project is not the code, but the **Specifications** and **Architectural Policies**. 
-*   **Application Domain:** `features/` defines the LPad product.
+*   **Application Domain:** `features/` defines the target product.
 *   **Agentic Domain:** `agentic_devops/features/` defines the workflow and tools.
 *   If the code is lost, it must be reproducible from the specs.
 *   We never fix bugs in code first; we fix the specification that allowed the bug.

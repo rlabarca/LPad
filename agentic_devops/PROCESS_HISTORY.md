@@ -31,15 +31,15 @@ This log tracks the evolution of our DevOps processes and agentic protocols. Ent
 - **Documentation Standard:** Formalized the "No Emojis" mandate for all Markdown documentation.
 
 ## [2026-02-14] Milestone: Release v0.73 - Meta-Process Evolution
-- **Synchronized Release Protocol:** Established a dual-domain audit requirement for GitHub pushes, ensuring firmware stability and DevOps toolchain health are validated in parallel.
-- **Stable Firmware Mandate:** Formalized the ability to release process improvements (DevOps) independently of firmware changes, while maintaining regression verification.
+- **Synchronized Release Protocol:** Established a dual-domain audit requirement for GitHub pushes, ensuring application stability and DevOps toolchain health are validated in parallel.
+- **Stable Application Mandate:** Formalized the ability to release process improvements (DevOps) independently of application changes, while maintaining regression verification.
 - **Recursive Governance:** Applied the Spec-Driven Workflow to the `agentic_devops` framework itself.
 - **Domain Separation:** Established `agentic_devops/features/` for meta-specifications, separating them from the `features/` application domain.
 - **Bootstrap Specs:** Authored initial meta-features for `arch_agentic_workflow`, `cdd_status_monitor`, `software_map_generator`, `proc_history_management`, and `proc_release_protocol`.
 - **Granular Instruction Tracking:** Created dedicated feature specifications for `agent_architect_instructions.md` and `agent_builder_instructions.md` under a new "Agent Instructions" category to manage role evolutions.
 - **Agentic Orchestration:** Empowered the Builder agent to orchestrate specialized sub-agents and internal personas for complex tasks to improve implementation accuracy.
-- **Test Isolation Mandate:** Enforced strict separation of test execution between LPad (PlatformIO/C++) and Agentic (Python/Tools) domains.
-- **UI Refinement:** Fixed a layout/zoom race condition in the Software Map Browser and added multi-tab support for domain-specific dependency trees (LPad vs. Agentic DevOps).
+- **Test Isolation Mandate:** Enforced strict separation of test execution between the Application and Agentic (Python/Tools) domains.
+- **UI Refinement:** Fixed a layout/zoom race condition in the Software Map Browser and added multi-tab support for domain-specific dependency trees (Application vs. Agentic DevOps).
 
 ## [2026-02-13] Milestone: Release v0.72 - UI Widgets & Multi-WiFi
 - **Widget Architecture:** Implemented a formal `UI Widget System` using relative positioning and layout heuristics.

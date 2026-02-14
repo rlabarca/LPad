@@ -5,7 +5,7 @@
 > Prerequisite: agentic_devops/features/arch_agentic_workflow.md
 
 ## 1. Overview
-Ensures that the evolution of the LPad system—both its Firmware and its Agentic Workflow—is recorded as a series of coupled milestones.
+Ensures that the evolution of the system—both the Application and its Agentic Workflow—is recorded as a series of coupled milestones.
 
 ## 2. Requirements
 *   **Sequential Log:** All modifications to instructions, tools, or policies must be recorded in `agentic_devops/PROCESS_HISTORY.md` with timestamps.

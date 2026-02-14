@@ -6,9 +6,9 @@ from collections import defaultdict
 
 # Root is 3 levels up from this script (agentic_devops/tools/software_map -> project root)
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../'))
-MMD_FILE_LPAD = os.path.join(ROOT_DIR, "agentic_devops/tools/feature_graph_lpad.mmd")
+MMD_FILE_APP = os.path.join(ROOT_DIR, "agentic_devops/tools/feature_graph_app.mmd")
 MMD_FILE_AGENTIC = os.path.join(ROOT_DIR, "agentic_devops/tools/feature_graph_agentic.mmd")
-FEATURES_DIR_LPAD = os.path.join(ROOT_DIR, "features")
+FEATURES_DIR_APP = os.path.join(ROOT_DIR, "features")
 FEATURES_DIR_AGENTIC = os.path.join(ROOT_DIR, "agentic_devops/features")
 README_FILE = os.path.join(ROOT_DIR, "README.md")
 
@@ -184,7 +184,7 @@ def update_domain(features_dir, mmd_file, domain_name):
     else:
         print(f"No changes to {mmd_file}")
 
-    if domain_name == "LPad":
+    if domain_name == "Application":
         update_readme(mmd_content)
         
     print(f"\n{'='*40}")
@@ -213,5 +213,5 @@ def update_readme(mmd_content):
                 print("No changes to README.md")
 
 if __name__ == "__main__":
-    update_domain(FEATURES_DIR_LPAD, MMD_FILE_LPAD, "LPad")
+    update_domain(FEATURES_DIR_APP, MMD_FILE_APP, "Application")
     update_domain(FEATURES_DIR_AGENTIC, MMD_FILE_AGENTIC, "Agentic DevOps")

@@ -5,13 +5,13 @@
 > Prerequisite: agentic_devops/features/arch_agentic_workflow.md
 
 ## 1. Overview
-The Continuous Deployment-Driven (CDD) Monitor tracks the status of all feature files across both the Application (LPad) and Agentic (DevOps) domains.
+The Continuous Deployment-Driven (CDD) Monitor tracks the status of all feature files across both the Application and Agentic (DevOps) domains.
 
 ## 2. Requirements
 
 ### 2.1 Domain Separation
-*   **Split View:** The UI must display two distinct columns/sections: "LPad Application" and "Agentic DevOps".
-*   **Path Awareness:** The monitor must scan `features/` for LPad status and `agentic_devops/features/` for DevOps status.
+*   **Split View:** The UI must display two distinct columns/sections: "Application" and "Agentic DevOps".
+*   **Path Awareness:** The monitor must scan `features/` for Application status and `agentic_devops/features/` for DevOps status.
 *   **Tag Parsing:** Status is derived from git commit tags using the full relative path (e.g., `[Complete features/X.md]` or `[Complete agentic_devops/features/Y.md]`).
 
 ### 2.2 UI & Layout
@@ -20,7 +20,7 @@ The Continuous Deployment-Driven (CDD) Monitor tracks the status of all feature 
 *   **Status Indicators:** Maintain the Gold (TODO), Blue (TESTING), and Green (DONE) color coding.
 
 ### 2.3 Verification Signals
-*   **LPad Tests:** Monitor `.pio/testing/last_summary.json` for firmware logic status.
+*   **Application Tests:** Monitor the primary project's test summary for logic status.
 *   **DevOps Tests (Standardized Protocol):** 
     *   The monitor must scan all subdirectories in `agentic_devops/tools/` for a file named `test_status.json`.
     *   **Aggregation:** If ANY `test_status.json` reports a failure, the "DevOps Test Status" must show **FAIL**. 
@@ -33,7 +33,7 @@ The Continuous Deployment-Driven (CDD) Monitor tracks the status of all feature 
     Given a commit with tag "[Complete agentic_devops/features/tool_x.md]"
     When the CDD monitor refreshes
     Then "tool_x.md" appears in the DONE section of the Agentic DevOps column
-    And it does NOT appear in the LPad Application column
+    And it does NOT appear in the Application column
 
 ## 4. Implementation Notes
 *   **Git Efficiency:** Use `git log --grep` with the full relative path to avoid collision between domains.

@@ -10,14 +10,14 @@ Defines the implementation protocols and domain-aware requirements for the Build
 ## 2. Requirements
 
 ### 2.1 Domain-Aware Implementation
-*   **LPad Context (`features/`):** 
-    *   Targets: `src/`, `hal/`, `include/`.
-    *   Tests: MUST be placed in `test/`.
-    *   Tooling: Use PlatformIO (`pio test`).
+*   **Application Context (`features/`):** 
+    *   Targets: Primary system source code.
+    *   Tests: MUST be placed in the project's standard test directory.
+    *   Tooling: Use the project's primary build/test system.
 *   **DevOps Context (`agentic_devops/features/`):**
     *   Targets: `agentic_devops/tools/`.
-    *   Tests: MUST be colocated within the tool's directory (e.g., `agentic_devops/tools/cdd/tests/`) or as standalone scripts.
-    *   Constraint: NEVER place DevOps/Process tests in the project's root `test/` folder.
+    *   Tests: MUST be colocated within the tool's directory.
+    *   Constraint: NEVER place DevOps/Process tests in the primary application's test folder.
 
 ### 2.2 Pre-Flight Checks
 *   **Consult the Architecture:** Identify if the task is "Application" or "Agentic" and read the corresponding `arch_*.md`.
@@ -35,7 +35,7 @@ Defines the implementation protocols and domain-aware requirements for the Build
 *   **Local Test Runners:** The Builder must look for and execute test scripts located within the specific tool's directory.
 *   **Standard Reporting (MANDATORY):** Every DevOps test execution MUST generate or update a `test_status.json` file in the tool's directory.
     *   **Format:** `{"status": "PASS" | "FAIL", "timestamp": "...", "message": "..."}`
-*   **No Pollution:** Running Agentic tests must never trigger a re-compilation or execution of LPad firmware tests.
+*   **No Pollution:** Running Agentic tests must never trigger a re-compilation or execution of the primary application tests.
 
 ## 3. Scenarios
 

@@ -278,7 +278,7 @@
         Feature Map Browser
     </div>
     <div id="tab-bar">
-        <div id="tab-lpad" class="tab active" onclick="switchTab('lpad')">LPad</div>
+        <div id="tab-app" class="tab active" onclick="switchTab('app')">Application</div>
         <div id="tab-agentic" class="tab" onclick="switchTab('agentic')">Agentic Devops</div>
     </div>
 
@@ -318,7 +318,7 @@
 
         let lastMtime = 0;
         let panZoom = null;
-        let currentTab = 'lpad';
+        let currentTab = 'app';
 
         function switchTab(tab) {
             if (currentTab === tab) return;
@@ -338,17 +338,17 @@
                     pan: panZoom.getPan(),
                     zoom: panZoom.getZoom()
                 };
-                localStorage.setItem(`lpad_software_map_zoom_${currentTab}`, JSON.stringify(state));
+                localStorage.setItem(`software_map_zoom_${currentTab}`, JSON.stringify(state));
             }
         }
 
         function getZoomState() {
-            const saved = localStorage.getItem(`lpad_software_map_zoom_${currentTab}`);
+            const saved = localStorage.getItem(`software_map_zoom_${currentTab}`);
             return saved ? JSON.parse(saved) : null;
         }
 
         function resetZoom() {
-            localStorage.removeItem(`lpad_software_map_zoom_${currentTab}`);
+            localStorage.removeItem(`software_map_zoom_${currentTab}`);
             if (panZoom) {
                 panZoom.resize();
                 panZoom.fit();

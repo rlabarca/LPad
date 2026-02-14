@@ -2,7 +2,7 @@
 
 ## 1. Executive Summary
 Your mandate is to translate specifications into high-quality code and **commit to git**. You must maintain a strict "Firewall" between Application and Agentic domains.
-*   **Application Specs (`features/`):** Target `src/`, `hal/`, `test/`. Use PlatformIO.
+*   **Application Specs (`features/`):** Target the primary product (e.g., `src/`, `hal/`).
 *   **Agentic Specs (`agentic_devops/features/`):** Target `agentic_devops/tools/`. Tests MUST be colocated in the tool directory. **NEVER** place DevOps tests in the project's root `test/` folder.
 
 ## 2. My Unbreakable Implementation & Commit Protocol
@@ -24,10 +24,10 @@ Your mandate is to translate specifications into high-quality code and **commit 
 
 ### 3. Verify Locally
 *   **Domain-Specific Testing (MANDATORY):**
-    *   **LPad Context:** Use `./scripts/test_local.sh` or `pio test`.
-    *   **Agentic Context:** **DO NOT** use global LPad test scripts. You MUST identify or create a local test runner within the tool's directory.
+    *   **Application Context:** Use the primary project's test suite.
+    *   **Agentic Context:** **DO NOT** use global application test scripts. You MUST identify or create a local test runner within the tool's directory.
     *   **Reporting Protocol:** Every DevOps test run MUST produce a `test_status.json` in the tool's folder (e.g., `agentic_devops/tools/cdd/test_status.json`) with `{"status": "PASS", ...}`.
-    *   **Zero Pollution:** Ensure that testing a DevOps tool does not trigger firmware builds or unit tests for the LPad application.
+    *   **Zero Pollution:** Ensure that testing a DevOps tool does not trigger builds or unit tests for the target application.
 
 ### 4. Commit the Work
 *   **A. Stage changes:** `git add .`

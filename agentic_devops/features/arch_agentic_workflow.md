@@ -4,7 +4,7 @@
 > Category: "Process"
 
 ## 1. Overview
-This policy defines the core roles, responsibilities, and the "Code is Disposable" philosophy that governs all LPad development. It ensures a deterministic relationship between specifications and implementation.
+This policy defines the core roles, responsibilities, and the "Code is Disposable" philosophy that governs all development within this system. It ensures a deterministic relationship between specifications and implementation.
 
 ## 2. Core Philosophy: "Code is Disposable"
 *   **Source of Truth:** The project's state is defined 100% by the `features/` directory and `ARCHITECT_INSTRUCTIONS.md` / `BUILDER_INSTRUCTIONS.md`.

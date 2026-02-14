@@ -10,7 +10,8 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..
 
 DOMAINS = [
     {
-        "label": "LPad Application",
+                        "label": "Application",
+        
         "features_rel": "features",
         "features_abs": os.path.join(PROJECT_ROOT, "features"),
         "test_mode": "pio_summary",
