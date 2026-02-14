@@ -23,6 +23,8 @@ flowchart TD
         title_Process ~~~ arch_agentic_workflow
         proc_history_management["Proc: History Management<br/><small>proc_history_management.md</small>"]
         title_Process ~~~ proc_history_management
+        proc_release_protocol["Proc: Release Protocol<br/><small>proc_release_protocol.md</small>"]
+        title_Process ~~~ proc_release_protocol
     end
 
     %% Relationships
@@ -30,6 +32,7 @@ flowchart TD
     arch_agentic_workflow --> agent_builder_instructions
     arch_agentic_workflow --> cdd_status_monitor
     arch_agentic_workflow --> proc_history_management
+    arch_agentic_workflow --> proc_release_protocol
     arch_agentic_workflow --> software_map_generator
 
     %% Styling Definitions
@@ -51,3 +54,4 @@ flowchart TD
     class title_Process subgraphTitle;
     class arch_agentic_workflow process;
     class proc_history_management process;
+    class proc_release_protocol process;

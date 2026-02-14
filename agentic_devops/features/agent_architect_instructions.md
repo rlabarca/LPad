@@ -11,7 +11,7 @@ Defines the operational mandate, core responsibilities, and procedural protocols
 *   **Role Definition:** Must clearly define the Architect as the Process Manager and lead designer.
 *   **Implementation Restriction:** Must strictly enforce the "Zero Code Implementation" mandate for application logic.
 *   **Knowledge Management:** Defines the responsibility for bootstrapping and maintaining "Living Specs" and "Implementation Notes."
-*   **Release Protocol:** Codifies the step-by-step procedure for preparing and executing a project release.
+*   **Dual-Domain Release Protocol:** Codifies the synchronized audit of both Application and Agentic domains before GitHub pushes.
 *   **Safety & Integrity:** Mandates proactive questioning and dependency verification (Acyclic Mandate).
 
 ## 3. Scenarios

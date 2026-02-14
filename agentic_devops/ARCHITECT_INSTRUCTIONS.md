@@ -118,123 +118,33 @@ We **DO NOT** create v2/v3 feature files.
 
 
 
-## 6. Release Protocol (The "vX.Y" Trigger)
+## 6. Dual-Domain Release Protocol (The "vX.Y" Trigger)
 
+When the user issues a release command or prepares a push to GitHub, you MUST execute this synchronized audit:
 
+1.  **Dual-Domain Verification:**
+    - **LPad:** Verify PASS status from PlatformIO native tests.
+    - **DevOps:** Verify PASS status from aggregated `agentic_devops/tools/*/test_status.json` files.
+    - **BLOCKER:** Do not proceed if either domain is in a FAIL or UNKNOWN state.
 
-
-
-
-
-When the user issues a release command (e.g., "release v0.71"), you MUST execute the following sequence:
-
-
-
-
-
-
-
-*   **Test Fidelity Mandate:** Release specifications MUST maintain the full rigor of previous testing criteria. Do not simplify or consolidate HIL test steps into summaries when transitioning from a feature-release to a regression-release. Each step of the original verification MUST remain explicit to prevent testing drift.
-
-
-
-
-
-
-
-1.  **Graph Validation:**
-
-
-
-
-
-
-
+2.  **Synchronized Mapping:**
     - Run `agentic_devops/tools/software_map/generate_tree.py`.
+    - **Verification:** Open the browser map and verify both the "LPad" and "Agentic Devops" tabs for dependency integrity (no cycles/orphans).
 
+3.  **Evolution Synchronization:**
+    - Update `agentic_devops/PROCESS_HISTORY.md` with all meta-feature and tool changes.
+    - Sync the "Agentic Evolution" table in `README.md`, ensuring Firmware and Process milestones are coupled.
 
+4.  **Instruction Audit:**
+    - Verify that `ARCHITECT_INSTRUCTIONS.md` and `BUILDER_INSTRUCTIONS.md` are in sync with the meta-specs in `agentic_devops/features/`.
 
-    - Check for broken `> Prerequisite:` links (files that don't exist).
-
-
-
-    - Ensure the software map accurately reflects the intended release scope.
-
-
-
-2.  **Orphan Cleanup (Staging):** 
-
-
-
-    - Run `agentic_devops/tools/cleanup_orphaned_features.py` (without `--fix`).
-
-
-
-    - **Architect Review:** Manually review the output. Ensure none of the "orphans" are actually in-progress or intended future features.
-
-
-
-    - **User Confirmation:** Present the list to the User and ask for approval to move them to `features/.trash/`.
-
-
-
-    - **Execution:** Only run with `--fix` after User approval.
-
-
-
-3.  **Builder Audit (User-Directed):**
-
-
-
-    - You MUST provide the User with a specific prompt to give to the Builder to run the `Spec-Code Integrity Audit`.
-
-
-
-    - You MUST wait for the User to confirm that the Builder has successfully completed the audit and remediated any drift before proceeding.
-
-
-
-4.  **HIL Sign-off:** 
-
-
-
-    - Verify that the corresponding `features/RELEASE_vX.Y_*.md` file exists.
-
-
-
-    - Confirm all "HIL Test" criteria are marked as verified (or implementation notes explain any exceptions).
-
-
-
-5.  **Documentation Sync:**
-
-
-
-    - Update `agentic_devops/PROCESS_HISTORY.md` with all process changes since the last release.
-
-
-
-    - Sync the "Agentic Evolution" and "Releases" tables in the root `README.md`.
-
-
-
-    - Ensure `HOW_WE_WORK.md` matches the current workflow reality.
-
-
+5.  **Orphan Cleanup:** 
+    - Run `agentic_devops/tools/cleanup_orphaned_features.py`.
+    - Present the list of "orphans" to the User for approval before moving to `.trash/`.
 
 6.  **Git Delivery:** 
-
-
-
-    - Verify `git status` is clean.
-
-
-
-    - Create a commit with message: `Release vX.Y: [Brief Summary]`.
-
-
-
-    - Push to the remote repository.
+    - Verify `git status` is clean. Propose a commit message: `Release vX.Y: [Summary] [Complete agentic_devops/features/proc_release_protocol.md]`.
+    - Only push after all previous steps are confirmed.
 
 
 

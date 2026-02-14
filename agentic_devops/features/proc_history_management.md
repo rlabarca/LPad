@@ -5,12 +5,12 @@
 > Prerequisite: agentic_devops/features/arch_agentic_workflow.md
 
 ## 1. Overview
-Ensures that all changes to the agentic workflow are documented, tracked, and synced with the project's releases.
+Ensures that the evolution of the LPad system—both its Firmware and its Agentic Workflow—is recorded as a series of coupled milestones.
 
 ## 2. Requirements
-*   **Sequential Log:** All modifications to instructions, tools, or policies must be recorded in `agentic_devops/PROCESS_HISTORY.md`.
-*   **Evolution Table:** The root `README.md` must contain an "Agentic Evolution" table derived from the process history.
-*   **Release Sync:** During the Release Protocol, the Architect must ensure the history and evolution tables are up to date.
+*   **Sequential Log:** All modifications to instructions, tools, or policies must be recorded in `agentic_devops/PROCESS_HISTORY.md` with timestamps.
+*   **Coupled Evolution Table:** The root `README.md` must contain an "Agentic Evolution" table that maps Firmware Capabilities to Agentic DevOps Progress.
+*   **Audit Trail:** Every release must link the state of the `agentic_devops/features/` domain to the corresponding firmware milestone.
 
 ## 3. Scenarios
 
