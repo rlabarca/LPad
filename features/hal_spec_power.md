@@ -71,5 +71,8 @@ XPowersLib's `pmu.begin(Wire, addr, sda, scl)` calls `Wire.begin(sda, scl)` inte
 ### [2026-02-14] Voltage-Based % Over Coulomb Counter
 `getBatteryPercent()` reads the AXP2101 coulomb counter register which defaults to 100% on fresh init and requires a full charge/discharge cycle to calibrate. Use `getBattVoltage()` with LiPo curve (3270mV=0%, 4200mV=100%) for immediate accuracy.
 
+### [2026-02-14] Charging % Rate Limiter (Terminal Voltage Spike)
+During active charging, the battery terminal voltage is elevated above OCV by charge current × internal resistance + electrochemical overpotential. This causes the voltage-based % to spike to ~100% instantly on charger connect. Fix: cache last reported level (`g_last_level`) and cap increases to +1% per poll (2s intervals) when `isCharging()`. On charger disconnect, `isCharging()` returns false so the rate limiter disengages and the OCV-based level reads accurately. On boot, `g_last_level` starts at -1 (no cache), so the first reading uses raw voltage (accurate OCV before charging starts).
+
 ### [2026-02-14] T-Display S3 Plus Still Safe Passthrough
 The LilyGo `power_tdisplay_s3_plus.cpp` remains a safe passthrough (returns NO_BATTERY) until the correct power monitoring method is identified for that board during HIL.

@@ -18,6 +18,7 @@
 
 static XPowersPMU pmu;
 static bool g_pmu_ready = false;
+static int8_t g_last_level = -1;  // Rate-limiter for charging % (prevents voltage-spike jumps)
 
 // LiPo discharge curve thresholds (millivolts)
 static const uint16_t LIPO_MIN_MV = 3270;
@@ -104,17 +105,25 @@ hal_power_status_t hal_power_get_status(void) {
 
 int8_t hal_power_get_charge_level(void) {
     if (!g_pmu_ready || !pmu.isBatteryConnect()) {
+        g_last_level = -1;
         return -1;
     }
 
-    // Voltage-based percentage (more reliable than coulomb counter which
-    // needs calibration and defaults to 100% on fresh init)
     uint16_t mv = pmu.getBattVoltage();
     if (mv == 0) return -1;
 
     int32_t level = ((int32_t)mv - LIPO_MIN_MV) * 100 / (LIPO_MAX_MV - LIPO_MIN_MV);
     if (level < 0) level = 0;
     if (level > 100) level = 100;
+
+    // During charging, terminal voltage is elevated above OCV by charge
+    // current × internal resistance, causing the raw % to spike instantly.
+    // Rate-limit increases to +1% per poll (2s) for smooth visual progress.
+    if (pmu.isCharging() && g_last_level >= 0 && level > g_last_level + 1) {
+        level = g_last_level + 1;
+    }
+
+    g_last_level = (int8_t)level;
     return (int8_t)level;
 }
 
