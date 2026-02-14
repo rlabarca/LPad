@@ -23,8 +23,10 @@ Your mandate is to translate specifications into high-quality code and **commit 
 *   **Architectural Escalation:** If a discovery affects a global rule (e.g., a new invariant or a change in directory structure), you MUST update the relevant `features/arch_*.md` file. This ensures the "Constitution" remains accurate. Do NOT create separate log files.
 
 ### 3. Verify Locally
-*   Run the project's test suite (e.g., `./scripts/test_local.sh`).
-*   Confirm all tests pass before proceeding.
+*   **Domain-Specific Testing (MANDATORY):**
+    *   **LPad Context:** Use `./scripts/test_local.sh` or `pio test`.
+    *   **Agentic Context:** **DO NOT** use global LPad test scripts. You MUST identify or create a local test runner within the tool's directory (e.g., `agentic_devops/tools/cdd/tests.py`). 
+    *   **Zero Pollution:** Ensure that testing a DevOps tool does not trigger firmware builds or unit tests for the LPad application.
 
 ### 4. Commit the Work
 *   **A. Stage changes:** `git add .`

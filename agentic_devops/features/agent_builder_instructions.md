@@ -30,9 +30,10 @@ Defines the implementation protocols and domain-aware requirements for the Build
     *   `[Ready for HIL Test]`: Firmware ready for hardware.
     *   `[Complete]`: Logic verified (for tools) or HIL passed (for firmware).
 
-### 2.4 Agentic Team Orchestration
-*   **Delegation Mandate:** The Builder is authorized to "spawn" or delegate sub-tasks to specialized sub-agents (e.g., Codebase Investigator, Test-Fixing Agent) whenever a task involves high complexity, ambiguity, or requires deep verification.
-*   **Efficiency Metric:** The Builder should prioritize delegation when the parallel or specialized focus of a sub-agent would result in higher accuracy or reduced token consumption compared to a monolithic approach.
+### 2.5 Domain-Specific Test Execution
+*   **Command Isolation:** The Builder MUST NOT use the global `./scripts/test_local.sh` or `pio test` when working in the Agentic domain.
+*   **Local Test Runners:** The Builder must look for and execute test scripts located within the specific tool's directory (e.g., `agentic_devops/tools/cdd/run_tests.sh`).
+*   **No Pollution:** Running Agentic tests must never trigger a re-compilation or execution of LPad firmware tests.
 
 ## 3. Scenarios
 

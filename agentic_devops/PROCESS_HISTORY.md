@@ -39,6 +39,7 @@ This log tracks the evolution of our DevOps processes and agentic protocols. Ent
 - **Documentation Sync:** Updated `HOW_WE_WORK.md` and the root `README.md` to reflect the new separation of concerns.
 - **UI Refinement:** Fixed a layout/zoom race condition in the Software Map Browser and added multi-tab support for domain-specific dependency trees (LPad vs. Agentic DevOps).
 - **Agentic Orchestration:** Empowered the Builder agent to orchestrate specialized sub-agents and internal personas for complex tasks to improve implementation accuracy.
+- **Test Isolation Mandate:** Enforced strict separation of test execution between LPad (PlatformIO/C++) and Agentic (Python/Tools) domains. Builders must now use domain-local test runners for DevOps tools to avoid polluting the firmware test logs.
 
 ## [2026-02-13] Milestone: Release v0.72 - UI Widgets & Multi-WiFi
 - **Widget Architecture:** Implemented a formal `UI Widget System` using relative positioning and layout heuristics.
