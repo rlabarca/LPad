@@ -63,6 +63,10 @@ void SystemMenuComponent::setSSIDColor(uint16_t color) {
     if (m_inner) m_inner->setSSIDColor(color);
 }
 
+void SystemMenuComponent::setBatteryStatus(const BatteryStatus* status) {
+    if (m_inner) m_inner->setBatteryStatus(status);
+}
+
 void SystemMenuComponent::setHeadingFont(const void* font) {
     if (m_inner) m_inner->setHeadingFont(font);
 }

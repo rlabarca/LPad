@@ -15,6 +15,7 @@
 #include "ui_system_menu.h"
 #include "../relative_display.h"
 #include "../themes/default/theme_colors.h"
+#include "../data/battery_status.h"
 #include "widgets/ui_widget.h"
 #include "widgets/text_widget.h"
 #include "widgets/wifi_list_widget.h"
@@ -35,6 +36,7 @@ SystemMenu::SystemMenu()
     , m_versionColor(LPad::THEME_TEXT_VERSION)
     , m_ssidFont(nullptr)
     , m_ssidColor(LPad::THEME_TEXT_STATUS)
+    , m_batteryStatus(nullptr)
     , m_canvas(nullptr)
     , m_relDisplay(nullptr)
     , m_canvasBuffer(nullptr)
@@ -158,6 +160,10 @@ void SystemMenu::setSSIDFont(const void* font) {
 void SystemMenu::setSSIDColor(uint16_t color) {
     m_ssidColor = color;
     m_dirty = true;
+}
+
+void SystemMenu::setBatteryStatus(const BatteryStatus* status) {
+    m_batteryStatus = status;
 }
 
 void SystemMenu::setHeadingFont(const void* font) {
@@ -297,6 +303,48 @@ void SystemMenu::render() {
 
     // Legacy overlays also only drawn when fully OPEN (same as widgets)
     if (m_state == OPEN) {
+        // --- Battery status overlay (top-left corner) ---
+        if (m_batteryStatus != nullptr) {
+            hal_power_status_t batStatus = m_batteryStatus->getStatus();
+            int8_t batLevel = m_batteryStatus->getChargeLevel();
+
+            // Format display text
+            char batText[16];
+            if (batStatus == HAL_POWER_STATUS_NO_BATTERY) {
+                snprintf(batText, sizeof(batText), "[NO BATTERY]");
+            } else if (batLevel >= 0) {
+                snprintf(batText, sizeof(batText), "%d%%", batLevel);
+            } else {
+                batText[0] = '\0';  // Unknown state — hide
+            }
+
+            if (batText[0] != '\0') {
+                // Color logic per arch_power_management.md §3
+                uint16_t batColor = m_ssidColor;  // Default: same as WiFi SSID
+                if (batStatus == HAL_POWER_STATUS_CHARGING) {
+                    batColor = LPad::THEME_TEXT_CHARGING;  // Green
+                } else if (batStatus == HAL_POWER_STATUS_DISCHARGING && batLevel < 15) {
+                    batColor = LPad::THEME_TEXT_ERROR;     // Red
+                }
+
+                m_canvas->setFont(static_cast<const GFXfont*>(m_ssidFont));
+                m_canvas->setTextColor(batColor);
+
+                int16_t bx1, by1;
+                uint16_t btw, bth;
+                m_canvas->getTextBounds(batText, 0, 0, &bx1, &by1, &btw, &bth);
+
+                // 10px absolute left padding (avoids rounded corner clipping)
+                int32_t bat_x = CORNER_PADDING_PX;
+                int32_t bat_y = m_relDisplay->relativeToAbsoluteY(SSID_Y_PERCENT) - by1;
+
+                if (bat_y + by1 >= 0 && bat_y + by1 + static_cast<int32_t>(bth) <= visiblePx) {
+                    m_canvas->setCursor(bat_x, bat_y);
+                    m_canvas->print(batText);
+                }
+            }
+        }
+
         // --- Legacy SSID overlay (top-right corner) ---
         if (m_ssidText != nullptr && m_ssidText[0] != '\0') {
             m_canvas->setFont(static_cast<const GFXfont*>(m_ssidFont));
@@ -307,7 +355,8 @@ void SystemMenu::render() {
             m_canvas->getTextBounds(m_ssidText, 0, 0, &x1, &y1, &tw, &th);
 
             int32_t text_y = m_relDisplay->relativeToAbsoluteY(SSID_Y_PERCENT) - y1;
-            int32_t right_edge = m_relDisplay->relativeToAbsoluteX(100.0f - MARGIN_PERCENT);
+            // 10px absolute right padding (avoids rounded corner clipping)
+            int32_t right_edge = m_relDisplay->relativeToAbsoluteX(100.0f - MARGIN_PERCENT) - CORNER_PADDING_PX;
             int32_t text_x = right_edge - static_cast<int32_t>(tw);
 
             if (text_y + y1 >= 0 && text_y + y1 + static_cast<int32_t>(th) <= visiblePx) {

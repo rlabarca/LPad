@@ -23,6 +23,7 @@ class RelativeDisplay;
 class WidgetLayoutEngine;
 class GridWidgetLayout;
 class TextWidget;
+class BatteryStatus;
 
 class SystemMenu {
 public:
@@ -47,6 +48,9 @@ public:
     void setVersionColor(uint16_t color);
     void setSSIDFont(const void* font);
     void setSSIDColor(uint16_t color);
+
+    /** Set battery telemetry source for top-left display. */
+    void setBatteryStatus(const BatteryStatus* status);
 
     // Widget configuration
     void setHeadingFont(const void* font);
@@ -103,6 +107,9 @@ private:
     TextWidget* m_headingWidget;
     WiFiListWidget* m_wifiList;
 
+    // Battery telemetry
+    const BatteryStatus* m_batteryStatus;
+
     // Dirty tracking
     bool m_dirty;
 
@@ -111,6 +118,7 @@ private:
     static constexpr float SSID_Y_PERCENT = 1.0f;
     static constexpr float VERSION_Y_BOTTOM = 99.0f;
     static constexpr float ANIMATION_DURATION = 0.25f;  // 250ms
+    static constexpr int32_t CORNER_PADDING_PX = 10;   // Absolute pixel padding for rounded corners
 
     // SSID change callback (wired to WiFiListWidget)
     static void onWiFiSSIDChanged(const char* ssid, void* context);

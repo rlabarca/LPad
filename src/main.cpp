@@ -1,10 +1,12 @@
 /**
  * @file main.cpp
- * @brief LPad v0.72 Entry Point
+ * @brief LPad v0.74 Entry Point
  *
- * UIRenderManager-driven architecture with Widget-based System Menu.
+ * UIRenderManager-driven architecture with Widget-based System Menu
+ * and background battery metering via PowerManager.
  *
  * Components:
+ *   Z=0  PowerManager         (SystemComponent, background polling)
  *   Z=1  StockTickerApp       (AppComponent)
  *   Z=10 MiniLogoComponent    (SystemComponent, passive overlay)
  *   Z=20 SystemMenuComponent  (SystemComponent, activation=EDGE_DRAG TOP)
@@ -16,6 +18,7 @@
 #include "apps/stock_ticker_app.h"
 #include "system/mini_logo_component.h"
 #include "system/system_menu_component.h"
+#include "system/power_manager.h"
 #include "ui/ui_render_manager.h"
 #include "theme_manager.h"
 #include "relative_display.h"
@@ -35,6 +38,7 @@ static TouchGestureEngine* g_gestureEngine = nullptr;
 static StockTickerApp* g_stockTicker = nullptr;
 static MiniLogoComponent* g_miniLogo = nullptr;
 static SystemMenuComponent* g_systemMenu = nullptr;
+static PowerManager* g_powerManager = nullptr;
 
 static void displayError(const char* message) {
     hal_display_clear(LPad::ThemeManager::getInstance().getTheme()->colors.text_error);
@@ -49,12 +53,12 @@ void setup() {
     delay(500);
     yield();
 
-    Serial.println("\n\n\n=== LPad v0.72 (WiFi & Widgets) ===");
+    Serial.println("\n\n\n=== LPad v0.74 (Battery Metering) ===");
     Serial.flush();
     yield();
 
-    // [1/6] Display HAL
-    Serial.println("[1/6] Initializing display HAL...");
+    // [1/7] Display HAL
+    Serial.println("[1/7] Initializing display HAL...");
     Serial.flush();
 
     if (!hal_display_init()) {
@@ -73,8 +77,8 @@ void setup() {
     Serial.printf("  [INFO] Display resolution: %d x %d pixels\n", width, height);
     yield();
 
-    // [2/6] Touch HAL
-    Serial.println("[2/6] Initializing touch HAL...");
+    // [2/7] Touch HAL
+    Serial.println("[2/7] Initializing touch HAL...");
     Serial.flush();
 
     if (!hal_touch_init()) {
@@ -84,8 +88,8 @@ void setup() {
     Serial.println("  [PASS] Touch initialized");
     yield();
 
-    // [3/6] WiFi (iterative boot — try each configured network in order)
-    Serial.println("[3/6] Initializing WiFi...");
+    // [3/7] WiFi (iterative boot — try each configured network in order)
+    Serial.println("[3/7] Initializing WiFi...");
     Serial.flush();
     Serial.printf("  [INFO] %d WiFi networks configured\n", g_wifi_count);
 
@@ -120,8 +124,8 @@ void setup() {
     }
     yield();
 
-    // [4/6] RelativeDisplay + AnimationTicker + TouchGestureEngine
-    Serial.println("[4/6] Creating display abstraction and timing...");
+    // [4/7] RelativeDisplay + AnimationTicker + TouchGestureEngine
+    Serial.println("[4/7] Creating display abstraction and timing...");
     Serial.flush();
 
     display_relative_init();
@@ -147,8 +151,20 @@ void setup() {
     Serial.println("  [PASS] RelativeDisplay + 30fps Ticker + GestureEngine");
     yield();
 
-    // [5/6] Create standalone components
-    Serial.println("[5/6] Creating UI components...");
+    // [5/7] Power Manager (background polling at Z=0)
+    Serial.println("[5/7] Initializing Power Manager...");
+    Serial.flush();
+
+    g_powerManager = new PowerManager();
+    if (!g_powerManager->begin()) {
+        Serial.println("  [WARN] Power monitoring unavailable");
+    } else {
+        Serial.println("  [PASS] Power HAL initialized");
+    }
+    yield();
+
+    // [6/7] Create standalone components
+    Serial.println("[6/7] Creating UI components...");
     Serial.flush();
 
     const LPad::Theme* theme = LPad::ThemeManager::getInstance().getTheme();
@@ -167,13 +183,13 @@ void setup() {
         while (1) delay(1000);
     }
 
-    // System Menu (Z=20) - Widget-based for v0.72
+    // System Menu (Z=20) - Widget-based with battery display
     g_systemMenu = new SystemMenuComponent();
     if (!g_systemMenu->begin(gfx, width, height)) {
         displayError("SystemMenuComponent init failed");
         while (1) delay(1000);
     }
-    g_systemMenu->setVersion("Version 0.72");
+    g_systemMenu->setVersion("Version 0.74");
     g_systemMenu->setSSIDProvider(hal_network_get_ssid);
     g_systemMenu->setSSID(hal_network_get_ssid());
     g_systemMenu->setBackgroundColor(theme->colors.system_menu_bg);
@@ -182,6 +198,9 @@ void setup() {
     g_systemMenu->setVersionColor(theme->colors.text_version);
     g_systemMenu->setSSIDFont(theme->fonts.normal);
     g_systemMenu->setSSIDColor(theme->colors.text_status);
+
+    // Battery status provider
+    g_systemMenu->setBatteryStatus(g_powerManager->getBatteryStatus());
 
     // Widget configuration (colors per ui_system_menu.md §2)
     g_systemMenu->setHeadingFont(theme->fonts.normal);          // 12pt per spec
@@ -205,14 +224,15 @@ void setup() {
     Serial.println("  [PASS] StockTicker + MiniLogo + SystemMenu(Widgets) created");
     yield();
 
-    // [6/6] Register with UIRenderManager
-    Serial.println("[6/6] Registering with UIRenderManager...");
+    // [7/7] Register with UIRenderManager
+    Serial.println("[7/7] Registering with UIRenderManager...");
     Serial.flush();
 
     auto& mgr = UIRenderManager::getInstance();
     mgr.reset();
     mgr.setFlushCallback(hal_display_flush);
 
+    mgr.registerComponent(g_powerManager, 0);
     mgr.registerComponent(g_stockTicker, 1);
     mgr.registerComponent(g_miniLogo, 10);
 
@@ -224,6 +244,7 @@ void setup() {
 
     Serial.println("  [PASS] UIRenderManager configured:");
     Serial.printf("    Components: %d\n", mgr.getComponentCount());
+    Serial.println("    Z=0:  PowerManager (System, background polling)");
     Serial.println("    Z=1:  StockTicker  (App)");
     Serial.println("    Z=10: MiniLogo     (System, always visible)");
     Serial.println("    Z=20: SystemMenu   (System, activation=EDGE_DRAG TOP, Widget-based)");
@@ -232,7 +253,7 @@ void setup() {
     hal_display_clear(theme->colors.background);
     hal_display_flush();
 
-    Serial.println("\n=== LPad v0.72 Started ===");
+    Serial.println("\n=== LPad v0.74 Started ===");
     Serial.println("Swipe down from top edge to open System Menu");
     Serial.println("Tap a WiFi network in the menu to connect");
     Serial.flush();

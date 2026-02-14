@@ -16,6 +16,7 @@
 
 class Arduino_GFX;
 class SystemMenu;
+class BatteryStatus;
 
 class SystemMenuComponent : public SystemComponent {
 public:
@@ -33,6 +34,9 @@ public:
     void setVersionColor(uint16_t color);
     void setSSIDFont(const void* font);
     void setSSIDColor(uint16_t color);
+
+    /** Set battery telemetry source for top-left display. */
+    void setBatteryStatus(const BatteryStatus* status);
 
     // Widget configuration (v0.72)
     void setHeadingFont(const void* font);

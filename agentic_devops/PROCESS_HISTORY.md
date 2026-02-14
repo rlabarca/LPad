@@ -13,41 +13,23 @@ This log tracks the evolution of our DevOps processes and agentic protocols. Ent
 *   **Modular Architecture:** Replaced monolithic `ARCHITECTURE.md` with granular `arch_*.md` policy nodes in the dependency graph.
 *   **Instruction Refactoring:** Separated "Theory" (`HOW_WE_WORK.md`) from "Practice" (`*_INSTRUCTIONS.md`).
 *   **Evolution Tracking:** Codified the requirement to track process changes in parallel with software releases.
-
-## [2026-02-13] Milestone: Release v0.70 - UI Render Manager
-*   **Architectural Shift:** Migrated from monolithic "Demo Apps" to a managed `UIRenderManager` with Z-order compositing and input routing.
 *   **Role Maturity:** Successfully executed the first release under the new "Architect/Builder" role separation.
-*   **HIL Success:** Verified multi-layer rendering and system-level gesture interception on physical hardware.
-*   **Tree Integrity:** Re-anchored all HAL and Infrastructure specifications to policy nodes, resolving dependency orphans.
-*   **Style Mandate:** Formalized the "No Emojis" rule for all Markdown documentation in `ARCHITECT_INSTRUCTIONS.md`.
-*   **Screenshot Protocol:** Defined requirements for a Serial Screenshot Utility with an executable shell wrapper and automated `.venv` activation.
-*   **Acyclic Mandate:** Formalized the requirement to avoid and verify circular dependencies in `ARCHITECT_INSTRUCTIONS.md` following a graph recursion error.
-*   **Test Fidelity Mandate:** Codified the requirement in `ARCHITECT_INSTRUCTIONS.md` to maintain explicit, high-rigor HIL testing steps in all release specifications to prevent regression drift.
 
-## [2026-02-13] Milestone: Release v0.71 - Serial Screenshot Utility
-- **Feature Capability:** Implemented a Serial-triggered screenshot tool that dumps the display shadow buffer from PSRAM to a host PNG.
-- **Developer Utility:** Introduced \`scripts/screenshot.sh\` as a cross-platform capture tool with automated \`.venv\` management.
-- **Architectural Cleanup:** Resolved circular dependencies in the core architecture and established the acyclic graph mandate.
+## [2026-02-13] v0.71 Process Rigor & Standards
+- **Acyclic Mandate:** Formalized the requirement to avoid and verify circular dependencies in `ARCHITECT_INSTRUCTIONS.md` following a graph recursion error.
+- **Test Fidelity Mandate:** Codified the requirement in `ARCHITECT_INSTRUCTIONS.md` to maintain explicit, high-rigor HIL testing steps in all release specifications to prevent regression drift.
 - **Documentation Standard:** Formalized the "No Emojis" mandate for all Markdown documentation.
+- **Screenshot Protocol:** Defined requirements for a Serial Screenshot Utility with an executable shell wrapper and automated `.venv` activation.
+- **Milestone Mutation:** Established the "Single active Release Specification" rule and consistent visual hierarchy for spec headings.
 
-## [2026-02-14] Milestone: Release v0.73 - Meta-Process Evolution
-- **Universal Framework Refactor:** Decoupled the `agentic_devops` framework from the specific project context. All instructions, meta-features, and tools now use project-agnostic terminology, enabling the framework to be ported to any development domain.
+## [2026-02-14] v0.73 Meta-Process Evolution
+- **Universal Framework Refactor:** Decoupled the `agentic_devops` framework from the specific project context. All instructions, meta-features, and tools now use project-agnostic terminology.
 - **Synchronized Release Protocol:** Established a dual-domain audit requirement for GitHub pushes, ensuring application stability and DevOps toolchain health are validated in parallel.
-- **Zero-Queue Mandate:** Codified the requirement that ALL features must be in the [Complete] state before a push or release, ensuring no unresolved tasks or pending tests are committed to main.
-- **Stable Application Mandate:** Formalized the ability to release process improvements (DevOps) independently of application changes, while maintaining regression verification.
+- **Zero-Queue Mandate:** Codified the requirement that ALL features must be in the [Complete] state before a push or release.
+- **Stable Application Mandate:** Formalized the ability to release process improvements (DevOps) independently of application changes.
 - **Recursive Governance:** Applied the Spec-Driven Workflow to the `agentic_devops` framework itself.
-- **Domain Separation:** Established `agentic_devops/features/` for meta-specifications, separating them from the `features/` application domain.
-- **Bootstrap Specs:** Authored initial meta-features for `arch_agentic_workflow`, `cdd_status_monitor`, `software_map_generator`, `proc_history_management`, and `proc_release_protocol`.
-- **Granular Instruction Tracking:** Created dedicated feature specifications for `agent_architect_instructions.md` and `agent_builder_instructions.md` under a new "Agent Instructions" category to manage role evolutions.
-- **Agentic Orchestration:** Empowered the Builder agent to orchestrate specialized sub-agents and internal personas for complex tasks to improve implementation accuracy.
+- **Domain Separation:** Established `agentic_devops/features/` for meta-specifications.
+- **Bootstrap Specs:** Authored initial meta-features for the agentic toolchain.
+- **Granular Instruction Tracking:** Created dedicated feature specifications for `agent_architect_instructions.md` and `agent_builder_instructions.md`.
+- **Agentic Orchestration:** Empowered the Builder agent to orchestrate specialized sub-agents and internal personas.
 - **Test Isolation Mandate:** Enforced strict separation of test execution between the Application and Agentic (Python/Tools) domains.
-- **UI Refinement:** Fixed a layout/zoom race condition in the Software Map Browser and added multi-tab support for domain-specific dependency trees (Application vs. Agentic DevOps).
-
-## [2026-02-13] Milestone: Release v0.72 - UI Widgets & Multi-WiFi
-- **Widget Architecture:** Implemented a formal `UI Widget System` using relative positioning and layout heuristics.
-- **UI Framework Expansion:** Delivered `WidgetLayoutEngine`, `GridWidgetLayout`, `TextWidget`, and `ScrollableListWidget`.
-- **Network Evolution:** Updated HAL and Config to support multiple APs with iterative boot-time fallback and manual runtime selection.
-- **HIL Success:** Verified "window shade" animation synchronization, blinking connection states, and fallback SSID persistence on physical hardware.
-- **UI Refinement:** Iteratively tuned the "Section" heading style (12pt, underlined, Khaki) and layout justification based on HIL feedback.
-
-

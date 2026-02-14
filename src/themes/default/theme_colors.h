@@ -62,6 +62,11 @@ namespace LPad {
     static const uint16_t THEME_SYSTEM_MENU_BG = 0x0000;        // AMOLED black (pixels OFF)
 
     // ==========================================
+    // Power / Battery Colors
+    // ==========================================
+    static const uint16_t THEME_TEXT_CHARGING   = 0x07E0;          // Pure green for charging indicator
+
+    // ==========================================
     // Widget System Colors
     // ==========================================
     static const uint16_t THEME_TEXT_HIGHLIGHT   = COLOR_CHAMOISEE_16; // Connected/active network
