@@ -6,24 +6,26 @@ from collections import defaultdict
 
 # Root is 3 levels up from this script (agentic_devops/tools/software_map -> project root)
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../'))
-MMD_FILE = os.path.join(ROOT_DIR, "agentic_devops/tools/feature_graph.mmd")
-FEATURES_DIR = os.path.join(ROOT_DIR, "features")
+MMD_FILE_LPAD = os.path.join(ROOT_DIR, "agentic_devops/tools/feature_graph_lpad.mmd")
+MMD_FILE_AGENTIC = os.path.join(ROOT_DIR, "agentic_devops/tools/feature_graph_agentic.mmd")
+FEATURES_DIR_LPAD = os.path.join(ROOT_DIR, "features")
+FEATURES_DIR_AGENTIC = os.path.join(ROOT_DIR, "agentic_devops/features")
 README_FILE = os.path.join(ROOT_DIR, "README.md")
 
-def parse_features():
+def parse_features(features_dir):
     features = {}
     label_pattern = re.compile(r'^>\s*Label:\s*"(.*)"')
     category_pattern = re.compile(r'^>\s*Category:\s*"(.*)"')
     prereq_pattern = re.compile(r'^>\s*Prerequisite:\s*(.*)')
     
-    if not os.path.exists(FEATURES_DIR):
+    if not os.path.exists(features_dir):
         return features
 
-    for filename in os.listdir(FEATURES_DIR):
+    for filename in os.listdir(features_dir):
         if not filename.endswith(".md"):
             continue
             
-        filepath = os.path.join(FEATURES_DIR, filename)
+        filepath = os.path.join(features_dir, filename)
         node_id = filename.replace(".md", "").replace(".", "_")
         
         feature_data = {
@@ -47,11 +49,15 @@ def parse_features():
                 prereq_match = prereq_pattern.match(line)
                 if prereq_match:
                     prereq_str = prereq_match.group(1)
-                    # Split by comma and clean up whitespace and 'features/' prefix
+                    # Split by comma and clean up whitespace
                     prereq_files = [p.strip() for p in prereq_str.split(',')]
                     for prereq_file in prereq_files:
+                        # Strip common prefixes
                         if prereq_file.startswith("features/"):
                             prereq_file = prereq_file[9:]
+                        elif prereq_file.startswith("agentic_devops/features/"):
+                            prereq_file = prereq_file[24:]
+                            
                         if prereq_file.endswith(".md"):
                             prereq_id = prereq_file.replace(".md", "").replace(".", "_")
                             feature_data["prerequisites"].append(prereq_id)
@@ -90,6 +96,8 @@ def generate_mermaid_content(features):
             elif "UI" in category: css_class = "ui"
             elif "Application" in category: css_class = "app"
             elif "Graphics" in category: css_class = "graphics"
+            elif "Process" in category: css_class = "process"
+            elif "DevOps" in category: css_class = "devops"
             
             lines.append(f'        {node_id}["{clean_label}<br/><small>{data["filename"]}</small>"]')
             if css_class:
@@ -115,6 +123,8 @@ def generate_mermaid_content(features):
     lines.append("    classDef ui fill:#f3e5f5,stroke:#7b1fa2,stroke-width:1px,color:black;")
     lines.append("    classDef app fill:#fff3e0,stroke:#e65100,stroke-width:1px,color:black;")
     lines.append("    classDef graphics fill:#e0f7fa,stroke:#006064,stroke-width:1px,color:black;")
+    lines.append("    classDef process fill:#f1f8e9,stroke:#558b2f,stroke-width:1px,color:black;")
+    lines.append("    classDef devops fill:#eceff1,stroke:#455a64,stroke-width:1px,color:black;")
     lines.append("    classDef subgraphTitle fill:none,stroke:none,color:#111,font-size:32px,font-weight:bold;")
     
     lines.append("\n    %% Style Applications")
@@ -157,24 +167,33 @@ def generate_text_tree(features):
             
     return "\n".join(output)
 
-def update_files():
-    features = parse_features()
+def update_domain(features_dir, mmd_file, domain_name):
+    features = parse_features(features_dir)
     mmd_content = generate_mermaid_content(features)
     text_tree = generate_text_tree(features)
     
-    # Only write MMD if changed
     current_mmd = ""
-    if os.path.exists(MMD_FILE):
-        with open(MMD_FILE, 'r', encoding='utf-8') as f:
+    if os.path.exists(mmd_file):
+        with open(mmd_file, 'r', encoding='utf-8') as f:
             current_mmd = f.read()
     
     if mmd_content != current_mmd:
-        with open(MMD_FILE, 'w', encoding='utf-8') as f:
+        with open(mmd_file, 'w', encoding='utf-8') as f:
             f.write(mmd_content)
-        print(f"Updated {MMD_FILE}")
+        print(f"Updated {mmd_file}")
     else:
-        print(f"No changes to {MMD_FILE}")
-    
+        print(f"No changes to {mmd_file}")
+
+    if domain_name == "LPad":
+        update_readme(mmd_content)
+        
+    print(f"\n{'='*40}")
+    print(f"DEPENDENCY TREE FOR {domain_name}")
+    print(f"{'='*40}")
+    print(text_tree)
+    print(f"{'='*40}")
+
+def update_readme(mmd_content):
     if os.path.exists(README_FILE):
         with open(README_FILE, 'r', encoding='utf-8') as f:
             readme_content = f.read()
@@ -192,12 +211,7 @@ def update_files():
                 print("Updated README.md with Mermaid graph.")
             else:
                 print("No changes to README.md")
-            
-    print("\n" + "="*40)
-    print("DEPENDENCY TREE FOR GEMINI")
-    print("="*40)
-    print(text_tree)
-    print("="*40)
 
 if __name__ == "__main__":
-    update_files()
+    update_domain(FEATURES_DIR_LPAD, MMD_FILE_LPAD, "LPad")
+    update_domain(FEATURES_DIR_AGENTIC, MMD_FILE_AGENTIC, "Agentic DevOps")

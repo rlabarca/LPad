@@ -1,0 +1,233 @@
+flowchart TD
+
+
+    subgraph ARCHITECTURES [" "]
+        title_ARCHITECTURES["ARCHITECTURES"]
+        arch_build_system["Build System Policy<br/><small>arch_build_system.md</small>"]
+        title_ARCHITECTURES ~~~ arch_build_system
+        arch_data_strategy["Data Strategy<br/><small>arch_data_strategy.md</small>"]
+        title_ARCHITECTURES ~~~ arch_data_strategy
+        arch_design_system["Design System Policy<br/><small>arch_design_system.md</small>"]
+        title_ARCHITECTURES ~~~ arch_design_system
+        arch_hal_policy["HAL Policy<br/><small>arch_hal_policy.md</small>"]
+        title_ARCHITECTURES ~~~ arch_hal_policy
+        arch_infrastructure["Infrastructure Policy<br/><small>arch_infrastructure.md</small>"]
+        title_ARCHITECTURES ~~~ arch_infrastructure
+        arch_ui_compositing["UI Compositing Policy<br/><small>arch_ui_compositing.md</small>"]
+        title_ARCHITECTURES ~~~ arch_ui_compositing
+        arch_ui_widgets["UI Widget Policy<br/><small>arch_ui_widgets.md</small>"]
+        title_ARCHITECTURES ~~~ arch_ui_widgets
+    end
+
+    subgraph Applications [" "]
+        title_Applications["APPLICATIONS"]
+        app_stock_ticker["App Component: Stock Ticker<br/><small>app_stock_ticker.md</small>"]
+        title_Applications ~~~ app_stock_ticker
+    end
+
+    subgraph Data_Layer [" "]
+        title_Data_Layer["DATA LAYER"]
+        data_layer_core["Base Data Model<br/><small>data_layer_core.md</small>"]
+        title_Data_Layer ~~~ data_layer_core
+        data_layer_stock_tracker["Data Stock Tracker<br/><small>data_layer_stock_tracker.md</small>"]
+        title_Data_Layer ~~~ data_layer_stock_tracker
+        data_layer_time_series["Time Series Data Item<br/><small>data_layer_time_series.md</small>"]
+        title_Data_Layer ~~~ data_layer_time_series
+    end
+
+    subgraph Hardware_Layer [" "]
+        title_Hardware_Layer["HARDWARE LAYER"]
+        display_esp32s3_amoled["ESP32-S3 AMOLED Driver<br/><small>display_esp32s3_amoled.md</small>"]
+        title_Hardware_Layer ~~~ display_esp32s3_amoled
+        display_target_rotation["Target Rotation<br/><small>display_target_rotation.md</small>"]
+        title_Hardware_Layer ~~~ display_target_rotation
+        display_tdisplay_s3_plus["T-Display S3+ Driver<br/><small>display_tdisplay_s3_plus.md</small>"]
+        title_Hardware_Layer ~~~ display_tdisplay_s3_plus
+        hal_core_contract["HAL Core Contract<br/><small>hal_core_contract.md</small>"]
+        title_Hardware_Layer ~~~ hal_core_contract
+        hal_dma_blitting["DMA Blitting<br/><small>hal_dma_blitting.md</small>"]
+        title_Hardware_Layer ~~~ hal_dma_blitting
+        hal_spec_display["HAL Display Specification<br/><small>hal_spec_display.md</small>"]
+        title_Hardware_Layer ~~~ hal_spec_display
+        hal_spec_network["HAL Network Specification<br/><small>hal_spec_network.md</small>"]
+        title_Hardware_Layer ~~~ hal_spec_network
+        hal_spec_timer["HAL Timer Specification<br/><small>hal_spec_timer.md</small>"]
+        title_Hardware_Layer ~~~ hal_spec_timer
+        hal_spec_touch["HAL: Touch Spec<br/><small>hal_spec_touch.md</small>"]
+        title_Hardware_Layer ~~~ hal_spec_touch
+        hal_timer_esp32["ESP32 Timer<br/><small>hal_timer_esp32.md</small>"]
+        title_Hardware_Layer ~~~ hal_timer_esp32
+        touch_cst816_implementation["HAL: CST816 Impl<br/><small>touch_cst816_implementation.md</small>"]
+        title_Hardware_Layer ~~~ touch_cst816_implementation
+    end
+
+    subgraph RELEASES [" "]
+        title_RELEASES["RELEASES"]
+        RELEASE_v0_72_wifi_widgets["Release v0.72: WiFi & Widgets<br/><small>RELEASE_v0.72_wifi_widgets.md</small>"]
+        title_RELEASES ~~~ RELEASE_v0_72_wifi_widgets
+    end
+
+    subgraph System_Architecture [" "]
+        title_System_Architecture["SYSTEM ARCHITECTURE"]
+        core_ui_render_manager["UI Render Manager<br/><small>core_ui_render_manager.md</small>"]
+        title_System_Architecture ~~~ core_ui_render_manager
+        sys_animation_ticker["Animation Ticker Engine<br/><small>sys_animation_ticker.md</small>"]
+        title_System_Architecture ~~~ sys_animation_ticker
+        sys_config_system["Config Injection System<br/><small>sys_config_system.md</small>"]
+        title_System_Architecture ~~~ sys_config_system
+        sys_serial_screenshot["Serial Screenshot<br/><small>sys_serial_screenshot.md</small>"]
+        title_System_Architecture ~~~ sys_serial_screenshot
+        touch_gesture_engine["Touch Gesture Engine<br/><small>touch_gesture_engine.md</small>"]
+        title_System_Architecture ~~~ touch_gesture_engine
+    end
+
+    subgraph System_Components [" "]
+        title_System_Components["SYSTEM COMPONENTS"]
+        sys_mini_logo["System Component: Mini Logo<br/><small>sys_mini_logo.md</small>"]
+        title_System_Components ~~~ sys_mini_logo
+        sys_system_menu["System Component: System Menu<br/><small>sys_system_menu.md</small>"]
+        title_System_Components ~~~ sys_system_menu
+    end
+
+    subgraph UI_Framework [" "]
+        title_UI_Framework["UI FRAMEWORK"]
+        display_canvas_drawing["Layered Canvas Drawing<br/><small>display_canvas_drawing.md</small>"]
+        title_UI_Framework ~~~ display_canvas_drawing
+        display_relative_drawing["Relative Drawing<br/><small>display_relative_drawing.md</small>"]
+        title_UI_Framework ~~~ display_relative_drawing
+        ui_base["Base UI Elements<br/><small>ui_base.md</small>"]
+        title_UI_Framework ~~~ ui_base
+        ui_mini_logo["UI Mini Logo<br/><small>ui_mini_logo.md</small>"]
+        title_UI_Framework ~~~ ui_mini_logo
+        ui_standard_widgets["Standard UI Widgets<br/><small>ui_standard_widgets.md</small>"]
+        title_UI_Framework ~~~ ui_standard_widgets
+        ui_system_menu["System Menu<br/><small>ui_system_menu.md</small>"]
+        title_UI_Framework ~~~ ui_system_menu
+        ui_theme_support["Theme Support<br/><small>ui_theme_support.md</small>"]
+        title_UI_Framework ~~~ ui_theme_support
+        ui_themeable_time_series_graph["Themeable Graph<br/><small>ui_themeable_time_series_graph.md</small>"]
+        title_UI_Framework ~~~ ui_themeable_time_series_graph
+        ui_vector_assets["Vector Asset Pipeline<br/><small>ui_vector_assets.md</small>"]
+        title_UI_Framework ~~~ ui_vector_assets
+        ui_widget_framework["UI Widget Framework<br/><small>ui_widget_framework.md</small>"]
+        title_UI_Framework ~~~ ui_widget_framework
+        ui_wifi_list_widget["WiFi Selection List Widget<br/><small>ui_wifi_list_widget.md</small>"]
+        title_UI_Framework ~~~ ui_wifi_list_widget
+    end
+
+    %% Relationships
+    ui_widget_framework --> RELEASE_v0_72_wifi_widgets
+    ui_standard_widgets --> RELEASE_v0_72_wifi_widgets
+    ui_wifi_list_widget --> RELEASE_v0_72_wifi_widgets
+    sys_serial_screenshot --> RELEASE_v0_72_wifi_widgets
+    sys_animation_ticker --> RELEASE_v0_72_wifi_widgets
+    sys_config_system --> RELEASE_v0_72_wifi_widgets
+    core_ui_render_manager --> RELEASE_v0_72_wifi_widgets
+    ui_system_menu --> RELEASE_v0_72_wifi_widgets
+    sys_mini_logo --> RELEASE_v0_72_wifi_widgets
+    app_stock_ticker --> RELEASE_v0_72_wifi_widgets
+    display_target_rotation --> RELEASE_v0_72_wifi_widgets
+    core_ui_render_manager --> app_stock_ticker
+    data_layer_stock_tracker --> app_stock_ticker
+    ui_themeable_time_series_graph --> app_stock_ticker
+    arch_infrastructure --> arch_build_system
+    hal_spec_display --> arch_hal_policy
+    hal_spec_network --> arch_hal_policy
+    hal_spec_touch --> arch_hal_policy
+    hal_spec_timer --> arch_hal_policy
+    display_esp32s3_amoled --> arch_hal_policy
+    display_tdisplay_s3_plus --> arch_hal_policy
+    touch_cst816_implementation --> arch_hal_policy
+    hal_timer_esp32 --> arch_hal_policy
+    arch_ui_compositing --> arch_ui_widgets
+    display_relative_drawing --> arch_ui_widgets
+    touch_gesture_engine --> core_ui_render_manager
+    arch_ui_compositing --> core_ui_render_manager
+    hal_core_contract --> data_layer_core
+    arch_data_strategy --> data_layer_core
+    data_layer_time_series --> data_layer_stock_tracker
+    data_layer_core --> data_layer_time_series
+    hal_spec_display --> display_canvas_drawing
+    hal_dma_blitting --> display_canvas_drawing
+    hal_spec_display --> display_esp32s3_amoled
+    hal_spec_display --> display_relative_drawing
+    arch_ui_compositing --> display_relative_drawing
+    hal_spec_display --> display_target_rotation
+    hal_spec_display --> display_tdisplay_s3_plus
+    hal_core_contract --> hal_spec_display
+    hal_core_contract --> hal_spec_network
+    arch_data_strategy --> hal_spec_network
+    hal_core_contract --> hal_spec_timer
+    hal_core_contract --> hal_spec_touch
+    hal_spec_timer --> hal_timer_esp32
+    hal_spec_timer --> sys_animation_ticker
+    arch_infrastructure --> sys_animation_ticker
+    arch_infrastructure --> sys_config_system
+    core_ui_render_manager --> sys_mini_logo
+    ui_mini_logo --> sys_mini_logo
+    hal_spec_display --> sys_serial_screenshot
+    arch_infrastructure --> sys_serial_screenshot
+    core_ui_render_manager --> sys_system_menu
+    ui_system_menu --> sys_system_menu
+    hal_spec_touch --> touch_cst816_implementation
+    hal_spec_touch --> touch_gesture_engine
+    ui_vector_assets --> ui_mini_logo
+    ui_widget_framework --> ui_standard_widgets
+    arch_design_system --> ui_standard_widgets
+    touch_gesture_engine --> ui_system_menu
+    ui_theme_support --> ui_system_menu
+    display_canvas_drawing --> ui_theme_support
+    arch_design_system --> ui_theme_support
+    display_relative_drawing --> ui_themeable_time_series_graph
+    hal_dma_blitting --> ui_themeable_time_series_graph
+    ui_theme_support --> ui_themeable_time_series_graph
+    ui_base --> ui_themeable_time_series_graph
+    display_relative_drawing --> ui_vector_assets
+    arch_design_system --> ui_vector_assets
+    arch_ui_widgets --> ui_widget_framework
+    ui_standard_widgets --> ui_wifi_list_widget
+    hal_spec_network --> ui_wifi_list_widget
+
+    %% Styling Definitions
+    classDef default fill:#e1f5fe,stroke:#01579b,stroke-width:1px,color:black;
+    classDef release fill:#f96,stroke:#333,stroke-width:2px,color:black,font-weight:bold;
+    classDef hardware fill:#e8f5e9,stroke:#2e7d32,stroke-width:1px,color:black;
+    classDef ui fill:#f3e5f5,stroke:#7b1fa2,stroke-width:1px,color:black;
+    classDef app fill:#fff3e0,stroke:#e65100,stroke-width:1px,color:black;
+    classDef graphics fill:#e0f7fa,stroke:#006064,stroke-width:1px,color:black;
+    classDef process fill:#f1f8e9,stroke:#558b2f,stroke-width:1px,color:black;
+    classDef devops fill:#eceff1,stroke:#455a64,stroke-width:1px,color:black;
+    classDef subgraphTitle fill:none,stroke:none,color:#111,font-size:32px,font-weight:bold;
+
+    %% Style Applications
+    class title_ARCHITECTURES subgraphTitle;
+    class title_Applications subgraphTitle;
+    class app_stock_ticker app;
+    class title_Data_Layer subgraphTitle;
+    class title_Hardware_Layer subgraphTitle;
+    class display_esp32s3_amoled hardware;
+    class display_target_rotation hardware;
+    class display_tdisplay_s3_plus hardware;
+    class hal_core_contract hardware;
+    class hal_dma_blitting hardware;
+    class hal_spec_display hardware;
+    class hal_spec_network hardware;
+    class hal_spec_timer hardware;
+    class hal_spec_touch hardware;
+    class hal_timer_esp32 hardware;
+    class touch_cst816_implementation hardware;
+    class title_RELEASES subgraphTitle;
+    class title_System_Architecture subgraphTitle;
+    class title_System_Components subgraphTitle;
+    class title_UI_Framework subgraphTitle;
+    class display_canvas_drawing ui;
+    class display_relative_drawing ui;
+    class ui_base ui;
+    class ui_mini_logo ui;
+    class ui_standard_widgets ui;
+    class ui_system_menu ui;
+    class ui_theme_support ui;
+    class ui_themeable_time_series_graph ui;
+    class ui_vector_assets ui;
+    class ui_widget_framework ui;
+    class ui_wifi_list_widget ui;

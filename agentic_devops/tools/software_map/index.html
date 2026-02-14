@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>LPad Software Map</title>
+    <title>Feature Map Browser</title>
     <!-- Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
@@ -51,11 +51,14 @@
             border-bottom: none;
             border-radius: 6px 6px 0 0;
             margin-right: 5px;
-            font-size: 25px; /* Reduced by ~25% from 34px */
+            font-size: 20px;
             font-weight: bold;
             color: #495057;
             cursor: pointer;
             transition: all 0.2s;
+            height: 30px;
+            display: flex;
+            align-items: center;
         }
         .tab.active {
             background: #f8f9fa;
@@ -65,8 +68,6 @@
             border-color: #dee2e6;
             position: relative;
             z-index: 2;
-            display: flex;
-            align-items: center;
         }
 
         #container {
@@ -148,7 +149,6 @@
         }
         
         /* Nested inner subgraphs should be transparent and borderless */
-        /* We target the cluster rects that contain '_inner' in their ID path */
         [id*="_inner"] rect, [id*="-inner-"] rect, .cluster[id*="_inner"] rect {
             fill: none !important;
             stroke: none !important;
@@ -243,7 +243,6 @@
         }
 
         /* Hide ALL edges connected to title nodes (Layout Helpers) */
-        /* Mermaid adds LS-<id> and LE-<id> classes to edge paths */
         [class*="LS-title_"] path, 
         [class*="LE-title_"] path,
         [class*="LS-title_"] .path,
@@ -276,10 +275,11 @@
 </head>
 <body>
     <div id="title-bar">
-        Project: LPad
+        Feature Map Browser
     </div>
     <div id="tab-bar">
-        <div class="tab active">Feature Map</div>
+        <div id="tab-lpad" class="tab active" onclick="switchTab('lpad')">LPad</div>
+        <div id="tab-agentic" class="tab" onclick="switchTab('agentic')">Agentic Devops</div>
     </div>
 
     <div id="container">
@@ -318,6 +318,19 @@
 
         let lastMtime = 0;
         let panZoom = null;
+        let currentTab = 'lpad';
+
+        function switchTab(tab) {
+            if (currentTab === tab) return;
+            
+            // UI Update
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(`tab-${tab}`).classList.add('active');
+            
+            currentTab = tab;
+            lastMtime = 0; // Force refresh
+            updateGraph();
+        }
 
         function saveZoomState() {
             if (panZoom) {
@@ -325,17 +338,17 @@
                     pan: panZoom.getPan(),
                     zoom: panZoom.getZoom()
                 };
-                localStorage.setItem('lpad_software_map_zoom', JSON.stringify(state));
+                localStorage.setItem(`lpad_software_map_zoom_${currentTab}`, JSON.stringify(state));
             }
         }
 
         function getZoomState() {
-            const saved = localStorage.getItem('lpad_software_map_zoom');
+            const saved = localStorage.getItem(`lpad_software_map_zoom_${currentTab}`);
             return saved ? JSON.parse(saved) : null;
         }
 
         function resetZoom() {
-            localStorage.removeItem('lpad_software_map_zoom');
+            localStorage.removeItem(`lpad_software_map_zoom_${currentTab}`);
             if (panZoom) {
                 panZoom.resize();
                 panZoom.fit();
@@ -354,7 +367,7 @@
 
         async function updateGraph() {
             try {
-                const response = await fetch('/api/graph');
+                const response = await fetch(`/api/graph?type=${currentTab}`);
                 const data = await response.json();
                 
                 if (data.mtime !== lastMtime) {
@@ -371,7 +384,7 @@
                     output.innerHTML = svg;
                     
                     const svgElement = document.getElementById('mermaid-svg');
-                    // Remove fixed dimensions to let svg-pan-zoom handle it
+                    // Remove fixed dimensions
                     svgElement.removeAttribute('width');
                     svgElement.removeAttribute('height');
                     svgElement.style.maxWidth = 'none';
@@ -396,7 +409,6 @@
                             const gutterHeight = 100;
                             const sizes = this.getSizes();
                             
-                            // Calculate limits to keep at least 100px of the map visible
                             const leftLimit = gutterWidth - (sizes.viewBox.width * sizes.realZoom);
                             const rightLimit = sizes.width - gutterWidth;
                             const topLimit = gutterHeight - (sizes.viewBox.height * sizes.realZoom);
@@ -431,17 +443,11 @@
 
         function addNodeClickListeners() {
             const nodes = document.querySelectorAll('.node');
-            
-            // 1. Build a Graph Map from the Raw Mermaid Content
-            // We use the global 'currentGraphContent' which we'll save in updateGraph
-            const graphMap = {}; // id -> { neighbors: Set() }
+            const graphMap = {};
 
             if (window.currentGraphContent) {
                 const lines = window.currentGraphContent.split('\n');
                 lines.forEach(line => {
-                    // Match "A --> B" or "A -.-> B" or "A ==> B"
-                    // Group 1: Source, Group 2: Target
-                    // Using permissive capture [^ \t\r\n\-\>\=\.<]+ to capture any non-separator ID characters
                     const match = line.match(/\s+([^\s\-\>\=\.<]+)\s*[-=.]{2,}>+.*?\s*([^\s\-\>\=\.<]+)/);
                     if (match) {
                         const src = match[1];
@@ -456,27 +462,21 @@
                 });
             }
 
-            // Helper to get core ID from DOM ID
             const getCoreId = (domId) => {
                 const match = domId.match(/flowchart-(.*?)-\d+/);
                 return match ? match[1] : domId;
             };
 
-            // 2. Add Listeners
             nodes.forEach(node => {
-                // Skip title nodes
                 if (node.classList.contains('subgraphTitle')) return;
 
                 node.style.cursor = 'pointer';
                 const coreId = getCoreId(node.id);
                 
                 node.addEventListener('mouseenter', () => {
-                    const relatedNodes = new Set([node.id]); // Store DOM IDs
-                    
-                    // Find neighbor core IDs
+                    const relatedNodes = new Set([node.id]);
                     const coreNeighbors = graphMap[coreId]?.neighbors || new Set();
 
-                    // Find DOM nodes that match core IDs
                     nodes.forEach(n => {
                         const nCore = getCoreId(n.id);
                         if (coreNeighbors.has(nCore)) {
@@ -484,7 +484,6 @@
                         }
                     });
 
-                    // Apply styles
                     nodes.forEach(n => {
                         if (relatedNodes.has(n.id)) {
                             n.classList.add('highlighted');
@@ -493,16 +492,11 @@
                         }
                     });
                     
-                    // Edges - simpler heuristic: if both ends are highlighted, highlight edge
-                    // This avoids complex edge mapping
                     const edges = document.querySelectorAll('.edgePath');
                     edges.forEach(edge => {
                          const classes = edge.className.baseVal;
-                         // Check if this edge connects two highlighted nodes
-                         // This requires parsing the edge class again, but now we know the nodes are highlighted
                          let isConnected = false;
                          coreNeighbors.forEach(neighbor => {
-                             // Check if edge connects coreId and neighbor
                              const hasSrc = new RegExp(`LS-${coreId}(\\s|$)`).test(classes) || new RegExp(`LS-${neighbor}(\\s|$)`).test(classes);
                              const hasDst = new RegExp(`LE-${coreId}(\\s|$)`).test(classes) || new RegExp(`LE-${neighbor}(\\s|$)`).test(classes);
                              if (hasSrc && hasDst) isConnected = true;
@@ -523,12 +517,9 @@
                 });
 
                 node.addEventListener('click', (e) => {
-                    // Search for the filename in any part of the node's HTML
-                    // This is more resilient than looking for a specific class like .nodeLabel
                     const html = node.innerHTML;
                     const match = html.match(/<small>(.*?)<\/small>/i);
                     if (match && match[1]) {
-                        // Clean up any HTML tags that might have been injected (like <br>)
                         const filename = match[1].replace(/<[^>]*>?/gm, '').trim();
                         openFeatureModal(filename);
                         return;
@@ -547,27 +538,21 @@
             modal.style.display = 'flex';
 
             try {
-                // Fetch content
-                // Remove .md if present for the API call, or keep it, the API handles both
                 const response = await fetch(`/api/feature/${filename}`);
                 if (!response.ok) throw new Error("File not found");
                 const text = await response.text();
 
-                // Extract Friendly Title from Metadata (> Label: "Title")
                 const labelMatch = text.match(/> Label: "(.*?)"/);
                 const friendlyTitle = labelMatch ? labelMatch[1] : filename;
                 title.innerText = friendlyTitle;
 
-                // Parse Markdown
                 const htmlContent = marked.parse(text);
                 body.innerHTML = htmlContent;
 
-                // Highlight Code Blocks
                 body.querySelectorAll('pre code').forEach((block) => {
                     hljs.highlightElement(block);
                 });
 
-                // Focus modal for keyboard events
                 document.getElementById('modal-content').focus();
 
             } catch (e) {
@@ -576,20 +561,16 @@
         }
 
         function closeModal(event) {
-            // If event is provided (click), close only if clicked on overlay (not content)
             if (event && event.target.id !== 'modal-overlay' && event.target.id !== 'modal-close') return;
-            
             document.getElementById('modal-overlay').style.display = 'none';
         }
 
-        // Keyboard navigation for modal
         document.addEventListener('keydown', (e) => {
             if (document.getElementById('modal-overlay').style.display === 'flex') {
                 if (e.key === 'Escape') closeModal();
             }
         });
 
-        // Poll
         setInterval(updateGraph, 2000);
         updateGraph();
     </script>
