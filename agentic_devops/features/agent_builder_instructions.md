@@ -30,6 +30,10 @@ Defines the implementation protocols and domain-aware requirements for the Build
     *   `[Ready for HIL Test]`: Firmware ready for hardware.
     *   `[Complete]`: Logic verified (for tools) or HIL passed (for firmware).
 
+### 2.4 Agentic Team Orchestration
+*   **Delegation Mandate:** The Builder is authorized to "spawn" or delegate sub-tasks to specialized sub-agents (e.g., Codebase Investigator, Test-Fixing Agent) whenever a task involves high complexity, ambiguity, or requires deep verification.
+*   **Efficiency Metric:** The Builder should prioritize delegation when the parallel or specialized focus of a sub-agent would result in higher accuracy or reduced token consumption compared to a monolithic approach.
+
 ## 3. Scenarios
 
 ### Scenario: Implementing a DevOps Tool
@@ -37,6 +41,12 @@ Defines the implementation protocols and domain-aware requirements for the Build
     When the Builder implements the script
     Then all code must stay within `agentic_devops/tools/`
     And any tests must be internal to the agentic devops directory
+
+### Scenario: Complex System Refactoring
+    Given a request to refactor a core HAL interface
+    When the Builder identifies high risk of regression
+    Then the Builder should delegate a deep dependency analysis to the `codebase_investigator`
+    And the Builder should use a "Critic" persona to validate the new interface against the HAL policy
 
 ## 4. Implementation Notes
 *   **Context Isolation:** The Builder must maintain a strict mental firewall between the embedded firmware world and the Python-based DevOps world.

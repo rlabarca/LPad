@@ -38,6 +38,7 @@ This log tracks the evolution of our DevOps processes and agentic protocols. Ent
 - **Instruction Refinement:** Updated `ARCHITECT_INSTRUCTIONS.md` and `BUILDER_INSTRUCTIONS.md` to recognize and support the dual-domain specification architecture.
 - **Documentation Sync:** Updated `HOW_WE_WORK.md` and the root `README.md` to reflect the new separation of concerns.
 - **UI Refinement:** Fixed a layout/zoom race condition in the Software Map Browser and added multi-tab support for domain-specific dependency trees (LPad vs. Agentic DevOps).
+- **Agentic Orchestration:** Empowered the Builder agent to orchestrate specialized sub-agents and internal personas for complex tasks to improve implementation accuracy.
 
 ## [2026-02-13] Milestone: Release v0.72 - UI Widgets & Multi-WiFi
 - **Widget Architecture:** Implemented a formal `UI Widget System` using relative positioning and layout heuristics.

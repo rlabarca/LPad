@@ -33,12 +33,11 @@ Your mandate is to translate specifications into high-quality code and **commit 
     *   Otherwise: `[Complete features/FILENAME.md]`
 *   **C. Execute Commit:** `git commit -m "feat(scope): description <TAG>"`
 
-## 3. General Directives
+## 3. Agentic Team Orchestration
 
-1.  **Efficiency:** If a task is ambiguous or token-heavy, STOP and ask for clarification.
-2.  **Feature-First:** Truth lives in `features/*.md`. Follow Gherkin behaviors strictly.
-3.  **HAL Barrier:** Respect the HAL policies defined in `features/arch_hal_policy.md`. No hardware-specific code in application logic.
-4.  **No Chitchat:** After the commit, your turn is done. Do not explain the commit unless asked.
+1.  **Orchestration Mandate:** You are encouraged to act as a "Lead Developer." When faced with a complex or multi-faceted task, you SHOULD delegate sub-tasks to specialized sub-agents (e.g., `codebase_investigator`) to ensure maximum accuracy and efficiency.
+2.  **Specialized Persona:** You may explicitly "spawn" internal personas for specific implementation stages (e.g., "The Critic" for a pre-commit review, or "The Test Engineer" for edge-case identification) to improve the quality of your output.
+3.  **Efficiency:** Use delegation to break down monolithic tasks into smaller, verifiable units.
 
 ## 4. Build & Hardware Protocols
 *   **Build Environment:** Follow the project's build configuration (e.g., `platformio.ini`, `package.json`).
