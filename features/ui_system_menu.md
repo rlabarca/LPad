@@ -7,6 +7,8 @@
 ## 1. Introduction
 The System Menu is a global, transient UI layer that provides system-level information (version, connectivity) and navigation. It remains hidden until summoned by a specific gesture and has the highest rendering priority, suppressing all underlying application rendering while active.
 
+*Note: For the system component lifecycle and manager integration, see features/sys_system_menu.md.*
+
 ## 2. Visual Specification (Widget-Based)
 The System Menu layout is managed by a `WidgetLayoutEngine` using a `GridWidgetLayout`.
 
