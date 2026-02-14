@@ -353,6 +353,7 @@
                 panZoom.resize();
                 panZoom.fit();
                 panZoom.center();
+                panZoom.zoomBy(0.8); // Add 20% padding around the edges
             }
         }
 
@@ -428,6 +429,7 @@
                         panZoom.pan(savedState.pan);
                     } else {
                         // Small delay to ensure browser has handled SVG sizing/layout
+                        // Use the function that includes padding
                         setTimeout(resetZoom, 50);
                     }
 
