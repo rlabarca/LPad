@@ -12,6 +12,7 @@ The Release Protocol is a synchronized system audit that ensures both the Applic
 ### 2.1 Verification Gates
 *   **LPad Gate:** MUST verify a PASS status from PlatformIO native tests.
 *   **DevOps Gate:** MUST verify a PASS status from the aggregated `test_status.json` files in `agentic_devops/tools/`.
+*   **Partial Releases:** If a domain (Application or Agentic) has no functional changes, it is marked as **[STABLE]** in the evolution table. It MUST still pass its verification gate as a regression check.
 *   **Blocker:** The Architect is forbidden from initiating a push if either domain reports a failure.
 
 ### 2.2 Synchronization Mandates
