@@ -20,8 +20,14 @@ This project uses a rigorous **Two-Agent model** managed by a reusable **Agentic
 
 ### Documentation Structure
 
-*   **`features/arch_*.md` (The Constitution):** Defines system invariants and modular architectural policies (e.g., `arch_hal_policy.md`, `arch_ui_compositing.md`).
-*   **`features/*.md` (The Living Spec):** The single source of truth for functionality. Includes behavioral requirements and **Colocated Implementation Notes** capturing tribal knowledge and hardware "gotchas."
+The project maintains two distinct specification domains:
+
+*   **Application Domain (`features/`):**
+    *   **`arch_*.md` (The Constitution):** Defines system invariants and modular architectural policies (e.g., `arch_hal_policy.md`, `arch_ui_compositing.md`).
+    *   **`*.md` (The Living Spec):** The single source of truth for functionality. Includes behavioral requirements and **Colocated Implementation Notes**.
+*   **Agentic Domain ([`agentic_devops/features/`](agentic_devops/features/)):**
+    *   **`arch_*.md`:** Defines the rules of the agentic workflow and role responsibilities.
+    *   **`*.md`:** Specifications for the DevOps tools (CDD, Software Map, Critic).
 
 ## Agentic Evolution
 

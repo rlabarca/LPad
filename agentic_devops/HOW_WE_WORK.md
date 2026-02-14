@@ -1,7 +1,9 @@
 # How We Work: The LPad Agentic Workflow
 
 ## 1. Core Philosophy: "Code is Disposable"
-The single source of truth for this project is not the `src/` or `hal/` code, but the **Specifications** and **Architectural Policies** stored in the root `features/` directory. 
+The single source of truth for this project is not the code, but the **Specifications** and **Architectural Policies**. 
+*   **Application Domain:** `features/` defines the LPad product.
+*   **Agentic Domain:** `agentic_devops/features/` defines the workflow and tools.
 *   If the code is lost, it must be reproducible from the specs.
 *   We never fix bugs in code first; we fix the specification that allowed the bug.
 
@@ -9,13 +11,13 @@ The single source of truth for this project is not the `src/` or `hal/` code, bu
 
 ### The Architect (Gemini)
 *   **Focus:** "The What and The Why".
-*   **Ownership:** `ARCHITECT_INSTRUCTIONS.md`, `features/arch_*.md` (Policies), `features/*.md` (Requirements).
-*   **Key Duty:** Designing rigorous, unambiguous specifications and enforcing architectural invariants.
+*   **Ownership:** `ARCHITECT_INSTRUCTIONS.md`, `features/arch_*.md`, `features/*.md`, and `agentic_devops/features/`.
+*   **Key Duty:** Designing rigorous, unambiguous specifications and enforcing architectural invariants across both domains.
 
 ### The Builder (Claude)
 *   **Focus:** "The How".
-*   **Ownership:** `BUILDER_INSTRUCTIONS.md`, `src/`, `hal/`, `test/`.
-*   **Key Duty:** Translating specifications into high-quality, verified C++ code and documenting implementation discoveries.
+*   **Ownership:** `BUILDER_INSTRUCTIONS.md`, `src/`, `hal/`, `test/`, and `agentic_devops/tools/`.
+*   **Key Duty:** Translating specifications into high-quality, verified code and documenting implementation discoveries.
 
 ### The Human Executive (Rich)
 *   **Focus:** "The Intent and The Review".

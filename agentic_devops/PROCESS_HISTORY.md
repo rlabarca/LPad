@@ -30,6 +30,13 @@ This log tracks the evolution of our DevOps processes and agentic protocols. Ent
 - **Architectural Cleanup:** Resolved circular dependencies in the core architecture and established the acyclic graph mandate.
 - **Documentation Standard:** Formalized the "No Emojis" mandate for all Markdown documentation.
 
+## [2026-02-14] Meta-Process Evolution: Agentic DevOps Self-Specification
+- **Recursive Governance:** Applied the Spec-Driven Workflow to the `agentic_devops` framework itself.
+- **Domain Separation:** Established `agentic_devops/features/` for meta-specifications, separating them from the `features/` application domain.
+- **Bootstrap Specs:** Authored initial meta-features for `arch_agentic_workflow`, `cdd_status_monitor`, `software_map_generator`, and `proc_history_management`.
+- **Instruction Refinement:** Updated `ARCHITECT_INSTRUCTIONS.md` and `BUILDER_INSTRUCTIONS.md` to recognize and support the dual-domain specification architecture.
+- **Documentation Sync:** Updated `HOW_WE_WORK.md` and the root `README.md` to reflect the new separation of concerns.
+
 ## [2026-02-13] Milestone: Release v0.72 - UI Widgets & Multi-WiFi
 - **Widget Architecture:** Implemented a formal `UI Widget System` using relative positioning and layout heuristics.
 - **UI Framework Expansion:** Delivered `WidgetLayoutEngine`, `GridWidgetLayout`, `TextWidget`, and `ScrollableListWidget`.

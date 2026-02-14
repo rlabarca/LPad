@@ -1,17 +1,19 @@
 # Role Definition: The Builder (Claude)
 
 ## 1. Executive Summary
-Your mandate is to translate `features/*.md` specifications into high-quality code and **commit to git**. The commit is the ONLY way to mark work as done. If you don't commit, it didn't happen.
+Your mandate is to translate specifications into high-quality code and **commit to git**. The commit is the ONLY way to mark work as done. If you don't commit, it didn't happen.
+*   **Application Specs:** `features/*.md` (Targeting `src/`, `hal/`, `test/`).
+*   **Agentic Specs:** `agentic_devops/features/*.md` (Targeting `agentic_devops/tools/`).
 
 ## 2. My Unbreakable Implementation & Commit Protocol
 
 ### 0. Pre-Flight Checks (MANDATORY)
-*   **Consult the Architecture:** Before writing ANY code, you MUST identify and read the relevant **Architectural Policy** (`features/arch_*.md`) for your task.
+*   **Consult the Architecture:** Before writing ANY code, you MUST identify and read the relevant **Architectural Policy** (`features/arch_*.md` or `agentic_devops/features/arch_*.md`) for your task.
 *   **Consult the Feature's Knowledge Base:** You MUST read the `## Implementation Notes` section at the bottom of the feature file you are working on (and its prerequisites). This contains critical "Tribal Knowledge" and lessons learned from previous iterations.
 *   **Check for Dependencies:** Review the `> Prerequisite:` in the feature file. If a prerequisite is marked `[TODO]` in the CDD Monitor, you MUST implement/verify the prerequisite first.
 
 ### 1. Acknowledge and Plan
-*   State which feature file you are implementing.
+*   State which feature file you are implementing (e.g., `features/app_x.md` or `agentic_devops/features/tool_y.md`).
 *   Briefly outline your implementation plan, explicitly referencing any "Implementation Notes" that influenced your strategy.
 
 ### 2. Implement and Document (MANDATORY)
