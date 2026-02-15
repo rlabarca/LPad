@@ -19,6 +19,7 @@
 static XPowersPMU pmu;
 static bool g_pmu_ready = false;
 static int8_t g_last_level = -1;  // Rate-limiter for charging % (prevents voltage-spike jumps)
+static uint8_t g_ramp_ticks = 0;  // Sub-poll counter for slow ramp (+1% per N polls)
 
 // LiPo discharge curve thresholds (millivolts)
 static const uint16_t LIPO_MIN_MV = 3270;
@@ -125,12 +126,19 @@ int8_t hal_power_get_charge_level(void) {
     if (level < 0) level = 0;
     if (level > 100) level = 100;
 
-    // Rate-limit upward jumps to +2% per poll (2s). Charger connection
-    // spikes terminal voltage instantly (isCharging() may lag behind the
-    // voltage rise), so we cap ALL increases regardless of charging state.
-    // No legitimate scenario changes real SoC by >2% in 2 seconds.
-    if (g_last_level >= 0 && level > g_last_level + 2) {
-        level = g_last_level + 2;
+    // Rate-limit upward jumps: charger connection spikes terminal voltage
+    // instantly above OCV. Cap to +1% every 5 polls (10s) for a realistic
+    // ramp. 39→100% takes ~10 minutes instead of appearing instant.
+    if (g_last_level >= 0 && level > g_last_level) {
+        g_ramp_ticks++;
+        if (g_ramp_ticks >= 5) {
+            g_ramp_ticks = 0;
+            level = g_last_level + 1;
+        } else {
+            level = g_last_level;  // Hold steady between increments
+        }
+    } else {
+        g_ramp_ticks = 0;  // Reset counter on decrease or first read
     }
 
     g_last_level = (int8_t)level;
