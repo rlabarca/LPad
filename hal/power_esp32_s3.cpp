@@ -23,7 +23,7 @@ static int8_t g_last_level = -1;  // Rate-limiter for charging % (prevents volta
 // LiPo discharge curve thresholds (millivolts)
 static const uint16_t LIPO_MIN_MV = 3270;
 static const uint16_t LIPO_MAX_MV = 4200;
-static const uint16_t NO_BATTERY_MV = 2000;  // Below this = no real battery present
+static const uint16_t NO_BATTERY_MV = 3000;  // Below this = no real battery (charger pre-charge ≈ 3.0V)
 
 // ---- Callback I2C (avoids Wire.begin() reinit on shared bus) ----
 
@@ -112,7 +112,9 @@ hal_power_status_t hal_power_get_status(void) {
 
 int8_t hal_power_get_charge_level(void) {
     if (!g_pmu_ready || !pmu.isBatteryConnect()) {
-        g_last_level = -1;
+        // Do NOT reset g_last_level here — transient I2C glitches on the
+        // shared bus can briefly return false, which would clear the cache
+        // and let the next valid read bypass the rate limiter.
         return -1;
     }
 
