@@ -214,11 +214,7 @@ hal_canvas_handle_t hal_display_canvas_create(int16_t width, int16_t height) {
     }
 
 #ifdef BOARD_HAS_PSRAM
-    // Log PSRAM availability
-    Serial.printf("[HAL] PSRAM available: %d bytes free\n", ESP.getFreePsram());
-    Serial.printf("[HAL] Regular heap available: %d bytes free\n", ESP.getFreeHeap());
-    Serial.printf("[HAL] Attempting to create canvas: %d x %d (%d bytes)\n",
-                  width, height, width * height * 2);
+    // Verbose canvas logging suppressed — was flooding serial at 30fps
 #endif
 
     // Create a new Arduino_Canvas with the specified dimensions
@@ -236,7 +232,7 @@ hal_canvas_handle_t hal_display_canvas_create(int16_t width, int16_t height) {
         return nullptr;  // Canvas initialization failed
     }
 
-    Serial.println("[HAL] Canvas created successfully");
+    // Canvas success log suppressed — floods serial at 30fps
     return static_cast<hal_canvas_handle_t>(canvas);
 }
 

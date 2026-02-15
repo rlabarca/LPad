@@ -78,8 +78,27 @@ bool hal_power_init(void) {
     pmu.enableVbusVoltageMeasure();
     pmu.enableSystemVoltageMeasure();
 
-    Serial.printf("[PowerHAL] AXP2101 initialized (callback I2C), Vbat=%dmV\n",
-                  pmu.getBattVoltage());
+    // Seed the rate-limiter cache. If USB is connected at boot, terminal
+    // voltage is elevated above OCV even before isCharging() reports true.
+    // Use VBUS voltage to detect USB power (more reliable than isCharging()
+    // which lags during PMU init).
+    uint16_t init_mv = pmu.getBattVoltage();
+    uint16_t vbus_mv = pmu.getVbusVoltage();
+    Serial.printf("[PowerHAL] AXP2101 init: Vbat=%dmV Vbus=%dmV", init_mv, vbus_mv);
+
+    if (vbus_mv > 4000 && init_mv > 400) {
+        init_mv -= 400;
+        Serial.printf(" (USB power, OCV estimate=%dmV)", init_mv);
+    }
+    Serial.println();
+
+    if (init_mv >= NO_BATTERY_MV) {
+        int32_t init_level = ((int32_t)init_mv - LIPO_MIN_MV) * 100 / (LIPO_MAX_MV - LIPO_MIN_MV);
+        if (init_level < 0) init_level = 0;
+        if (init_level > 100) init_level = 100;
+        g_last_level = (int8_t)init_level;
+    }
+
     return true;
 }
 
