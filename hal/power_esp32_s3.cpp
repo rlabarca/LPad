@@ -23,6 +23,7 @@ static int8_t g_last_level = -1;  // Rate-limiter for charging % (prevents volta
 // LiPo discharge curve thresholds (millivolts)
 static const uint16_t LIPO_MIN_MV = 3270;
 static const uint16_t LIPO_MAX_MV = 4200;
+static const uint16_t NO_BATTERY_MV = 2000;  // Below this = no real battery present
 
 // ---- Callback I2C (avoids Wire.begin() reinit on shared bus) ----
 
@@ -87,6 +88,12 @@ hal_power_status_t hal_power_get_status(void) {
     }
 
     if (!pmu.isBatteryConnect()) {
+        return HAL_POWER_STATUS_NO_BATTERY;
+    }
+
+    // isBatteryConnect() can report true with no battery due to VBUS
+    // leakage on the VBAT pin. Voltage check catches this.
+    if (pmu.getBattVoltage() < NO_BATTERY_MV) {
         return HAL_POWER_STATUS_NO_BATTERY;
     }
 
