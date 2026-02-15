@@ -116,11 +116,12 @@ int8_t hal_power_get_charge_level(void) {
     if (level < 0) level = 0;
     if (level > 100) level = 100;
 
-    // During charging, terminal voltage is elevated above OCV by charge
-    // current × internal resistance, causing the raw % to spike instantly.
-    // Rate-limit increases to +1% per poll (2s) for smooth visual progress.
-    if (pmu.isCharging() && g_last_level >= 0 && level > g_last_level + 1) {
-        level = g_last_level + 1;
+    // Rate-limit upward jumps to +2% per poll (2s). Charger connection
+    // spikes terminal voltage instantly (isCharging() may lag behind the
+    // voltage rise), so we cap ALL increases regardless of charging state.
+    // No legitimate scenario changes real SoC by >2% in 2 seconds.
+    if (g_last_level >= 0 && level > g_last_level + 2) {
+        level = g_last_level + 2;
     }
 
     g_last_level = (int8_t)level;
