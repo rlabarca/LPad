@@ -41,7 +41,7 @@ This project evolves both its **Firmware Capabilities** and its **DevOps Process
 | **v0.71** | **Developer Utility:** Serial Screenshot Tool, PSRAM Shadow Framebuffer. | **Process Rigor:** Acyclic Dependency Mandate. Test Fidelity Mandate (Explicit HIL steps). Documentation Professionalism (No Emojis). |
 | **v0.72** | **UI Widgets & WiFi:** Formal Widget System (Layouts/Relative Positioning); Multi-WiFi HAL with fallback; "Window Shade" menu. | **Milestone Mutation:** Single active Release Specification rule. Consistent visual hierarchy refinement (The "Section" style). |
 | **v0.73** | **[STABLE]** No firmware changes. | **Meta-Process Evolution:** Spec-Driven Agentic DevOps; Recursive Governance; Universal/Portable Framework Refactor. |
-| **v0.74** | **Battery Status & Metering:** HAL Power abstraction; 2s background polling; Rounded-corner safe UI overlays. | **Telemetry Design:** Established a standard pattern for non-blocking hardware telemetry and data colocation. |
+| **v0.74** | **Hardware-Aware UI:** Battery Status & Metering with HAL Power abstraction; Dynamic rounded-corner safe UI overlays (20px/4px offsets). | **Process Cleanup:** Reinforced "Single Release Specification" rule; Consolidated cumulative milestones; Multi-target architectural parity mandate. |
 
 ## Testing Strategy
 
@@ -131,8 +131,9 @@ pio run -e tdisplay_s3_plus -t upload
 
 ## Current Features (Firmware)
 
-The firmware is currently at **Milestone v0.72**.
+The firmware is currently at **Milestone v0.74**.
 
+*   **HAL Corner Buffers:** Hardware-aware rendering zones that automatically adjust UI padding based on physical screen geometry (e.g., 20px offset for ESP32-S3 AMOLED).
 *   **Battery Status & Metering:** Background monitoring of battery health and visual representation in the System Menu, supporting both PMU and ADC-based hardware.
 *   **UI Widget System:** Modular framework for building interactive UI elements using relative coordinates and grid-based layout heuristics.
 *   **Multi-WiFi Management:** Support for multiple APs with automated boot-time fallback and manual runtime selection via a scrollable list.

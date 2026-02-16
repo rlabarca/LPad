@@ -54,15 +54,17 @@ We colocate implementation knowledge with requirements to ensure context is neve
 
 4.  **Hardware Grounding:** Before drafting hardware-dependent specs, gather canonical info (pin definitions, build flags) from the current implementation.
 
-5.  **Process History:** When modifying `HOW_WE_WORK.md` or instruction files, you MUST add an entry to `agentic_devops/PROCESS_HISTORY.md`.
+5.  **Process History Purity:** When modifying `HOW_WE_WORK.md` or instruction files, you MUST add an entry to `agentic_devops/PROCESS_HISTORY.md`. **MANDATE:** This file MUST ONLY track changes to the Agentic Workflow and DevOps tools. Never include firmware/software features in this log.
 
 6.  **Evolution Tracking:** Before any major release push to GitHub, you MUST update the "Agentic Evolution" table in the root `README.md` based on the changes in `PROCESS_HISTORY.md`.
 
-7.  **Markdown Professionalism:** You MUST avoid using emojis in `README.md`, feature specifications, or any other `.md` files. Maintain a clean, professional, and direct tone.
+7.  **Release Status Mandate:** You MUST ensure the active `RELEASE_v*.md` file is explicitly marked with the `[Complete]` status tag before concluding a release cycle.
 
-8.  **Architectural Inquiry:** When writing or changing features, you MUST proactively ask the Human Executive questions that would result in clearer specifications, better-constrained requirements, or a more sound architectural design. Do not proceed with ambiguity if a clarification could improve the system's integrity.
+8.  **Markdown Professionalism:** You MUST avoid using emojis in `README.md`, feature specifications, or any other `.md` files. Maintain a clean, professional, and direct tone.
 
-9.  **Dependency Integrity:** You MUST ensure that all `Prerequisite:` links in feature files do not create circular dependencies (e.g., A -> B -> A). After any significant change to the dependency structure, you SHOULD run `agentic_devops/tools/software_map/generate_tree.py` to verify the graph is acyclic.
+9.  **Architectural Inquiry:** When writing or changing features, you MUST proactively ask the Human Executive questions that would result in clearer specifications, better-constrained requirements, or a more sound architectural design. Do not proceed with ambiguity if a clarification could improve the system's integrity.
+
+10.  **Dependency Integrity:** You MUST ensure that all `Prerequisite:` links in feature files do not create circular dependencies (e.g., A -> B -> A). After any significant change to the dependency structure, you SHOULD run `agentic_devops/tools/software_map/generate_tree.py` to verify the graph is acyclic.
 
 
 
@@ -125,8 +127,13 @@ When the user issues a release command or prepares a push to GitHub, you MUST ex
 1.  **Dual-Domain Verification:**
     - **Application:** Verify PASS status from project-specific native tests.
     - **DevOps:** Verify PASS status from aggregated `agentic_devops/tools/*/test_status.json` files.
-    - **Zero-Queue Mandate:** Verify that ALL features in both domains are marked as [Complete] in the CDD monitor.
-    - **BLOCKER:** Do not proceed if either domain is in a FAIL or UNKNOWN state, or if any feature is [TODO] or [Testing].
+    - **Zero-Queue Mandate:** Verify that ALL features in both domains are marked as [Complete].
+        - **Clarification:** The required status tag is `[Complete]`. Do NOT use `[DONE]`.
+        - **CDD Monitor:** Check for green [Complete] status.
+        - **CLI Verification (MANDATORY):**
+            - Run `grep -L "\[Complete\]" features/*.md agentic_devops/features/*.md` to identify any file missing the completion tag (Ignore policies `arch_*.md` if they are stable).
+            - Run `grep "\[TODO\]" features/*.md agentic_devops/features/*.md` to ensure no active tasks remain.
+    - **BLOCKER:** Do not proceed if either domain is in a FAIL or UNKNOWN state, or if any feature is [TODO] or [Testing] (or missing [Complete]).
 
 2.  **Synchronized Mapping:**
     - Run `agentic_devops/tools/software_map/generate_tree.py`.
@@ -146,11 +153,3 @@ When the user issues a release command or prepares a push to GitHub, you MUST ex
 6.  **Git Delivery:** 
     - Verify `git status` is clean. Propose a commit message: `Release vX.Y: [Summary] [Complete agentic_devops/features/proc_release_protocol.md]`.
     - Only push after all previous steps are confirmed.
-
-
-
-
-
-
-
-

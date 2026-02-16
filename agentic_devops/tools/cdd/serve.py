@@ -10,8 +10,7 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..
 
 DOMAINS = [
     {
-                        "label": "Application",
-        
+        "label": "Application",
         "features_rel": "features",
         "features_abs": os.path.join(PROJECT_ROOT, "features"),
         "test_mode": "pio_summary",
@@ -28,7 +27,7 @@ DOMAINS = [
     },
 ]
 
-DONE_CAP = 10
+COMPLETE_CAP = 10
 
 
 def run_command(command):
@@ -52,7 +51,7 @@ def get_feature_status(features_rel, features_abs):
     if not os.path.isdir(features_abs):
         return [], [], []
 
-    done, testing, todo = [], [], []
+    complete, testing, todo = [], [], []
     feature_files = [f for f in os.listdir(features_abs) if f.endswith('.md')]
 
     for fname in feature_files:
@@ -75,20 +74,20 @@ def get_feature_status(features_rel, features_abs):
         status = "TODO"
         if complete_ts > test_ts:
             if file_mod_ts <= complete_ts:
-                status = "DONE"
+                status = "COMPLETE"
         elif test_ts > 0:
             if file_mod_ts <= test_ts:
                 status = "TESTING"
 
-        if status == "DONE":
-            done.append((fname, complete_ts))
+        if status == "COMPLETE":
+            complete.append((fname, complete_ts))
         elif status == "TESTING":
             testing.append(fname)
         else:
             todo.append(fname)
 
-    done.sort(key=lambda x: x[1], reverse=True)
-    return done, sorted(testing), sorted(todo)
+    complete.sort(key=lambda x: x[1], reverse=True)
+    return complete, sorted(testing), sorted(todo)
 
 
 def get_pio_test_status(summary_path):
@@ -169,18 +168,18 @@ def _feature_list_html(features, css_class):
 
 def _domain_column_html(domain):
     """Builds the HTML for one domain column."""
-    done_tuples, testing, todo = get_feature_status(
+    complete_tuples, testing, todo = get_feature_status(
         domain["features_rel"], domain["features_abs"]
     )
 
-    # DONE capping
-    total_done = len(done_tuples)
-    visible_done = [name for name, _ in done_tuples[:DONE_CAP]]
-    overflow = total_done - DONE_CAP
+    # COMPLETE capping
+    total_complete = len(complete_tuples)
+    visible_complete = [name for name, _ in complete_tuples[:COMPLETE_CAP]]
+    overflow = total_complete - COMPLETE_CAP
 
     todo_html = _feature_list_html(todo, "todo")
     testing_html = _feature_list_html(testing, "testing")
-    done_html = _feature_list_html(visible_done, "done")
+    complete_html = _feature_list_html(visible_complete, "complete")
     overflow_html = (
         f'<p class="dim">and {overflow} more&hellip;</p>' if overflow > 0 else ""
     )
@@ -194,8 +193,8 @@ def _domain_column_html(domain):
         {todo_html or '<p class="dim">None pending.</p>'}
         <h3>TESTING</h3>
         {testing_html or '<p class="dim">None in testing.</p>'}
-        <h3>DONE</h3>
-        {done_html or '<p class="dim">None complete.</p>'}
+        <h3>COMPLETE</h3>
+        {complete_html or '<p class="dim">None complete.</p>'}
         {overflow_html}
         <div class="test-bar">
             <span class="st-{test_status.lower()}">{test_status}</span>
@@ -240,7 +239,7 @@ h3{{font-size:11px;color:#888;margin:8px 0 2px;text-transform:uppercase;letter-s
 .fl{{list-style:none}}
 .fl li{{display:flex;align-items:center;margin-bottom:1px;line-height:1.5}}
 .sq{{width:7px;height:7px;margin-right:6px;flex-shrink:0;border-radius:1px}}
-.sq.done{{background:#32CD32}}
+.sq.complete{{background:#32CD32}}
 .sq.testing{{background:#4A90E2}}
 .sq.todo{{background:#FFD700}}
 .test-bar{{margin-top:8px;padding-top:6px;border-top:1px solid #2A2F36}}

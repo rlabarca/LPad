@@ -16,8 +16,8 @@ The Continuous Deployment-Driven (CDD) Monitor tracks the status of all feature 
 
 ### 2.2 UI & Layout
 *   **Compact Design:** Minimal padding and margins to ensure the dashboard fits in a small, side-docked browser window.
-*   **DONE List Capping:** The "DONE" section for each domain must be limited to the **10 most recent items**. If more exist, display "and X more..." with a count.
-*   **Status Indicators:** Maintain the Gold (TODO), Blue (TESTING), and Green (DONE) color coding.
+*   **COMPLETE List Capping:** The "COMPLETE" section for each domain must be limited to the **10 most recent items**. If more exist, display "and X more..." with a count.
+*   **Status Indicators:** Maintain the Gold (TODO), Blue (TESTING), and Green (COMPLETE) color coding.
 
 ### 2.3 Verification Signals
 *   **Application Tests:** Monitor the primary project's test summary for logic status.
@@ -32,11 +32,11 @@ The Continuous Deployment-Driven (CDD) Monitor tracks the status of all feature 
 ### Scenario: Domain Isolation
     Given a commit with tag "[Complete agentic_devops/features/tool_x.md]"
     When the CDD monitor refreshes
-    Then "tool_x.md" appears in the DONE section of the Agentic DevOps column
+    Then "tool_x.md" appears in the COMPLETE section of the Agentic DevOps column
     And it does NOT appear in the Application column
 
 ## 4. Implementation Notes
 *   **Git Efficiency:** Use `git log --grep` with the full relative path to avoid collision between domains.
 *   **Visual Polish:** Use a dark, high-contrast theme suitable for 24/7 monitoring.
 *   **Test Mode Dispatch:** The DOMAINS config uses a `test_mode` field (`pio_summary` vs `devops_aggregate`) to dispatch to the correct test status reader. The DevOps aggregator scans `tools/*/test_status.json` and treats malformed JSON as FAIL.
-*   **Test Coverage:** `test_cdd.py` covers aggregation (all pass, one fail, no files, missing dir, malformed JSON, ignored dirs), PIO reader, domain dispatch, and DONE capping (18 test cases).
+*   **Test Coverage:** `test_cdd.py` covers aggregation (all pass, one fail, no files, missing dir, malformed JSON, ignored dirs), PIO reader, domain dispatch, and COMPLETE capping (18 test cases).

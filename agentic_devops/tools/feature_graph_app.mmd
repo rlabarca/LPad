@@ -47,6 +47,8 @@ flowchart TD
         title_Hardware_Layer ~~~ display_tdisplay_s3_plus
         hal_core_contract["HAL Core Contract<br/><small>hal_core_contract.md</small>"]
         title_Hardware_Layer ~~~ hal_core_contract
+        hal_display_corner_buffers["HAL Corner Buffers<br/><small>hal_display_corner_buffers.md</small>"]
+        title_Hardware_Layer ~~~ hal_display_corner_buffers
         hal_dma_blitting["DMA Blitting<br/><small>hal_dma_blitting.md</small>"]
         title_Hardware_Layer ~~~ hal_dma_blitting
         hal_spec_display["HAL Display Specification<br/><small>hal_spec_display.md</small>"]
@@ -67,10 +69,8 @@ flowchart TD
 
     subgraph RELEASES [" "]
         title_RELEASES["RELEASES"]
-        RELEASE_v0_72_wifi_widgets["Release v0.72: WiFi & Widgets<br/><small>RELEASE_v0.72_wifi_widgets.md</small>"]
-        title_RELEASES ~~~ RELEASE_v0_72_wifi_widgets
-        RELEASE_v0_74_battery_metering["Release 0.74<br/><small>RELEASE_v0.74_battery_metering.md</small>"]
-        title_RELEASES ~~~ RELEASE_v0_74_battery_metering
+        RELEASE_v0_74["Release 0.74<br/><small>RELEASE_v0.74.md</small>"]
+        title_RELEASES ~~~ RELEASE_v0_74
     end
 
     subgraph System_Architecture [" "]
@@ -128,18 +128,18 @@ flowchart TD
     end
 
     %% Relationships
-    ui_widget_framework --> RELEASE_v0_72_wifi_widgets
-    ui_standard_widgets --> RELEASE_v0_72_wifi_widgets
-    ui_wifi_list_widget --> RELEASE_v0_72_wifi_widgets
-    sys_serial_screenshot --> RELEASE_v0_72_wifi_widgets
-    sys_animation_ticker --> RELEASE_v0_72_wifi_widgets
-    sys_config_system --> RELEASE_v0_72_wifi_widgets
-    core_ui_render_manager --> RELEASE_v0_72_wifi_widgets
-    ui_system_menu --> RELEASE_v0_72_wifi_widgets
-    sys_mini_logo --> RELEASE_v0_72_wifi_widgets
-    app_stock_ticker --> RELEASE_v0_72_wifi_widgets
-    display_target_rotation --> RELEASE_v0_72_wifi_widgets
-    sys_battery_metering --> RELEASE_v0_74_battery_metering
+    ui_widget_framework --> RELEASE_v0_74
+    ui_standard_widgets --> RELEASE_v0_74
+    ui_wifi_list_widget --> RELEASE_v0_74
+    sys_battery_metering --> RELEASE_v0_74
+    hal_display_corner_buffers --> RELEASE_v0_74
+    app_stock_ticker --> RELEASE_v0_74
+    display_target_rotation --> RELEASE_v0_74
+    sys_animation_ticker --> RELEASE_v0_74
+    sys_config_system --> RELEASE_v0_74
+    sys_mini_logo --> RELEASE_v0_74
+    sys_serial_screenshot --> RELEASE_v0_74
+    sys_system_menu --> RELEASE_v0_74
     core_ui_render_manager --> app_stock_ticker
     data_layer_stock_tracker --> app_stock_ticker
     ui_themeable_time_series_graph --> app_stock_ticker
@@ -169,6 +169,7 @@ flowchart TD
     arch_ui_compositing --> display_relative_drawing
     hal_spec_display --> display_target_rotation
     hal_spec_display --> display_tdisplay_s3_plus
+    hal_spec_display --> hal_display_corner_buffers
     hal_core_contract --> hal_spec_display
     hal_core_contract --> hal_spec_network
     arch_data_strategy --> hal_spec_network
@@ -180,6 +181,7 @@ flowchart TD
     arch_infrastructure --> sys_animation_ticker
     arch_power_management --> sys_battery_metering
     ui_system_menu --> sys_battery_metering
+    hal_display_corner_buffers --> sys_battery_metering
     arch_infrastructure --> sys_config_system
     core_ui_render_manager --> sys_mini_logo
     ui_mini_logo --> sys_mini_logo
@@ -227,6 +229,7 @@ flowchart TD
     class display_target_rotation hardware;
     class display_tdisplay_s3_plus hardware;
     class hal_core_contract hardware;
+    class hal_display_corner_buffers hardware;
     class hal_dma_blitting hardware;
     class hal_spec_display hardware;
     class hal_spec_network hardware;

@@ -145,19 +145,25 @@ int8_t hal_power_get_charge_level(void) {
     if (level < 0) level = 0;
     if (level > 100) level = 100;
 
-    // Rate-limit upward jumps: charger connection spikes terminal voltage
-    // instantly above OCV. Cap to +1% every 5 polls (10s) for a realistic
-    // ramp. 39→100% takes ~10 minutes instead of appearing instant.
+    // Rate-limit upward jumps based on charge state:
+    // - Charging: slow ramp +1% every 5 polls (10s) to smooth voltage spikes
+    // - Not charging: freeze (never increase) — battery can't gain charge,
+    //   any upward reading is surface charge or measurement noise
+    bool is_charging = pmu.isCharging();
     if (g_last_level >= 0 && level > g_last_level) {
-        g_ramp_ticks++;
-        if (g_ramp_ticks >= 5) {
-            g_ramp_ticks = 0;
-            level = g_last_level + 1;
+        if (is_charging) {
+            g_ramp_ticks++;
+            if (g_ramp_ticks >= 5) {
+                g_ramp_ticks = 0;
+                level = g_last_level + 1;
+            } else {
+                level = g_last_level;
+            }
         } else {
-            level = g_last_level;  // Hold steady between increments
+            level = g_last_level;  // Not charging: no upward movement
         }
     } else {
-        g_ramp_ticks = 0;  // Reset counter on decrease or first read
+        g_ramp_ticks = 0;
     }
 
     g_last_level = (int8_t)level;

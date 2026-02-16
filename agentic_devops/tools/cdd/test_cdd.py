@@ -5,7 +5,7 @@ Tests the core logic in serve.py:
   1. DevOps aggregated test status (scan tools/*/test_status.json)
   2. PlatformIO test status reader
   3. Domain dispatch (get_domain_test_status)
-  4. DONE capping logic
+  4. COMPLETE capping logic
 
 Generates test_status.json per the Builder Instructions reporting protocol.
 """
@@ -23,7 +23,7 @@ from serve import (
     get_devops_aggregated_test_status,
     get_pio_test_status,
     get_domain_test_status,
-    DONE_CAP,
+    COMPLETE_CAP,
 )
 
 PASS_COUNT = 0
@@ -168,20 +168,20 @@ def test_dispatch_pio():
     assert_eq("dispatch_pio.status", status, "UNKNOWN")
 
 
-# --- Test: DONE Capping Constant ---
+# --- Test: COMPLETE Capping Constant ---
 
-def test_done_cap_value():
-    """DONE_CAP must be 10 per the spec."""
-    assert_eq("done_cap_value", DONE_CAP, 10)
+def test_complete_cap_value():
+    """COMPLETE_CAP must be 10 per the spec."""
+    assert_eq("complete_cap_value", COMPLETE_CAP, 10)
 
 
-def test_done_capping_logic():
+def test_complete_capping_logic():
     """Simulates the capping logic from _domain_column_html."""
-    done_tuples = [(f"feature_{i}.md", 1000 + i) for i in range(15)]
-    done_tuples.sort(key=lambda x: x[1], reverse=True)
+    complete_tuples = [(f"feature_{i}.md", 1000 + i) for i in range(15)]
+    complete_tuples.sort(key=lambda x: x[1], reverse=True)
 
-    visible = [name for name, _ in done_tuples[:DONE_CAP]]
-    overflow = len(done_tuples) - DONE_CAP
+    visible = [name for name, _ in complete_tuples[:COMPLETE_CAP]]
+    overflow = len(complete_tuples) - COMPLETE_CAP
 
     assert_eq("capping.visible_count", len(visible), 10)
     assert_eq("capping.overflow", overflow, 5)
@@ -212,9 +212,9 @@ def main():
     test_dispatch_devops()
     test_dispatch_pio()
 
-    print("\n[DONE Capping]")
-    test_done_cap_value()
-    test_done_capping_logic()
+    print("\n[COMPLETE Capping]")
+    test_complete_cap_value()
+    test_complete_capping_logic()
 
     print("\n" + "=" * 50)
     total = PASS_COUNT + FAIL_COUNT

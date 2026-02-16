@@ -36,7 +36,9 @@ The values are determined by the physical radius of the display housing:
 3.  Update UI components (specifically `SystemMenu`) to replace hard-coded `CORNER_PADDING_PX` with these HAL values.
 
 ## 4. Acceptance Criteria
-*   [ ] WiFi SSID in System Menu (top-right) is not clipped on ESP32-S3 AMOLED.
-*   [ ] Battery percentage (top-left) is not clipped on ESP32-S3 AMOLED.
-*   [ ] T-Display maintains its minimal 2px horizontal padding.
-*   [ ] Code compiles for all targets.
+*   [x] WiFi SSID in System Menu (top-right) is not clipped on ESP32-S3 AMOLED.
+*   [x] Battery percentage (top-left) is not clipped on ESP32-S3 AMOLED.
+*   [x] T-Display maintains its minimal 2px horizontal padding.
+*   [x] Code compiles for all targets.
+
+[Complete]

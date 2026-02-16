@@ -33,3 +33,11 @@ This log tracks the evolution of our DevOps processes and agentic protocols. Ent
 - **Granular Instruction Tracking:** Created dedicated feature specifications for `agent_architect_instructions.md` and `agent_builder_instructions.md`.
 - **Agentic Orchestration:** Empowered the Builder agent to orchestrate specialized sub-agents and internal personas.
 - **Test Isolation Mandate:** Enforced strict separation of test execution between the Application and Agentic (Python/Tools) domains.
+
+## [2026-02-15] v0.74 Process Purity & Governance
+- **Process Purity Mandate:** Codified strict separation between Process History (DevOps) and Firmware History (Features). `PROCESS_HISTORY.md` is now restricted to meta-process changes only.
+- **Release Status Mandate:** Enforced explicit `[Complete]` tagging for Release Specifications (`RELEASE_vX.Y.md`) as a required pre-condition for closing a milestone.
+- **Milestone Consolidation:** Reinforced the "Single Active Release Specification" rule by requiring the consolidation of cumulative feature milestones into a single Living Spec file before release.
+- **Multi-Target Verification:** Mandated architectural parity checks across all build targets for structural changes.
+- **Zero-Queue Clarification:** Explicitly stated in `ARCHITECT_INSTRUCTIONS.md` that the release status tag is `[Complete]`, not `[DONE]`.
+
