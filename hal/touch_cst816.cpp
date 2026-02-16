@@ -336,14 +336,13 @@ void hal_touch_configure_gesture_engine(TouchGestureEngine* engine) {
 
 void hal_touch_sleep(void) {
     if (!g_touch_initialized) return;
-    // CST816 sleep: write 0x03 to sleep register 0xE5
-    cst_write_register(CST_REG_SLEEP, 0x03);
-    // Mark uninitialized so hal_touch_init() runs the full sequence on wake.
-    // After esp_light_sleep_start(), the I2C peripheral state is lost and
-    // Wire.begin() must be called again. The CST816 deep sleep also requires
-    // the full INT pin toggle + auto-sleep disable + interrupt mode setup.
+    // Do NOT send deep sleep command (0xE5=0x03). Without a hardware RST pin,
+    // the INT pin toggle cannot wake the CST816 from register-initiated deep
+    // sleep — only from auto-sleep. Re-enable auto-sleep so the chip enters
+    // low-power mode naturally, then mark uninitialized for full re-init on wake.
+    cst_write_register(CST_REG_DIS_AUTOSLEEP, 0x00);
     g_touch_initialized = false;
-    Serial.println("[HAL Touch CST816] Entered deep sleep");
+    Serial.println("[HAL Touch CST816] Auto-sleep re-enabled, marked for re-init on wake");
 }
 
 void hal_touch_wake(void) {
