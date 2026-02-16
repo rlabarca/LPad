@@ -172,5 +172,8 @@ Both the SH8601 (Waveshare) and RM67162 (LilyGo) support the standard `displayOf
 ### [2026-02-16] Touch Wake Methods Differ By Controller
 FT3168 (Waveshare): Wakes from hibernate on any I2C activity — a dummy register read suffices. CST816 (LilyGo): Requires INT pin toggle (drive LOW 50ms, release) to exit deep sleep, followed by re-disabling auto-sleep (reg 0xFE = 0x01) and re-setting interrupt mode (reg 0xFA = 0x60).
 
+### [2026-02-16] WiFi Driver Must Be Fully Stopped Before Light Sleep
+`WiFi.disconnect(true)` alone does NOT fully stop the WiFi driver. The underlying FreeRTOS WiFi task remains running with timer callbacks that reference code stored in flash. During `esp_light_sleep_start()`, flash is memory-mapped out, so these callbacks trigger `InstrFetchProhibited` at `PC=0x00000000` (null pointer / unmapped flash). Fix: call `esp_wifi_stop()` (from `esp_wifi.h`) before entering light sleep. This fully tears down the WiFi driver task and its timers. A 50ms delay after `esp_wifi_stop()` ensures cleanup completes before sleep entry.
+
 ### [2026-02-16] CST816 Wake Requires Full Re-Init After Light Sleep
 A lightweight wake (INT toggle + register writes) is NOT sufficient for the CST816 on the T-Display after `esp_light_sleep_start()`. The ESP32-S3 I2C peripheral state is lost during light sleep, so `Wire.begin()` must be called again. Fix: `hal_touch_sleep()` sets `g_touch_initialized = false`, and `hal_touch_wake()` calls `hal_touch_init()` which runs the complete proven sequence (Wire.begin, INT pin toggle, auto-sleep disable, interrupt mode config). HIL-verified fix.

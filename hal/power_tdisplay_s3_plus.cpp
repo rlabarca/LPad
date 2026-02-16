@@ -283,6 +283,7 @@ uint16_t hal_power_get_voltage_mv(void) {
 // with a software debounce state machine.
 
 #include "esp_sleep.h"
+#include "esp_wifi.h"
 
 #define POWER_BUTTON_GPIO    0
 #define SHORT_PRESS_MAX_MS   1000
@@ -346,7 +347,13 @@ hal_power_button_event_t hal_power_button_get_event(void) {
 void hal_power_suspend(void) {
     Serial.println("[PowerHAL] Entering light sleep (GPIO 0 wakeup)...");
     Serial.flush();
-    delay(50);  // Allow serial to flush
+
+    // Fully stop the WiFi driver before light sleep.
+    // WiFi.disconnect() alone leaves the WiFi task running with timer
+    // callbacks that reference code in flash. During light sleep, flash
+    // is inaccessible, causing InstrFetchProhibited (PC=0x0) on wake.
+    esp_wifi_stop();
+    delay(50);
 
     // Configure GPIO 0 as ext0 wakeup source (active LOW = button pressed)
     esp_sleep_enable_ext0_wakeup((gpio_num_t)POWER_BUTTON_GPIO, 0);
