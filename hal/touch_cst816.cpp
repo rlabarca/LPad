@@ -104,29 +104,39 @@ bool hal_touch_init(void) {
         return true;
     }
 
-    // CRITICAL: Wake the CST816 using INT pin toggle (pseudo-reset).
-    // Without a dedicated RST pin, driving INT low for 50ms forces the
-    // controller out of sleep/gesture-only mode into full coordinate mode.
-    // This MUST happen before Wire.begin() because GPIO 21 is the INT pin.
-    Serial.println("[HAL Touch CST816] INT pin wake-up sequence...");
-    pinMode(TOUCH_INT, OUTPUT);
-    digitalWrite(TOUCH_INT, LOW);
-    delay(50);
-    pinMode(TOUCH_INT, INPUT);
-    delay(50);
-    Serial.println("[HAL Touch CST816] INT pin released, controller should be awake");
+    // Wake the CST816 using INT pin toggle (pseudo-reset) with retry.
+    // Without a dedicated RST pin, driving INT low forces the controller
+    // out of auto-sleep/gesture-only mode. Retry with progressively longer
+    // pulses to handle slow wake or residual deep-sleep states (e.g., if a
+    // previous firmware sent 0xE5=0x03 and the board was reset without a
+    // full power cycle).
+    bool found = false;
+    for (int attempt = 0; attempt < 3 && !found; attempt++) {
+        int pulse_ms = 50 + attempt * 50;  // 50ms, 100ms, 150ms
+        Serial.printf("[HAL Touch CST816] Wake attempt %d (INT LOW %dms)...\n",
+                      attempt + 1, pulse_ms);
+        pinMode(TOUCH_INT, OUTPUT);
+        digitalWrite(TOUCH_INT, LOW);
+        delay(pulse_ms);
+        pinMode(TOUCH_INT, INPUT);
+        delay(50);
 
-    // Initialize I2C bus
-    Wire.begin(TOUCH_SDA, TOUCH_SCL);
-    Wire.setClock(100000);  // 100kHz for stability
-    Serial.println("[HAL Touch CST816] I2C bus initialized");
+        Wire.begin(TOUCH_SDA, TOUCH_SCL);
+        Wire.setClock(100000);
 
-    // Probe the touch controller
-    Wire.beginTransmission(TOUCH_ADDR);
-    uint8_t err = Wire.endTransmission();
-    if (err != 0) {
-        Serial.printf("[HAL Touch CST816] Controller not found at 0x%02X (error %d)\n",
-                      TOUCH_ADDR, err);
+        Wire.beginTransmission(TOUCH_ADDR);
+        uint8_t err = Wire.endTransmission();
+        if (err == 0) {
+            found = true;
+        } else {
+            Serial.printf("[HAL Touch CST816] Attempt %d: no ACK (error %d)\n",
+                          attempt + 1, err);
+        }
+    }
+
+    if (!found) {
+        Serial.printf("[HAL Touch CST816] Controller not found at 0x%02X after 3 attempts\n",
+                      TOUCH_ADDR);
         return false;
     }
     Serial.println("[HAL Touch CST816] Controller found on I2C bus");
