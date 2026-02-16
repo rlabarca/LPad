@@ -17,6 +17,16 @@
 #endif
 
 /**
+ * @brief Fetch status for status-screen rendering (§4 scenarios)
+ */
+enum class FetchStatus {
+    WAITING,            // Initial state — no fetch attempted yet
+    HAS_DATA,           // Successful fetch with renderable data
+    NON_TRADING_HOURS,  // Yahoo returned valid JSON but no timestamp array
+    FETCH_ERROR         // HTTP failure, JSON parse error, or other fetch error
+};
+
+/**
  * @class StockTracker
  * @brief Fetches and manages stock price data from Yahoo Finance API
  *
@@ -70,6 +80,12 @@ public:
      */
     bool isRunning() const { return m_is_running; }
 
+    /**
+     * @brief Gets the current fetch status for UI status screens
+     * @return Current FetchStatus (thread-safe volatile read)
+     */
+    FetchStatus getFetchStatus() const { return m_fetch_status; }
+
 private:
     /**
      * @brief Performs a single data fetch from Yahoo Finance API
@@ -114,6 +130,7 @@ private:
 
     bool m_is_running;
     bool m_is_first_fetch;  // Track if this is the initial data fetch
+    volatile FetchStatus m_fetch_status;
 
 #ifdef ARDUINO
     TaskHandle_t m_task_handle;

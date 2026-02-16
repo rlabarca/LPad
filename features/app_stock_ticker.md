@@ -54,10 +54,30 @@ Encapsulate the stock tracking and graphing functionality (from `RELEASE_v0.60`)
     Then the Graph triggers a full repaint
     And the Graph includes the new data points received while paused
 
+### Scenario: Data Fetching or Parsing Error
+    Given the StockTicker is running
+    And the StockTracker fails to retrieve or parse data (e.g. network error, invalid response)
+    When the UI attempts to render the graph
+    Then the graph area is cleared
+    And an empty graph container is drawn
+    And the title "Data Error" is displayed in the center of the graph area
+    And the title font is derived from the currently active theme
+    And this state persists, refreshing as a normal frame, until data becomes available again
+
+### Scenario: Display Market Hours Status
+    Given the StockTicker is running
+    And the stock market is currently closed
+    When the UI attempts to render the graph
+    Then the graph area is cleared
+    And an empty graph container is drawn
+    And the title "Non Trading Hours" is displayed in the center of the graph area
+    And the title font is derived from the currently active theme
+    And this state persists, refreshing as a normal frame, until the market opens
+
 ## Implementation Notes
 
 ### [2026-02-12] GraphTheme Font-Passing Pattern
-**Critical:** The `StockTickerApp` must NOT `#include "theme_manager.h"` directly. The theme manager pulls in 5 custom GFXfont data arrays (~100KB+), which causes memory pressure and `TG1WDT_SYS_RST` watchdog crashes during pixel-intensive graph rendering. Instead, fonts are passed through the `GraphTheme` struct fields (which use built-in bitmap fonts on PSRAM canvases — see `features/ui_themeable_time_series_graph.md`).
+**Critical:** `ui_time_series_graph.cpp` must NOT `#include "theme_manager.h"` — it pulls in 5 custom GFXfont data arrays (~100KB+) causing memory pressure and `TG1WDT_SYS_RST` watchdog crashes during pixel-intensive graph rendering. Fonts are passed through the `GraphTheme` struct. `stock_ticker_app.cpp` CAN include `theme_manager.h` safely (it's the graph rendering compilation unit that matters).
 
 ### [2026-02-12] Watchdog Avoidance
 Graph rendering (especially `drawBackground()` with gradient fills) is CPU-intensive. The component avoids watchdog resets by:
@@ -82,3 +102,14 @@ Graph rendering (especially `drawBackground()` with gradient fills) is CPU-inten
 
 ### [2026-02-06] Embedded Test Data vs Filesystem
 Initial implementation used LittleFS filesystem to store test data, requiring separate filesystem upload. Switched to embedded C++ arrays (`test_data/test_data_tnx_5m.h`). Simpler deployment (single firmware upload), no filesystem dependencies.
+
+### [2026-02-16] I2C Bus Contention During TLS Handshakes
+**Problem:** Wire.cpp error flood — I2C timeouts for FT3168 touch and AXP2101 PMU during HTTPS requests. The StockTracker FreeRTOS task ran on Core 1 (same as Arduino loop), and TLS handshakes monopolized the CPU.
+**Fix:** Pin stock tracker task to Core 0 via `xTaskCreatePinnedToCore()` (WiFi protocol stack already runs there). Increased stack from 8KB to 10KB for TLS headroom.
+
+### [2026-02-16] HTTP Response Buffer Corruption
+**Problem:** `http.getString()` builds a dynamic Arduino String character-by-character from the TLS stream; cross-core preemption caused bytes to be dropped, producing garbled JSON.
+**Fix:** Replaced with stream-based `readBytes()` in `hal_network_http_get()`. Uses `http.getStreamPtr()` to read directly into the caller's pre-allocated PSRAM buffer. Handles both known Content-Length and chunked (Content-Length: -1) responses.
+
+### [2026-02-16] FetchStatus Enum for Status Screens
+Added `FetchStatus` enum (WAITING, HAS_DATA, NON_TRADING_HOURS, FETCH_ERROR) to StockTracker. Set in `fetchData()` and `parseYahooFinanceResponse()` based on failure mode. StockTickerApp::render() checks status and draws centered text ("Non Trading Hours" or "Data Error") using theme font when no chart data is available.

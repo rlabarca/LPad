@@ -166,6 +166,13 @@ bool hal_network_http_get(const char* url, char* response_buffer, size_t buffer_
     Serial.println("[hal_network_http_get] http.begin() succeeded");
 
     http.setTimeout(10000);  // 10 second timeout
+
+    // Explicitly request uncompressed content. Yahoo Finance (and many CDNs)
+    // return gzip-compressed responses by default. The ESP32 HTTPClient does
+    // NOT decompress gzip, so getString() returns raw compressed bytes —
+    // appearing as garbled JSON with systematically dropped characters.
+    http.addHeader("Accept-Encoding", "identity");
+
     Serial.println("[hal_network_http_get] Timeout set to 10000ms");
 
     Serial.println("[hal_network_http_get] Sending GET request...");
@@ -173,42 +180,64 @@ bool hal_network_http_get(const char* url, char* response_buffer, size_t buffer_
     Serial.printf("[hal_network_http_get] GET returned code: %d\n", httpCode);
 
     if (httpCode == HTTP_CODE_OK) {
-        Serial.println("[hal_network_http_get] HTTP_CODE_OK received, getting payload...");
+        Serial.println("[hal_network_http_get] HTTP_CODE_OK received");
 
-        // Get content length to check buffer size
         int contentLength = http.getSize();
         Serial.printf("[hal_network_http_get] Content-Length: %d bytes\n", contentLength);
 
-        // For chunked encoding (Content-Length: -1), use getString() which handles decoding
-        // For known length, we can also use getString() as it's simpler and handles all cases
-        Serial.println("[hal_network_http_get] Using getString() to handle chunked encoding...");
-
-        String payload = http.getString();
-        Serial.printf("[hal_network_http_get] Received %d bytes\n", payload.length());
-
-        // Check if response fits in buffer
-        if (payload.length() >= buffer_size) {
+        // Reject responses that exceed our buffer before reading
+        if (contentLength > 0 && (size_t)contentLength >= buffer_size) {
             Serial.printf("[hal_network_http_get] ERROR: Response too large: %d bytes (buffer: %zu)\n",
-                         payload.length(), buffer_size);
+                         contentLength, buffer_size);
             http.end();
             return false;
         }
 
-        // Copy to buffer
-        strncpy(response_buffer, payload.c_str(), buffer_size - 1);
-        response_buffer[buffer_size - 1] = '\0';
+        // Stream-based reading: read directly into our PSRAM buffer.
+        // getString() builds an intermediate Arduino String char-by-char which
+        // loses bytes under cross-core preemption. readBytes() copies the
+        // decrypted TLS stream straight into the caller's buffer.
+        WiFiClient* stream = http.getStreamPtr();
+        if (!stream) {
+            Serial.println("[hal_network_http_get] ERROR: No stream available");
+            http.end();
+            return false;
+        }
+
+        size_t totalRead = 0;
+        size_t maxRead = (contentLength > 0) ? (size_t)contentLength : (buffer_size - 1);
+        unsigned long lastDataTime = millis();
+
+        while (totalRead < maxRead) {
+            size_t avail = stream->available();
+            if (avail > 0) {
+                size_t toRead = min(avail, maxRead - totalRead);
+                size_t bytesRead = stream->readBytes(response_buffer + totalRead, toRead);
+                totalRead += bytesRead;
+                lastDataTime = millis();
+            } else if (!http.connected()) {
+                break;  // Connection closed — we have all data
+            } else if (millis() - lastDataTime > 10000) {
+                Serial.println("[hal_network_http_get] Read timeout waiting for data");
+                break;
+            } else {
+                delay(1);  // Yield while waiting for next chunk
+            }
+        }
+
+        response_buffer[totalRead] = '\0';
 
         // Debug first 50 bytes
         Serial.print("[hal_network_http_get] First 50 bytes: ");
-        size_t preview_len = min(50, (int)payload.length());
+        size_t preview_len = min((size_t)50, totalRead);
         for (size_t i = 0; i < preview_len; i++) {
             Serial.printf("%02X ", (unsigned char)response_buffer[i]);
         }
         Serial.println();
 
-        Serial.printf("[hal_network_http_get] SUCCESS: %d bytes received and copied\n", payload.length());
+        Serial.printf("[hal_network_http_get] SUCCESS: %zu bytes read via stream\n", totalRead);
         http.end();
-        return true;
+        return (totalRead > 0);
     } else {
         // Detailed error reporting
         Serial.printf("[hal_network_http_get] ERROR: HTTP error code: %d\n", httpCode);

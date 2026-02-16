@@ -28,6 +28,7 @@ StockTracker::StockTracker(const std::string& symbol,
     , m_data_series(symbol, 400)  // Capacity for 6h of 1-min trading data: 360 points + buffer
     , m_is_running(false)
     , m_is_first_fetch(true)
+    , m_fetch_status(FetchStatus::WAITING)
 #ifdef ARDUINO
     , m_task_handle(nullptr)
 #endif
@@ -44,14 +45,17 @@ bool StockTracker::start() {
     }
 
 #ifdef ARDUINO
-    // Create FreeRTOS task for background data fetching
-    BaseType_t result = xTaskCreate(
+    // Create FreeRTOS task pinned to Core 0 (where WiFi stack runs).
+    // Running on Core 1 (Arduino loop) causes I2C bus timeouts during TLS
+    // handshakes — the CPU-intensive TLS work starves touch/PMU polling.
+    BaseType_t result = xTaskCreatePinnedToCore(
         taskFunction,
         "stock_tracker",
-        8192,  // Stack size (8KB)
+        10240, // Stack size (10KB — TLS needs headroom beyond 8KB)
         this,  // Task parameter (this pointer)
         1,     // Priority
-        &m_task_handle
+        &m_task_handle,
+        0      // Core 0 (WiFi protocol stack core)
     );
 
     if (result != pdPASS) {
@@ -146,6 +150,7 @@ bool StockTracker::fetchData() {
 
     if (!success) {
         Serial.println("[StockTracker] ERROR: HTTP request failed");
+        m_fetch_status = FetchStatus::FETCH_ERROR;
         free(response_buffer);
         return false;
     }
@@ -157,9 +162,13 @@ bool StockTracker::fetchData() {
     std::vector<double> prices;
 
     if (!parseYahooFinanceResponse(response_buffer, timestamps, prices)) {
-        Serial.println("[StockTracker] Failed to parse response (may be non-trading hours)");
+        Serial.println("[StockTracker] Failed to parse response");
+        // parseYahooFinanceResponse sets NON_TRADING_HOURS for that specific case;
+        // default to FETCH_ERROR for all other parse failures
+        if (m_fetch_status != FetchStatus::NON_TRADING_HOURS) {
+            m_fetch_status = FetchStatus::FETCH_ERROR;
+        }
         free(response_buffer);
-        // Return false but don't treat as critical error - will retry on next interval
         return false;
     }
 
@@ -177,7 +186,8 @@ bool StockTracker::fetchData() {
             }
 
             Serial.printf("[StockTracker] Initial fetch: Loaded %zu data points (6h trading data)\n", num_points);
-            m_is_first_fetch = false;  // Mark initial fetch as complete
+            m_is_first_fetch = false;
+            m_fetch_status = FetchStatus::HAS_DATA;
         } else {
             // Incremental update: Append only NEW data points
             long latest_existing_timestamp = 0;
@@ -204,6 +214,7 @@ bool StockTracker::fetchData() {
 
             Serial.printf("[StockTracker] Incremental update: Added %zu new data points (total: %zu)\n",
                           added_count, m_data_series.getLength());
+            m_fetch_status = FetchStatus::HAS_DATA;
         }
 
         return true;
@@ -229,6 +240,18 @@ bool StockTracker::parseYahooFinanceResponse(const char* json_response,
         Serial.print(json_response[i]);
     }
     Serial.println();
+
+    // Sanity check: a valid JSON response must start with '{'
+    // If the response is gzip-compressed but not decompressed, the first
+    // bytes will be binary (0x1F 0x8B for gzip magic number).
+    if (response_len == 0 || json_response[0] != '{') {
+        Serial.printf("[StockTracker] Response is not valid JSON (first byte: 0x%02X)\n",
+                      (unsigned char)json_response[0]);
+        if ((unsigned char)json_response[0] == 0x1F) {
+            Serial.println("[StockTracker] Detected gzip magic — server sent compressed response");
+        }
+        return false;
+    }
 
     // Parse JSON using ArduinoJson
     JsonDocument doc;
@@ -260,6 +283,7 @@ bool StockTracker::parseYahooFinanceResponse(const char* json_response,
     JsonArray result_array = doc["chart"]["result"].as<JsonArray>();
     if (result_array.size() == 0) {
         Serial.println("[StockTracker] Empty result array (likely non-trading hours)");
+        m_fetch_status = FetchStatus::NON_TRADING_HOURS;
         return false;
     }
 
@@ -267,7 +291,8 @@ bool StockTracker::parseYahooFinanceResponse(const char* json_response,
 
     // Check if timestamp exists (may be missing during non-trading hours)
     if (!result["timestamp"].is<JsonArray>()) {
-        Serial.println("[StockTracker] No timestamp field (likely non-trading hours or no data)");
+        Serial.println("[StockTracker] No timestamp field (non-trading hours)");
+        m_fetch_status = FetchStatus::NON_TRADING_HOURS;
 
         // Log what we do have
         Serial.print("[StockTracker] Available keys: ");
@@ -375,9 +400,13 @@ void StockTracker::taskLoop() {
         // Network connected: fetch data
         fetchData();
 
-        // Short retry after failed first fetch, full interval after success
+        // After success: use configured refresh interval (60s).
+        // After failure: 30s backoff. The 5s retry was too aggressive —
+        // during non-trading hours every HTTPS request (TLS handshake)
+        // monopolizes the CPU, causing I2C timeouts on the shared bus
+        // (touch + PMU + GPIO expander on Waveshare).
         uint32_t delay_ms = m_is_first_fetch
-            ? 5000
+            ? 30000
             : (m_refresh_interval_seconds * 1000);
         vTaskDelay(pdMS_TO_TICKS(delay_ms));
     }

@@ -43,6 +43,7 @@ private:
     bool m_backgroundDrawn;
     bool m_graphInitialRenderDone;
     long m_lastDataTimestamp;
+    int m_lastRenderedFetchStatus;  // Tracks displayed FetchStatus to avoid redundant redraws
 
     GraphTheme createStockGraphTheme();
 };

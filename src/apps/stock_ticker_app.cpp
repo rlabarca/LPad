@@ -21,6 +21,7 @@ StockTickerApp::StockTickerApp()
     , m_backgroundDrawn(false)
     , m_graphInitialRenderDone(false)
     , m_lastDataTimestamp(0)
+    , m_lastRenderedFetchStatus(-1)
 {
 }
 
@@ -82,6 +83,7 @@ void StockTickerApp::onUnpause() {
     m_backgroundDrawn = false;
     m_lastDataTimestamp = 0;
     m_graphInitialRenderDone = false;
+    m_lastRenderedFetchStatus = -1;
 }
 
 void StockTickerApp::onClose() {
@@ -99,6 +101,48 @@ void StockTickerApp::onClose() {
 void StockTickerApp::render() {
     if (m_graph == nullptr || m_stockTracker == nullptr) return;
 
+    // Always draw background when needed — even without data.
+    // After suspend/resume the display GRAM is undefined (MIPI Sleep In/Out
+    // does not preserve framebuffer contents). Without this, the screen shows
+    // stale pixels until data arrives.
+    if (!m_backgroundDrawn) {
+        m_graph->drawBackground();
+        m_backgroundDrawn = true;
+        m_graph->render();
+    }
+
+    // Status screens (§4 scenarios): show centered message when no data
+    FetchStatus fetchStatus = m_stockTracker->getFetchStatus();
+
+    if (fetchStatus == FetchStatus::FETCH_ERROR || fetchStatus == FetchStatus::NON_TRADING_HOURS) {
+        // Only redraw when the status changes (avoids redundant writes)
+        if (m_lastRenderedFetchStatus != static_cast<int>(fetchStatus)) {
+            // Repaint clean background to clear any previous status text
+            m_graph->drawBackground();
+            m_graph->render();
+
+            const char* msg = (fetchStatus == FetchStatus::NON_TRADING_HOURS)
+                ? "Non Trading Hours" : "Data Error";
+
+            Arduino_GFX* gfx = m_display->getGfx();
+            const LPad::Theme* lpadTheme = LPad::ThemeManager::getInstance().getTheme();
+            gfx->setFont(static_cast<const GFXfont*>(lpadTheme->fonts.normal));
+            gfx->setTextColor(lpadTheme->colors.text_main);
+
+            int16_t x1, y1;
+            uint16_t tw, th;
+            gfx->getTextBounds(msg, 0, 0, &x1, &y1, &tw, &th);
+            int16_t cx = (m_display->getWidth() - tw) / 2 - x1;
+            int16_t cy = (m_display->getHeight() - th) / 2 - y1;
+            gfx->setCursor(cx, cy);
+            gfx->print(msg);
+
+            m_lastRenderedFetchStatus = static_cast<int>(fetchStatus);
+        }
+        return;
+    }
+
+    // Normal data rendering path
     DataItemTimeSeries* dataSeries = m_stockTracker->getDataSeries();
     if (dataSeries == nullptr || dataSeries->getLength() == 0) return;
 
@@ -108,18 +152,14 @@ void StockTickerApp::render() {
 
     if (currentTimestamp != m_lastDataTimestamp) {
         m_graph->setData(graphData);
-
-        if (!m_backgroundDrawn) {
-            m_graph->drawBackground();
-            m_backgroundDrawn = true;
-        }
-
+        m_graph->drawBackground();
         m_graph->drawData();
         m_lastDataTimestamp = currentTimestamp;
 
         // Composite graph layers to GFX buffer (NO flush — manager handles that)
         m_graph->render();
         m_graphInitialRenderDone = true;
+        m_lastRenderedFetchStatus = static_cast<int>(FetchStatus::HAS_DATA);
     }
 }
 
