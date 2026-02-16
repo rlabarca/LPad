@@ -338,24 +338,20 @@ void hal_touch_sleep(void) {
     if (!g_touch_initialized) return;
     // CST816 sleep: write 0x03 to sleep register 0xE5
     cst_write_register(CST_REG_SLEEP, 0x03);
+    // Mark uninitialized so hal_touch_init() runs the full sequence on wake.
+    // After esp_light_sleep_start(), the I2C peripheral state is lost and
+    // Wire.begin() must be called again. The CST816 deep sleep also requires
+    // the full INT pin toggle + auto-sleep disable + interrupt mode setup.
+    g_touch_initialized = false;
     Serial.println("[HAL Touch CST816] Entered deep sleep");
 }
 
 void hal_touch_wake(void) {
-    if (!g_touch_initialized) return;
-    // CST816 wakes via INT pin toggle (same as init sequence)
-    pinMode(TOUCH_INT, OUTPUT);
-    digitalWrite(TOUCH_INT, LOW);
-    delay(50);
-    pinMode(TOUCH_INT, INPUT);
-    delay(50);
-
-    // Re-disable auto-sleep after wake
-    cst_write_register(CST_REG_DIS_AUTOSLEEP, 0x01);
-    // Restore interrupt mode for touch coordinates
-    cst_write_register(0xFA, 0x60);
-    delay(50);
-    Serial.println("[HAL Touch CST816] Woke from deep sleep");
+    // Full re-initialization: Wire.begin() (required after light sleep),
+    // INT pin toggle to wake CST816 from deep sleep, auto-sleep disable,
+    // and interrupt mode configuration.
+    hal_touch_init();
+    Serial.println("[HAL Touch CST816] Woke via full re-init");
 }
 
 #endif // !UNIT_TEST
