@@ -27,7 +27,7 @@ The values are determined by the physical radius of the display housing:
 | Device | Corner Buffer X | Corner Buffer Y |
 | :--- | :--- | :--- |
 | **LilyGo T-Display S3 Plus** | 2 px | 0 px |
-| **Waveshare ESP32-S3 AMOLED 1.8** | 15 px | 4 px |
+| **Waveshare ESP32-S3 AMOLED 1.8** | 20 px | 4 px |
 | **Stub/Default** | 0 px | 0 px |
 
 ## 3. Implementation Requirements

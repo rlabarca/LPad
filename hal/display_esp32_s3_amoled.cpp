@@ -188,7 +188,7 @@ int32_t hal_display_get_height_pixels(void) {
 }
 
 int32_t hal_display_get_corner_buffer_x(void) {
-    return 15;
+    return 20;
 }
 
 int32_t hal_display_get_corner_buffer_y(void) {
