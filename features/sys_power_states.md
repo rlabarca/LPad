@@ -172,6 +172,9 @@ Both the SH8601 (Waveshare) and RM67162 (LilyGo) support the standard `displayOf
 ### [2026-02-16] Touch Wake Methods Differ By Controller
 FT3168 (Waveshare): Wakes from hibernate on any I2C activity — a dummy register read suffices. CST816 (LilyGo): Requires INT pin toggle (drive LOW 50ms, release) to exit deep sleep, followed by re-disabling auto-sleep (reg 0xFE = 0x01) and re-setting interrupt mode (reg 0xFA = 0x60).
 
+### [2026-02-16] FT3168 Must Use Monitor Mode, NOT Hibernate
+The FT3168 on the Waveshare board does not have an exposed RST pin. FocalTech hibernate mode (register 0xA5 = 0x03) can only be exited via hardware RST toggle. Using hibernate causes the touch controller to stop ACKing its I2C address after suspend. Since the I2C bus is shared with the AXP2101 PMU and XCA9554 GPIO expander, the resulting I2C errors flood the bus, block the main loop, and cause a static (non-updating) screen on resume. Fix: use monitor mode (0x01) instead, which reduces scan rate but preserves I2C responsiveness for wake.
+
 ### [2026-02-16] WiFi Driver Must Be Fully Stopped Before Light Sleep
 `WiFi.disconnect(true)` alone does NOT fully stop the WiFi driver. The underlying FreeRTOS WiFi task remains running with timer callbacks that reference code stored in flash. During `esp_light_sleep_start()`, flash is memory-mapped out, so these callbacks trigger `InstrFetchProhibited` at `PC=0x00000000` (null pointer / unmapped flash). Fix: call `esp_wifi_stop()` (from `esp_wifi.h`) before entering light sleep. This fully tears down the WiFi driver task and its timers. A 50ms delay after `esp_wifi_stop()` ensures cleanup completes before sleep entry.
 
