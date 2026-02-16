@@ -436,7 +436,11 @@ void hal_display_sleep(void) {
 void hal_display_wake(void) {
     if (!g_initialized || g_gfx == nullptr) return;
     g_gfx->displayOn();
-    // SH8601: displayOn sends MIPI 0x11 (Sleep Out) + 0x29 (Display On)
+    // SH8601: displayOn sends MIPI 0x11 (Sleep Out) + 0x29 (Display On).
+    // MIPI standard requires 120ms after Sleep Out before the display
+    // controller begins scanning memory. Without this delay, Display On
+    // may be ignored, leaving the screen static (showing last frame).
+    delay(120);
     g_gfx->setBrightness(255);  // Restore max brightness (eliminates PWM flicker)
     Serial.println("[DisplayHAL] Display wake");
 }

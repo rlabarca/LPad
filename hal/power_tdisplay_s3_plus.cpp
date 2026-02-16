@@ -361,7 +361,17 @@ void hal_power_suspend(void) {
     // Enter light sleep — blocks until wakeup
     esp_light_sleep_start();
 
-    // Woken up — reset button state machine to avoid immediate re-trigger
+    // Woken up — reinitialize I2C bus immediately.
+    // During light sleep the I2C peripheral hardware is reset, but the
+    // Wire library's internal _started flag survives in RAM. Any I2C
+    // operation before Wire.begin() uses a de-initialized peripheral,
+    // corrupting driver state that persists even after a later Wire.begin().
+    // Bus is shared with CST816 touch (SDA=3, SCL=2).
+    Wire.end();
+    Wire.begin(3, 2);
+    Wire.setClock(100000);
+
+    // Reset button state machine to avoid immediate re-trigger
     g_btn_state = BTN_WAIT_RELEASE;
 
     Serial.println("[PowerHAL] Wakeup from light sleep");

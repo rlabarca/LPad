@@ -151,27 +151,22 @@ void hal_touch_configure_gesture_engine(TouchGestureEngine* engine) {
 
 void hal_touch_sleep(void) {
     if (!g_touch_initialized) return;
-    // FT3168 monitor mode (0x01): reduced scan rate, I2C-wakeable.
-    // Do NOT use hibernate (0x03) — it requires a hardware RST pin toggle
-    // to wake, and the Waveshare board does not expose the FT3168 RST pin.
-    // Hibernate causes the touch controller to stop ACKing I2C, which floods
-    // the shared bus (PMU + GPIO expander) with errors and blocks the main loop.
-    Wire.beginTransmission(TOUCH_ADDR);
-    Wire.write(0xA5);
-    Wire.write(0x01);  // Monitor mode, NOT 0x03 hibernate
-    Wire.endTransmission();
-    Serial.println("[HAL Touch FT3168] Entered monitor mode");
+    // No-op: The Waveshare uses a CPU polling loop for suspend (not
+    // esp_light_sleep_start), so the I2C bus stays active throughout.
+    // Putting the FT3168 into hibernate (0x03) or monitor (0x01) mode
+    // causes wake failures — hibernate needs a hardware RST pin (not
+    // exposed), and monitor mode doesn't reliably I2C-wake on this board.
+    // The FT3168's active-mode power draw is negligible vs. CPU polling.
+    g_touch_initialized = false;  // Block reads during suspend
+    Serial.println("[HAL Touch FT3168] Suspend (controller stays active)");
 }
 
 void hal_touch_wake(void) {
-    if (!g_touch_initialized) return;
-    // FT3168 wakes from monitor mode on any I2C activity.
-    // Send a dummy read to wake the controller, then allow settle time.
-    Wire.beginTransmission(TOUCH_ADDR);
-    Wire.write(FT_REG_CHIP_ID);
-    Wire.endTransmission();
-    delay(100);  // Allow transition from monitor → active
-    Serial.println("[HAL Touch FT3168] Woke from monitor mode");
+    // Full re-init for clean state after suspend.
+    // The FT3168 was never put to sleep, so Wire.begin() and probe
+    // succeed immediately.
+    hal_touch_init();
+    Serial.println("[HAL Touch FT3168] Woke via full re-init");
 }
 
 #endif // !UNIT_TEST
