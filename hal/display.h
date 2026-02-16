@@ -210,6 +210,21 @@ uint16_t hal_display_read_pixel(int32_t x, int32_t y);
  */
 void hal_display_dump_screen(void);
 
+/**
+ * @brief Puts the display into low-power sleep mode
+ *
+ * Sends the MIPI Display Off + Sleep In commands. The display contents
+ * are preserved in controller memory but the panel is not driven.
+ */
+void hal_display_sleep(void);
+
+/**
+ * @brief Wakes the display from sleep mode
+ *
+ * Sends the MIPI Sleep Out + Display On commands and restores brightness.
+ */
+void hal_display_wake(void);
+
 #ifdef __cplusplus
 }
 #endif

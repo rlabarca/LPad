@@ -334,4 +334,28 @@ void hal_touch_configure_gesture_engine(TouchGestureEngine* engine) {
     #endif
 }
 
+void hal_touch_sleep(void) {
+    if (!g_touch_initialized) return;
+    // CST816 sleep: write 0x03 to sleep register 0xE5
+    cst_write_register(CST_REG_SLEEP, 0x03);
+    Serial.println("[HAL Touch CST816] Entered deep sleep");
+}
+
+void hal_touch_wake(void) {
+    if (!g_touch_initialized) return;
+    // CST816 wakes via INT pin toggle (same as init sequence)
+    pinMode(TOUCH_INT, OUTPUT);
+    digitalWrite(TOUCH_INT, LOW);
+    delay(50);
+    pinMode(TOUCH_INT, INPUT);
+    delay(50);
+
+    // Re-disable auto-sleep after wake
+    cst_write_register(CST_REG_DIS_AUTOSLEEP, 0x01);
+    // Restore interrupt mode for touch coordinates
+    cst_write_register(0xFA, 0x60);
+    delay(50);
+    Serial.println("[HAL Touch CST816] Woke from deep sleep");
+}
+
 #endif // !UNIT_TEST

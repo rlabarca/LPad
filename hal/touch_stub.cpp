@@ -31,3 +31,11 @@ bool hal_touch_read(hal_touch_point_t* point) {
 
     return true;
 }
+
+void hal_touch_sleep(void) {
+    // No-op in stub
+}
+
+void hal_touch_wake(void) {
+    // No-op in stub
+}

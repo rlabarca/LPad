@@ -176,3 +176,88 @@ uint16_t hal_power_get_voltage_mv(void) {
     }
     return pmu.getBattVoltage();
 }
+
+// ---- Power Button & State Management (sys_power_states.md) ----
+
+void hal_power_button_init(void) {
+    if (!g_pmu_ready) return;
+
+    // Disable all IRQs, then enable only power key events
+    pmu.disableIRQ(XPOWERS_AXP2101_ALL_IRQ);
+    pmu.enableIRQ(XPOWERS_AXP2101_PKEY_SHORT_IRQ | XPOWERS_AXP2101_PKEY_LONG_IRQ);
+
+    // Configure long press to 4 seconds for hardware-managed shutdown
+    pmu.setPowerKeyPressOffTime(XPOWERS_POWEROFF_4S);
+
+    // Clear any pending IRQ from boot
+    pmu.getIrqStatus();
+    pmu.clearIrqStatus();
+
+    Serial.println("[PowerHAL] AXP2101 PEK button initialized (4s shutdown)");
+}
+
+hal_power_button_event_t hal_power_button_get_event(void) {
+    if (!g_pmu_ready) return HAL_POWER_EVENT_NONE;
+
+    // Read and process IRQ status from AXP2101 via I2C
+    pmu.getIrqStatus();
+
+    hal_power_button_event_t event = HAL_POWER_EVENT_NONE;
+
+    if (pmu.isPekeyShortPressIrq()) {
+        event = HAL_POWER_EVENT_SHORT_PRESS;
+    } else if (pmu.isPekeyLongPressIrq()) {
+        event = HAL_POWER_EVENT_LONG_PRESS;
+    }
+
+    pmu.clearIrqStatus();
+    return event;
+}
+
+void hal_power_suspend(void) {
+    // The Waveshare board's PMU IRQ is routed through the I2C GPIO expander
+    // (XCA9554 pin 5), not a direct ESP32 GPIO. This means we cannot use
+    // esp_light_sleep_start() with ext0/ext1 wakeup. Instead, we enter a
+    // low-power polling loop that checks the PMU for button events every
+    // 100ms. Display, WiFi, and touch are already off at this point.
+    Serial.println("[PowerHAL] Entering soft suspend (PMU polling)...");
+    Serial.flush();
+
+    while (true) {
+        hal_power_button_event_t ev = hal_power_button_get_event();
+        if (ev == HAL_POWER_EVENT_SHORT_PRESS) {
+            break;  // Wake up
+        }
+        if (ev == HAL_POWER_EVENT_LONG_PRESS) {
+            hal_power_shutdown();  // Does not return
+        }
+        delay(100);  // Low-power polling interval
+    }
+
+    Serial.println("[PowerHAL] Wakeup from suspend");
+}
+
+void hal_power_resume(void) {
+    // Re-seed the rate-limiter cache after wake.
+    // Battery voltage may have drifted during suspend.
+    if (g_pmu_ready) {
+        uint16_t mv = pmu.getBattVoltage();
+        if (mv >= NO_BATTERY_MV) {
+            int32_t level = ((int32_t)mv - LIPO_MIN_MV) * 100 / (LIPO_MAX_MV - LIPO_MIN_MV);
+            if (level < 0) level = 0;
+            if (level > 100) level = 100;
+            g_last_level = (int8_t)level;
+        }
+        g_ramp_ticks = 0;
+    }
+}
+
+void hal_power_shutdown(void) {
+    if (!g_pmu_ready) return;
+    Serial.println("[PowerHAL] AXP2101 shutdown — cutting all power rails");
+    Serial.flush();
+    delay(100);
+    pmu.shutdown();
+    // Does not return — PMU cuts power
+    while (true) { delay(1000); }
+}

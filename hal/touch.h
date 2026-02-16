@@ -53,6 +53,21 @@ bool hal_touch_init(void);
  */
 bool hal_touch_read(hal_touch_point_t* point);
 
+/**
+ * @brief Puts the touch controller into low-power sleep mode
+ *
+ * The touch controller enters hibernate/deep sleep. No touch events
+ * will be reported until hal_touch_wake() is called.
+ */
+void hal_touch_sleep(void);
+
+/**
+ * @brief Wakes the touch controller from sleep mode
+ *
+ * Re-initializes the touch controller from sleep state.
+ */
+void hal_touch_wake(void);
+
 #ifdef __cplusplus
 }  // extern "C"
 

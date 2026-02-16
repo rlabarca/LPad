@@ -1,12 +1,12 @@
 /**
  * @file main.cpp
- * @brief LPad v0.74 Entry Point
+ * @brief LPad v0.75 Entry Point
  *
- * UIRenderManager-driven architecture with Widget-based System Menu
- * and background battery metering via PowerManager.
+ * UIRenderManager-driven architecture with Widget-based System Menu,
+ * background battery metering, and power state management (suspend/resume/shutdown).
  *
  * Components:
- *   Z=0  PowerManager         (SystemComponent, background polling)
+ *   Z=0  PowerManager         (SystemComponent, battery polling + power states)
  *   Z=1  StockTickerApp       (AppComponent)
  *   Z=10 MiniLogoComponent    (SystemComponent, passive overlay)
  *   Z=20 SystemMenuComponent  (SystemComponent, activation=EDGE_DRAG TOP)
@@ -53,7 +53,7 @@ void setup() {
     delay(500);
     yield();
 
-    Serial.println("\n\n\n=== LPad v0.74 (Battery Metering) ===");
+    Serial.println("\n\n\n=== LPad v0.75 (Power States) ===");
     Serial.flush();
     yield();
 
@@ -189,7 +189,7 @@ void setup() {
         displayError("SystemMenuComponent init failed");
         while (1) delay(1000);
     }
-    g_systemMenu->setVersion("Version 0.74");
+    g_systemMenu->setVersion("Version 0.75");
     g_systemMenu->setSSIDProvider(hal_network_get_ssid);
     g_systemMenu->setSSID(hal_network_get_ssid());
     g_systemMenu->setBackgroundColor(theme->colors.system_menu_bg);
@@ -253,14 +253,20 @@ void setup() {
     hal_display_clear(theme->colors.background);
     hal_display_flush();
 
-    Serial.println("\n=== LPad v0.74 Started ===");
+    Serial.println("\n=== LPad v0.75 Started ===");
     Serial.println("Swipe down from top edge to open System Menu");
-    Serial.println("Tap a WiFi network in the menu to connect");
+    Serial.println("Short press power button to suspend/resume");
+    Serial.println("Long press (4s) power button to shutdown");
     Serial.flush();
 }
 
 void loop() {
     float deltaTime = g_ticker->waitForNextFrame();
+
+    // --- Power button polling (suspend/resume/shutdown) ---
+    // Must run before render pipeline. If suspend is triggered,
+    // handle() blocks until resume completes.
+    g_powerManager->handle();
 
     // --- Serial screenshot trigger ---
     if (Serial.available()) {

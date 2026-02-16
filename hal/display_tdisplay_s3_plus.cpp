@@ -505,4 +505,24 @@ void hal_display_dump_screen(void) {
     Serial.flush();
 }
 
+void hal_display_sleep(void) {
+    if (!g_initialized || g_gfx == nullptr) return;
+    g_gfx->displayOff();
+    // RM67162: displayOff sends MIPI 0x28 (Display Off) + 0x10 (Sleep In)
+    Serial.println("[DisplayHAL] Display sleep");
+}
+
+void hal_display_wake(void) {
+    if (!g_initialized || g_gfx == nullptr) return;
+    g_gfx->displayOn();
+    // RM67162: displayOn sends MIPI 0x11 (Sleep Out) + 0x29 (Display On)
+    // Re-apply vendor brightness setting
+    if (g_bus) {
+        g_bus->beginWrite();
+        g_bus->writeC8D8(0x51, AMOLED_DEFAULT_BRIGHTNESS);
+        g_bus->endWrite();
+    }
+    Serial.println("[DisplayHAL] Display wake");
+}
+
 #endif  // !UNIT_TEST

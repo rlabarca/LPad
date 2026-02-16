@@ -426,4 +426,19 @@ void hal_display_dump_screen(void) {
     Serial.flush();
 }
 
+void hal_display_sleep(void) {
+    if (!g_initialized || g_gfx == nullptr) return;
+    g_gfx->displayOff();
+    // SH8601: displayOff sends MIPI 0x28 (Display Off) + 0x10 (Sleep In)
+    Serial.println("[DisplayHAL] Display sleep");
+}
+
+void hal_display_wake(void) {
+    if (!g_initialized || g_gfx == nullptr) return;
+    g_gfx->displayOn();
+    // SH8601: displayOn sends MIPI 0x11 (Sleep Out) + 0x29 (Display On)
+    g_gfx->setBrightness(255);  // Restore max brightness (eliminates PWM flicker)
+    Serial.println("[DisplayHAL] Display wake");
+}
+
 #endif  // !UNIT_TEST

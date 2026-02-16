@@ -31,6 +31,15 @@ typedef enum {
 } hal_power_status_t;
 
 /**
+ * @brief Power button event enumeration
+ */
+typedef enum {
+    HAL_POWER_EVENT_NONE,          ///< No button event
+    HAL_POWER_EVENT_SHORT_PRESS,   ///< Short press detected (< 1s)
+    HAL_POWER_EVENT_LONG_PRESS,    ///< Long press detected (>= 4s)
+} hal_power_button_event_t;
+
+/**
  * @brief Initializes the power monitoring hardware
  *
  * Initializes ADC, PMU, or other power monitoring peripherals.
@@ -60,6 +69,48 @@ int8_t hal_power_get_charge_level(void);
  * @return Battery voltage in mV, or 0 if unavailable
  */
 uint16_t hal_power_get_voltage_mv(void);
+
+/**
+ * @brief Initializes the power button (GPIO or PMU interrupt)
+ *
+ * Configures the hardware button used for suspend/resume/shutdown.
+ * On AXP2101 boards: enables PEK (Power Enable Key) IRQs.
+ * On SY6970 boards: configures GPIO 0 as input with pull-up.
+ */
+void hal_power_button_init(void);
+
+/**
+ * @brief Polls for a debounced/processed button event
+ *
+ * Returns the most recent button event since last call. Events are
+ * consumed on read (subsequent calls return NONE until a new event).
+ *
+ * @return hal_power_button_event_t The detected button event
+ */
+hal_power_button_event_t hal_power_button_get_event(void);
+
+/**
+ * @brief Puts the CPU into low-power suspend mode
+ *
+ * The caller must turn off peripherals (display, WiFi, touch) before
+ * calling this function. This function blocks until wakeup occurs.
+ */
+void hal_power_suspend(void);
+
+/**
+ * @brief Restores hardware state after waking from suspend
+ *
+ * Called after hal_power_suspend() returns. Re-initializes any
+ * power-related hardware that was affected by suspend.
+ */
+void hal_power_resume(void);
+
+/**
+ * @brief Commands the PMU to cut all power rails (full shutdown)
+ *
+ * This function does not return. The device will power off completely.
+ */
+void hal_power_shutdown(void);
 
 #ifdef __cplusplus
 }

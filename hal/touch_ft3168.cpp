@@ -149,4 +149,25 @@ void hal_touch_configure_gesture_engine(TouchGestureEngine* engine) {
     // No special configuration needed for full-screen touch panel
 }
 
+void hal_touch_sleep(void) {
+    if (!g_touch_initialized) return;
+    // FT3168 hibernate mode: write 0x03 to power mode register 0xA5
+    Wire.beginTransmission(TOUCH_ADDR);
+    Wire.write(0xA5);
+    Wire.write(0x03);
+    Wire.endTransmission();
+    Serial.println("[HAL Touch FT3168] Entered hibernate");
+}
+
+void hal_touch_wake(void) {
+    if (!g_touch_initialized) return;
+    // FT3168 wakes from hibernate on any I2C activity.
+    // Send a dummy read to wake the controller, then allow settle time.
+    Wire.beginTransmission(TOUCH_ADDR);
+    Wire.write(FT_REG_CHIP_ID);
+    Wire.endTransmission();
+    delay(50);
+    Serial.println("[HAL Touch FT3168] Woke from hibernate");
+}
+
 #endif // !UNIT_TEST

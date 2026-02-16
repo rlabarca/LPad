@@ -277,3 +277,111 @@ uint16_t hal_power_get_voltage_mv(void) {
     }
     return readBattVoltageRaw();
 }
+
+// ---- Power Button & State Management (sys_power_states.md) ----
+// The SY6970 has no PEK feature, so we emulate button events using GPIO 0
+// with a software debounce state machine.
+
+#include "esp_sleep.h"
+
+#define POWER_BUTTON_GPIO    0
+#define SHORT_PRESS_MAX_MS   1000
+#define LONG_PRESS_THRESHOLD_MS  4000
+
+static enum {
+    BTN_IDLE,
+    BTN_PRESSED,
+    BTN_WAIT_RELEASE,  // After long press fires, wait for release
+} g_btn_state = BTN_IDLE;
+
+static uint32_t g_btn_press_start = 0;
+
+void hal_power_button_init(void) {
+    pinMode(POWER_BUTTON_GPIO, INPUT_PULLUP);
+    g_btn_state = BTN_IDLE;
+    Serial.println("[PowerHAL] GPIO 0 button initialized (software debounce)");
+}
+
+hal_power_button_event_t hal_power_button_get_event(void) {
+    bool pressed = (digitalRead(POWER_BUTTON_GPIO) == LOW);
+    uint32_t now = millis();
+
+    switch (g_btn_state) {
+        case BTN_IDLE:
+            if (pressed) {
+                g_btn_press_start = now;
+                g_btn_state = BTN_PRESSED;
+            }
+            break;
+
+        case BTN_PRESSED:
+            if (!pressed) {
+                // Released — check duration
+                uint32_t duration = now - g_btn_press_start;
+                g_btn_state = BTN_IDLE;
+                if (duration < SHORT_PRESS_MAX_MS) {
+                    return HAL_POWER_EVENT_SHORT_PRESS;
+                }
+                // Duration between 1-4s: ignored (not short, not long enough)
+            } else {
+                // Still pressed — check for long press threshold
+                uint32_t duration = now - g_btn_press_start;
+                if (duration >= LONG_PRESS_THRESHOLD_MS) {
+                    g_btn_state = BTN_WAIT_RELEASE;
+                    return HAL_POWER_EVENT_LONG_PRESS;
+                }
+            }
+            break;
+
+        case BTN_WAIT_RELEASE:
+            if (!pressed) {
+                g_btn_state = BTN_IDLE;
+            }
+            break;
+    }
+
+    return HAL_POWER_EVENT_NONE;
+}
+
+void hal_power_suspend(void) {
+    Serial.println("[PowerHAL] Entering light sleep (GPIO 0 wakeup)...");
+    Serial.flush();
+    delay(50);  // Allow serial to flush
+
+    // Configure GPIO 0 as ext0 wakeup source (active LOW = button pressed)
+    esp_sleep_enable_ext0_wakeup((gpio_num_t)POWER_BUTTON_GPIO, 0);
+
+    // Enter light sleep — blocks until wakeup
+    esp_light_sleep_start();
+
+    // Woken up — reset button state machine to avoid immediate re-trigger
+    g_btn_state = BTN_WAIT_RELEASE;
+
+    Serial.println("[PowerHAL] Wakeup from light sleep");
+}
+
+void hal_power_resume(void) {
+    // Re-seed the rate-limiter cache after wake
+    if (g_pmu_ready) {
+        uint16_t mv = readBattVoltageRaw();
+        if (mv >= NO_BATTERY_MV) {
+            int32_t level = ((int32_t)mv - LIPO_MIN_MV) * 100 / (LIPO_MAX_MV - LIPO_MIN_MV);
+            if (level < 0) level = 0;
+            if (level > 100) level = 100;
+            g_last_level = (int8_t)level;
+        }
+        g_ramp_ticks = 0;
+        g_was_charging = false;
+    }
+}
+
+void hal_power_shutdown(void) {
+    if (!g_pmu_ready) return;
+    Serial.println("[PowerHAL] SY6970 shutdown — disabling BATFET");
+    Serial.flush();
+    delay(100);
+    pmu.shutdown();  // Calls disableBATFET() — cuts battery power path
+    // Does not return if on battery. If USB connected, BATFET disable
+    // is ignored by the SY6970, so we enter an infinite loop.
+    while (true) { delay(1000); }
+}

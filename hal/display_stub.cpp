@@ -125,3 +125,11 @@ uint16_t hal_display_read_pixel(int32_t x, int32_t y) {
 void hal_display_dump_screen(void) {
     // No-op in stub - no display hardware or shadow buffer
 }
+
+void hal_display_sleep(void) {
+    // No-op in stub
+}
+
+void hal_display_wake(void) {
+    // No-op in stub
+}

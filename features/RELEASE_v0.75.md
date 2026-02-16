@@ -1,7 +1,8 @@
-# Release: v0.74 - Cumulative Feature Set
+# Release v0.75: Cumulative Feature Set
 
-> Label: "Release 0.74"
+> Label: "Release 0.75"
 > Category: "RELEASES"
+> Prerequisite: features/sys_power_states.md
 > Prerequisite: features/ui_widget_framework.md
 > Prerequisite: features/ui_standard_widgets.md
 > Prerequisite: features/ui_wifi_list_widget.md
@@ -16,42 +17,41 @@
 > Prerequisite: features/sys_system_menu.md
 
 ## 1. Introduction
-This release represents the current production-ready state of LPad, consolidating the V1 Widget System, asynchronous WiFi management, and hardware-aware telemetry (Battery & Corner Buffers).
+This release introduces comprehensive power management (suspend, resume, shutdown) and consolidates all prior features from v0.74.
 
 ## 2. Success Criteria
 
-### 2.1 UI & Widgets (from v0.72)
+### 2.1 Power Management (New for v0.75)
+- [ ] **Suspend/Resume:** A short press of the power button/equivalent correctly suspends and resumes the device.
+- [ ] **Shutdown/Startup:** A long press correctly shuts down and starts up the device.
+- [ ] **Board Parity:** The above actions work correctly on both AXP2101 and SY6970-based boards, abstracting the hardware differences.
+
+### 2.2 UI & Widgets (Regression from v0.74)
 - [x] Widget System manages the System Menu layout (1x5 Grid).
 - [x] `WiFiListWidget` supports scrolling and asynchronous connection status.
 - [x] `Manual WiFi selection overrides auto-connect sequence.
 
-### 2.2 System Services & HAL (from v0.74)
+### 2.3 System Services & HAL (Regression from v0.74)
 - [x] `PowerManager` correctly polls and exposes `BatteryStatus` every 2s.
 - [x] HAL provides `CORNER_BUFFER_X` and `CORNER_BUFFER_Y` constants per-device.
-- [x] **LilyGo T-Display S3+**: X=2, Y=0.
-- [x] **ESP32-S3 AMOLED**: X=20, Y=4.
 - [x] System Menu overlays (Battery, SSID) use these HAL offsets instead of hard-coded padding.
 
 ## 3. Hardware (HIL) Verification
 
-### Test 1: Widget & WiFi Interaction
+### Test 1: Power States (New)
+- **Action:** Perform short and long presses on the power button for both boards.
+- **Verification:** Confirm that suspend, resume, shutdown, and startup actions all work as defined in `features/sys_power_states.md`.
+
+### Test 2: Widget & WiFi Interaction (Regression)
 - **Action:** Open System Menu, scroll the WiFi list, and select a network.
 - **Verification:** Connection status updates visually (connecting/error/highlight) and SSID in top-right updates on success.
 
-### Test 2: Battery Telemetry
+### Test 3: Battery Telemetry (Regression)
 - **Action:** Connect/Disconnect USB.
 - **Verification:** Top-left indicator switches between Green (Charging) and default color (Discharging), and shows `[NO BATTERY]` if applicable.
 
-### Test 3: Corner Buffer Alignment
+### Test 4: Corner Buffer Alignment (Regression)
 - **Action:** Verify corner elements on **ESP32-S3 AMOLED**.
-- **Verification:** Battery text (top-left) and SSID text (top-right) are inset by exactly 20px from the sides and 4px from the top, ensuring zero clipping from the rounded glass.
-
-## 4. Implementation Notes
-
-### [2026-02-15] HAL Corner Buffers
-Hard-coded `CORNER_PADDING_PX` (15px) is removed. The UI now calls `hal_display_get_corner_buffer_x()` and `y()` to calculate the safe rendering zone.
-
-### [2026-02-13] Widget Persistence
-The `WidgetLayout` calculations are triggered on every `open()` of the System Menu to ensure orientation changes are handled.
+- **Verification:** Battery text (top-left) and SSID text (top-right) are inset by exactly 20px from the sides and 4px from the top.
 
 [Complete]

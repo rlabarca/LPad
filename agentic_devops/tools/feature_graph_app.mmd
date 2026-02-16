@@ -69,8 +69,8 @@ flowchart TD
 
     subgraph RELEASES [" "]
         title_RELEASES["RELEASES"]
-        RELEASE_v0_74["Release 0.74<br/><small>RELEASE_v0.74.md</small>"]
-        title_RELEASES ~~~ RELEASE_v0_74
+        RELEASE_v0_75["Release 0.75<br/><small>RELEASE_v0.75.md</small>"]
+        title_RELEASES ~~~ RELEASE_v0_75
     end
 
     subgraph System_Architecture [" "]
@@ -99,6 +99,8 @@ flowchart TD
         title_System_Services["SYSTEM SERVICES"]
         sys_battery_metering["Battery Status<br/><small>sys_battery_metering.md</small>"]
         title_System_Services ~~~ sys_battery_metering
+        sys_power_states["sys_power_states.md<br/><small>sys_power_states.md</small>"]
+        title_System_Services ~~~ sys_power_states
     end
 
     subgraph UI_Framework [" "]
@@ -128,18 +130,19 @@ flowchart TD
     end
 
     %% Relationships
-    ui_widget_framework --> RELEASE_v0_74
-    ui_standard_widgets --> RELEASE_v0_74
-    ui_wifi_list_widget --> RELEASE_v0_74
-    sys_battery_metering --> RELEASE_v0_74
-    hal_display_corner_buffers --> RELEASE_v0_74
-    app_stock_ticker --> RELEASE_v0_74
-    display_target_rotation --> RELEASE_v0_74
-    sys_animation_ticker --> RELEASE_v0_74
-    sys_config_system --> RELEASE_v0_74
-    sys_mini_logo --> RELEASE_v0_74
-    sys_serial_screenshot --> RELEASE_v0_74
-    sys_system_menu --> RELEASE_v0_74
+    sys_power_states --> RELEASE_v0_75
+    ui_widget_framework --> RELEASE_v0_75
+    ui_standard_widgets --> RELEASE_v0_75
+    ui_wifi_list_widget --> RELEASE_v0_75
+    sys_battery_metering --> RELEASE_v0_75
+    hal_display_corner_buffers --> RELEASE_v0_75
+    app_stock_ticker --> RELEASE_v0_75
+    display_target_rotation --> RELEASE_v0_75
+    sys_animation_ticker --> RELEASE_v0_75
+    sys_config_system --> RELEASE_v0_75
+    sys_mini_logo --> RELEASE_v0_75
+    sys_serial_screenshot --> RELEASE_v0_75
+    sys_system_menu --> RELEASE_v0_75
     core_ui_render_manager --> app_stock_ticker
     data_layer_stock_tracker --> app_stock_ticker
     ui_themeable_time_series_graph --> app_stock_ticker

@@ -28,6 +28,26 @@ uint16_t hal_power_get_voltage_mv(void) {
     return g_stub_voltage_mv;
 }
 
+void hal_power_button_init(void) {
+    // No-op in stub
+}
+
+hal_power_button_event_t hal_power_button_get_event(void) {
+    return HAL_POWER_EVENT_NONE;
+}
+
+void hal_power_suspend(void) {
+    // No-op in stub
+}
+
+void hal_power_resume(void) {
+    // No-op in stub
+}
+
+void hal_power_shutdown(void) {
+    // No-op in stub
+}
+
 // Test helper functions (not part of HAL API)
 #ifdef UNIT_TEST
 void hal_power_stub_set_status(hal_power_status_t status) {
