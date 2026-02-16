@@ -81,6 +81,20 @@ int32_t hal_display_get_height_pixels(void);
 void hal_display_set_rotation(int degrees);
 
 /**
+ * @brief Returns the horizontal pixel offset required to clear rounded corners
+ *
+ * @return int32_t The minimum X-axis pixel buffer for corner safety
+ */
+int32_t hal_display_get_corner_buffer_x(void);
+
+/**
+ * @brief Returns the vertical pixel offset required to clear rounded corners
+ *
+ * @return int32_t The minimum Y-axis pixel buffer for corner safety
+ */
+int32_t hal_display_get_corner_buffer_y(void);
+
+/**
  * @brief Gets the underlying Arduino_GFX display object
  *
  * Returns a pointer to the underlying Arduino_GFX display object for

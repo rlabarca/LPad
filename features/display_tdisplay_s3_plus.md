@@ -74,6 +74,12 @@ The `platformio.ini` file must be updated for the `[env:tdisplay_s3_plus]` envir
 ### [2026-02-07] TE Sync — Detailed Timing Analysis
 **Timing Mismatch:** Animation at 30fps (33.3ms/frame) vs display refresh at ~60Hz (16.6ms/frame). Without synchronization, beat frequency creates visible tearing when DMA blits occur mid-refresh.
 
+### [2026-02-15] Corner Buffers
+**Specification:**
+- `HAL_DISPLAY_CORNER_BUFFER_X`: 2 px
+- `HAL_DISPLAY_CORNER_BUFFER_Y`: 0 px
+**Reasoning:** The T-Display S3 Plus housing has very mild rounding on the horizontal axis and none on the vertical axis. 2px is sufficient to prevent text from appearing "cramped" against the edge.
+
 **waitForTeSignal() pattern:**
 1. Wait for LOW (display actively scanning)
 2. Wait for HIGH (vertical blanking begins — safe to update)

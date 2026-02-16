@@ -118,7 +118,7 @@ private:
     static constexpr float SSID_Y_PERCENT = 1.0f;
     static constexpr float VERSION_Y_BOTTOM = 99.0f;
     static constexpr float ANIMATION_DURATION = 0.25f;  // 250ms
-    static constexpr int32_t CORNER_PADDING_PX = 15;   // Absolute pixel padding for rounded corners
+    // Corner padding now provided by HAL: hal_display_get_corner_buffer_x/y()
 
     // SSID change callback (wired to WiFiListWidget)
     static void onWiFiSSIDChanged(const char* ssid, void* context);

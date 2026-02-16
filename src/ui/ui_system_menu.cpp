@@ -96,8 +96,8 @@ bool SystemMenu::begin(Arduino_GFX* gfx, int32_t width, int32_t height) {
     m_gridLayout = new GridWidgetLayout(5, 1);
     m_gridLayout->setAnchorPoint(ANCHOR_TOP_CENTER);
     m_gridLayout->setScreenRefPoint(ANCHOR_TOP_CENTER);
-    m_gridLayout->setOffset(0.0f, 0.10f);  // 10% down
-    m_gridLayout->setSize(0.50f, 0.50f);   // 50% x 50%
+    m_gridLayout->setOffset(0.0f, 0.15f);  // 15% down
+    m_gridLayout->setSize(0.50f, 0.70f);   // 50% x 70%
 
     // Heading widget (Row 0): "WiFi Networks"
     m_headingWidget = new TextWidget();
@@ -334,9 +334,12 @@ void SystemMenu::render() {
                 uint16_t btw, bth;
                 m_canvas->getTextBounds(batText, 0, 0, &bx1, &by1, &btw, &bth);
 
-                // 10px absolute left padding (avoids rounded corner clipping)
-                int32_t bat_x = CORNER_PADDING_PX;
-                int32_t bat_y = m_relDisplay->relativeToAbsoluteY(SSID_Y_PERCENT) - by1;
+                // HAL-provided corner buffer (device-specific rounded corner safety)
+                int32_t corner_x = hal_display_get_corner_buffer_x();
+                int32_t corner_y = hal_display_get_corner_buffer_y();
+                int32_t bat_x = corner_x;
+                int32_t rel_y = m_relDisplay->relativeToAbsoluteY(SSID_Y_PERCENT);
+                int32_t bat_y = ((rel_y < corner_y) ? corner_y : rel_y) - by1;
 
                 if (bat_y + by1 >= 0 && bat_y + by1 + static_cast<int32_t>(bth) <= visiblePx) {
                     m_canvas->setCursor(bat_x, bat_y);
@@ -354,9 +357,11 @@ void SystemMenu::render() {
             uint16_t tw, th;
             m_canvas->getTextBounds(m_ssidText, 0, 0, &x1, &y1, &tw, &th);
 
-            int32_t text_y = m_relDisplay->relativeToAbsoluteY(SSID_Y_PERCENT) - y1;
-            // 10px absolute right padding (avoids rounded corner clipping)
-            int32_t right_edge = m_relDisplay->relativeToAbsoluteX(100.0f - MARGIN_PERCENT) - CORNER_PADDING_PX;
+            int32_t ssid_corner_x = hal_display_get_corner_buffer_x();
+            int32_t ssid_corner_y = hal_display_get_corner_buffer_y();
+            int32_t ssid_rel_y = m_relDisplay->relativeToAbsoluteY(SSID_Y_PERCENT);
+            int32_t text_y = ((ssid_rel_y < ssid_corner_y) ? ssid_corner_y : ssid_rel_y) - y1;
+            int32_t right_edge = m_relDisplay->relativeToAbsoluteX(100.0f - MARGIN_PERCENT) - ssid_corner_x;
             int32_t text_x = right_edge - static_cast<int32_t>(tw);
 
             if (text_y + y1 >= 0 && text_y + y1 + static_cast<int32_t>(th) <= visiblePx) {

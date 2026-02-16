@@ -51,3 +51,9 @@ Unlike the T-Display S3 Plus, this board does not expose a TE (Tearing Effect) p
 
 ### [2026-02-08] QSPI Bus Configuration
 This board uses a QSPI (quad SPI) bus for display communication, configured via `Arduino_ESP32QSPI`. The pin mapping differs from standard SPI and must match the vendor reference in `hw-examples/ESP32-S3-Touch-AMOLED-1.8-Demo/`.
+
+### [2026-02-15] Corner Buffers
+**Specification:**
+- `HAL_DISPLAY_CORNER_BUFFER_X`: 15 px
+- `HAL_DISPLAY_CORNER_BUFFER_Y`: 4 px
+**Reasoning:** The ESP32-S3 AMOLED 1.8" has significantly more aggressive corner rounding. Standard text at (0,0) is partially cut off. 15px/4px ensures complete visibility.

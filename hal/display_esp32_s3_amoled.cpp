@@ -187,6 +187,14 @@ int32_t hal_display_get_height_pixels(void) {
     return LCD_HEIGHT;
 }
 
+int32_t hal_display_get_corner_buffer_x(void) {
+    return 15;
+}
+
+int32_t hal_display_get_corner_buffer_y(void) {
+    return 4;
+}
+
 void hal_display_set_rotation(int degrees) {
     if (!g_initialized || g_gfx == nullptr) {
         return;  // Not initialized

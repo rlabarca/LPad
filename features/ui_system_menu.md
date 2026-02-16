@@ -15,8 +15,8 @@ The System Menu layout is managed by a `WidgetLayoutEngine` using a `GridWidgetL
 - **Background:** Solid color defined by `colors.system_menu_background`.
 - **Layout Configuration:**
     - **Type:** `GridWidgetLayout` (1 column x 5 rows).
-    - **Position:** Anchored at `TOP_CENTER`, 10% offset down from screen `TOP_CENTER`.
-    - **Size:** 50% screen width, 50% screen height.
+    - **Position:** Anchored at `TOP_CENTER`, 15% offset down from screen `TOP_CENTER`.
+    - **Size:** 50% screen width, 70% screen height.
 - **Widgets:**
     1. **Heading (Row 0):** `TextWidget`
         - **Text:** "WiFi Networks"
@@ -32,7 +32,11 @@ The System Menu layout is managed by a `WidgetLayoutEngine` using a `GridWidgetL
         - **Behavior:** See `features/ui_wifi_list_widget.md`.
 
 - **Legacy Status Items (Overlay):**
-    - The active WiFi SSID and Version number remain in their corners (Top-Right and Bottom-Center).
+    - The active WiFi SSID and Battery status remain in their respective corners.
+    - **Corner Safety:** These items MUST use `hal_display_get_corner_buffer_x()` and `hal_display_get_corner_buffer_y()` for their offsets to ensure visibility on rounded displays.
+    - **Top-Left:** Battery percentage (`75%` or `CHARGING`).
+    - **Top-Right:** Active WiFi SSID.
+    - **Bottom-Center:** System Version (e.g., `v0.74`).
     - **SSID Update Policy:** The top-right SSID display MUST ONLY update when a connection is successfully established. It must continue showing the previous SSID (or "NONE") during connection attempts to a new network.
 
 ## 3. Interaction & Animation

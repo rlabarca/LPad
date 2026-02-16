@@ -54,6 +54,15 @@ int32_t hal_display_get_height_pixels(void) {
     return g_stub_original_height;
 }
 
+// Stub implementation - returns 0 for default/no rounding
+int32_t hal_display_get_corner_buffer_x(void) {
+    return 0;
+}
+
+int32_t hal_display_get_corner_buffer_y(void) {
+    return 0;
+}
+
 // Stub implementation - stores rotation angle
 void hal_display_set_rotation(int degrees) {
     g_stub_rotation = degrees;

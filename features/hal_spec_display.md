@@ -26,6 +26,14 @@ This document defines the abstract interface for display operations within the H
 ### `hal_display_get_width_pixels(void)` / `hal_display_get_height_pixels(void)`
 *   **Returns:** `int32_t` dimensions of the current orientation.
 
+### `hal_display_get_corner_buffer_x(void)`
+*   **Description:** Returns the horizontal pixel offset required to clear rounded corners.
+*   **Returns:** `int32_t`
+
+### `hal_display_get_corner_buffer_y(void)`
+*   **Description:** Returns the vertical pixel offset required to clear rounded corners.
+*   **Returns:** `int32_t`
+
 ### `hal_display_set_rotation(int degrees)`
 *   **Description:** Sets orientation (0, 90, 180, 270).
 
