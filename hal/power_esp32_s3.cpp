@@ -261,3 +261,7 @@ void hal_power_shutdown(void) {
     // Does not return — PMU cuts power
     while (true) { delay(1000); }
 }
+
+void hal_power_check_wakeup(void) {
+    // AXP2101 PEK handles startup gating in hardware — no check needed
+}

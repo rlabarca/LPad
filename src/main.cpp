@@ -50,6 +50,13 @@ static void displayError(const char* message) {
 
 void setup() {
     Serial.begin(115200);
+
+    // Deep sleep wakeup gate: on boards using deep sleep for shutdown
+    // (T-Display S3 Plus), verify intentional startup via sustained button
+    // hold. Returns immediately on cold boot or hardware-PEK boards.
+    // Re-enters deep sleep if the hold is too short (does not return).
+    hal_power_check_wakeup();
+
     delay(500);
     yield();
 

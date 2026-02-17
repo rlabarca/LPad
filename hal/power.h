@@ -112,6 +112,19 @@ void hal_power_resume(void);
  */
 void hal_power_shutdown(void);
 
+/**
+ * @brief Gates startup after a deep sleep wakeup
+ *
+ * On boards that use deep sleep for shutdown (T-Display S3 Plus), this
+ * verifies the user is performing an intentional startup by requiring a
+ * sustained button hold. If the hold is too short, the system re-enters
+ * deep sleep (does not return).
+ *
+ * Returns immediately on cold boot or boards with hardware PEK (Waveshare).
+ * Must be called very early in setup(), before any peripheral initialization.
+ */
+void hal_power_check_wakeup(void);
+
 #ifdef __cplusplus
 }
 #endif

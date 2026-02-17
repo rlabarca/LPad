@@ -48,6 +48,10 @@ void hal_power_shutdown(void) {
     // No-op in stub
 }
 
+void hal_power_check_wakeup(void) {
+    // No-op in stub
+}
+
 // Test helper functions (not part of HAL API)
 #ifdef UNIT_TEST
 void hal_power_stub_set_status(hal_power_status_t status) {

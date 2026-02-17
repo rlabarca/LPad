@@ -406,10 +406,51 @@ void hal_power_shutdown(void) {
     esp_wifi_stop();
     delay(50);
 
+    // Wait for button release before entering deep sleep.
+    // ext0 wakeup is level-triggered: if GPIO 0 is still LOW (held) when
+    // deep sleep starts, the wakeup condition is immediately satisfied and
+    // the ESP32 reboots at once — the device never stays off.
+    while (digitalRead(POWER_BUTTON_GPIO) == LOW) {
+        delay(10);
+    }
+    delay(50);  // Debounce after release
+
     // Configure GPIO 0 as wakeup source (active LOW = button pressed)
     esp_sleep_enable_ext0_wakeup((gpio_num_t)POWER_BUTTON_GPIO, 0);
 
     // Enter deep sleep — wakes via button press and reboots from scratch
     esp_deep_sleep_start();
     // Does not return — ESP32 resets on wake
+}
+
+void hal_power_check_wakeup(void) {
+    esp_sleep_wakeup_cause_t cause = esp_sleep_get_wakeup_cause();
+    if (cause != ESP_SLEEP_WAKEUP_EXT0) {
+        return;  // Cold boot — proceed normally
+    }
+
+    // Woke from deep sleep shutdown via GPIO 0 button press.
+    // Require a sustained hold to prevent accidental boots from short taps.
+    // The hold duration matches LONG_PRESS_THRESHOLD_MS (2s).
+    Serial.begin(115200);
+    Serial.println("[PowerHAL] Deep sleep wakeup — verifying startup hold...");
+
+    pinMode(POWER_BUTTON_GPIO, INPUT_PULLUP);
+    uint32_t start = millis();
+
+    while (digitalRead(POWER_BUTTON_GPIO) == LOW) {
+        if (millis() - start >= LONG_PRESS_THRESHOLD_MS) {
+            Serial.println("[PowerHAL] Startup confirmed (2s hold)");
+            return;  // Proceed with boot
+        }
+        delay(10);
+    }
+
+    // Button released too early — go back to deep sleep
+    Serial.printf("[PowerHAL] Short press (%lums) — back to deep sleep\n",
+                  millis() - start);
+    Serial.flush();
+    esp_sleep_enable_ext0_wakeup((gpio_num_t)POWER_BUTTON_GPIO, 0);
+    esp_deep_sleep_start();
+    // Does not return
 }

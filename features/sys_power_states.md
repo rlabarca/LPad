@@ -167,6 +167,12 @@ The AXP2101 PMU's IRQ output on the Waveshare board is connected to XCA9554 GPIO
 **Problem:** `pmu.shutdown()` calls `disableBATFET()` on the SY6970, cutting the battery-to-system FET. Unlike the AXP2101 which has a hardware PEK (Power Enable Key) to restart, the SY6970 has NO mechanism to re-enable BATFET from a button press. The device is permanently off until USB is connected. On USB, `disableBATFET()` is ignored entirely — the device enters an infinite loop instead of shutting down.
 **Fix:** Use `esp_deep_sleep_start()` with GPIO 0 as ext0 wakeup source. Deep sleep draws ~10µA and triggers a full ESP32 reset on button press, producing the expected startup experience (logo animation, WiFi connect). Also reduced software long-press threshold from 4s to 2s — the AXP2101 handles 4s in hardware (PEK), but the T-Display's software detection gives no user feedback during the hold, making 4s feel unresponsive.
 
+### [2026-02-16] Deep Sleep Wakeup Gate — Must Wait for Release and Verify Hold
+**Problem:** ext0 wakeup is level-triggered (wake on LOW). If the user is still holding the button when `esp_deep_sleep_start()` is called, the wakeup condition is immediately satisfied and the ESP32 reboots at once — the device never stays off. Additionally, any accidental short press would boot the device.
+**Fix:** Two-part solution:
+1. **Shutdown side:** `hal_power_shutdown()` waits for button release + 50ms debounce before entering deep sleep. The screen is already off at this point (shutdown sequence turns display off first).
+2. **Startup side:** New `hal_power_check_wakeup()` HAL function, called at the very start of `setup()`. On deep sleep wakeup (EXT0 cause), it requires a sustained 2s hold matching `LONG_PRESS_THRESHOLD_MS`. If the button is released early, the system re-enters deep sleep immediately without initializing any peripherals. On cold boot or hardware-PEK boards, the function returns immediately (no-op).
+
 ### [2026-02-16] Suspend Orchestration Order
 Suspend sequence: display sleep → WiFi disconnect → touch sleep → CPU suspend. Resume sequence: CPU resume → power HAL re-seed → display wake → touch wake. WiFi reconnection is NOT automatic on resume — the application layer manages reconnection. This prevents the PowerManager from needing to know WiFi credentials.
 
