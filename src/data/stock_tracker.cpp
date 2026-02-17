@@ -384,16 +384,28 @@ void StockTracker::taskFunction(void* param) {
     tracker->taskLoop();
 }
 
+void StockTracker::notifyResume() {
+#ifdef ARDUINO
+    if (m_task_handle != nullptr) {
+        // Wake the task from ulTaskNotifyTake() immediately
+        xTaskNotifyGive(m_task_handle);
+        Serial.println("[StockTracker] Resume notification sent");
+    }
+#endif
+}
+
 void StockTracker::taskLoop() {
     Serial.println("[StockTracker] Task started, polling for network...");
 
     // Single polling loop — no blocking waits (arch_data_strategy.md §1)
+    // Uses ulTaskNotifyTake() instead of vTaskDelay() so the task can be
+    // woken immediately on suspend/resume via notifyResume().
     while (m_is_running) {
         hal_network_status_t net_status = hal_network_get_status();
 
         if (net_status != HAL_NETWORK_STATUS_CONNECTED) {
-            // Network not ready: poll every 500ms, remain responsive to shutdown
-            vTaskDelay(pdMS_TO_TICKS(500));
+            // Network not ready: poll every 500ms, remain responsive to shutdown/resume
+            ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(500));
             continue;
         }
 
@@ -408,7 +420,7 @@ void StockTracker::taskLoop() {
         uint32_t delay_ms = m_is_first_fetch
             ? 30000
             : (m_refresh_interval_seconds * 1000);
-        vTaskDelay(pdMS_TO_TICKS(delay_ms));
+        ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(delay_ms));
     }
 
     Serial.println("[StockTracker] Task ended");

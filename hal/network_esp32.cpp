@@ -55,6 +55,12 @@ bool hal_network_init(const char* ssid, const char* password) {
     return true;
 }
 
+// Retry tracking for auto-reconnect after ERROR
+static uint8_t g_reconnect_attempts = 0;
+static constexpr uint8_t MAX_RECONNECT_ATTEMPTS = 3;
+static unsigned long g_error_time_ms = 0;
+static constexpr unsigned long RECONNECT_BACKOFF_MS = 5000; // 5s between retries
+
 hal_network_status_t hal_network_get_status(void) {
     // Update status based on WiFi state
     if (g_status == HAL_NETWORK_STATUS_CONNECTING) {
@@ -62,21 +68,38 @@ hal_network_status_t hal_network_get_status(void) {
 
         if (wifi_status == WL_CONNECTED) {
             g_status = HAL_NETWORK_STATUS_CONNECTED;
+            g_reconnect_attempts = 0;  // Reset retry counter on success
             // Update SSID buffer from actual connection
             String ssid = WiFi.SSID();
             strncpy(g_ssid_buffer, ssid.c_str(), sizeof(g_ssid_buffer) - 1);
             g_ssid_buffer[sizeof(g_ssid_buffer) - 1] = '\0';
         } else if (wifi_status == WL_CONNECT_FAILED) {
             g_status = HAL_NETWORK_STATUS_ERROR;
+            g_error_time_ms = millis();
         } else if (millis() - g_connect_start_ms > CONNECT_TIMEOUT_MS) {
             // Timeout — mark as error
             g_status = HAL_NETWORK_STATUS_ERROR;
+            g_error_time_ms = millis();
             WiFi.disconnect(true);
         }
     } else if (g_status == HAL_NETWORK_STATUS_CONNECTED) {
         // Check if we've lost connection
         if (WiFi.status() != WL_CONNECTED) {
             g_status = HAL_NETWORK_STATUS_DISCONNECTED;
+        }
+    } else if (g_status == HAL_NETWORK_STATUS_ERROR && g_stored_ssid[0] != '\0') {
+        // Auto-retry after error with backoff (handles post-suspend reconnect
+        // failures where esp_wifi_stop tore down the driver and the first
+        // WiFi.begin attempt timed out).
+        if (g_reconnect_attempts < MAX_RECONNECT_ATTEMPTS &&
+            millis() - g_error_time_ms > RECONNECT_BACKOFF_MS) {
+            g_reconnect_attempts++;
+            Serial.printf("[hal_network] Auto-retry %d/%d to %s\n",
+                         g_reconnect_attempts, MAX_RECONNECT_ATTEMPTS, g_stored_ssid);
+            WiFi.mode(WIFI_STA);
+            WiFi.begin(g_stored_ssid, g_stored_password);
+            g_status = HAL_NETWORK_STATUS_CONNECTING;
+            g_connect_start_ms = millis();
         }
     }
 
@@ -94,6 +117,9 @@ bool hal_network_reconnect(void) {
         Serial.println("[hal_network_reconnect] No stored credentials");
         return false;
     }
+
+    // Reset retry counter — this is a fresh reconnect (e.g., after resume)
+    g_reconnect_attempts = 0;
 
     WiFi.mode(WIFI_STA);
     WiFi.begin(g_stored_ssid, g_stored_password);

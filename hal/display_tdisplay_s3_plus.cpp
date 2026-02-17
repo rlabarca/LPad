@@ -515,7 +515,11 @@ void hal_display_sleep(void) {
 void hal_display_wake(void) {
     if (!g_initialized || g_gfx == nullptr) return;
     g_gfx->displayOn();
-    // RM67162: displayOn sends MIPI 0x11 (Sleep Out) + 0x29 (Display On)
+    // RM67162: displayOn sends MIPI 0x11 (Sleep Out) + 0x29 (Display On).
+    // MIPI standard requires 120ms after Sleep Out before the display
+    // controller begins scanning memory. Without this delay, Display On
+    // may be ignored, leaving the screen static (showing last frame).
+    delay(120);
     // Re-apply vendor brightness setting
     if (g_bus) {
         g_bus->beginWrite();

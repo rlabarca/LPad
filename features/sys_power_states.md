@@ -184,5 +184,8 @@ The FT3168 on the Waveshare board does not have an exposed RST pin. FocalTech hi
 ### [2026-02-16] CST816 Wake Requires Full Re-Init After Light Sleep
 A lightweight wake (INT toggle + register writes) is NOT sufficient for the CST816 on the T-Display after `esp_light_sleep_start()`. The ESP32-S3 I2C peripheral state is lost during light sleep, so `Wire.begin()` must be called again. Fix: `hal_touch_sleep()` sets `g_touch_initialized = false`, and `hal_touch_wake()` calls `hal_touch_init()` which runs the complete proven sequence (Wire.begin, INT pin toggle, auto-sleep disable, interrupt mode config).
 
+### [2026-02-16] T-Display RM67162 Also Requires MIPI 120ms Sleep Out Delay
+The 120ms delay after `displayOn()` (MIPI Sleep Out → Display On) was initially only added to the Waveshare SH8601 HAL. The T-Display RM67162 has the same MIPI requirement — without the delay, `Display On` can be ignored after light sleep wake, leaving the screen static (frozen last frame). Added `delay(120)` to `hal_display_wake()` in `display_tdisplay_s3_plus.cpp`.
+
 ### [2026-02-16] CST816 Must NOT Use Deep Sleep Command Without RST Pin
 **Root Cause:** `hal_touch_sleep()` sent deep sleep command (0xE5=0x03) to the CST816. Without a hardware RST pin on the T-Display S3 Plus, the INT pin toggle cannot wake the chip from register-initiated deep sleep — it can only wake from auto-sleep. After light sleep → wake, the CST816 was unresponsive to I2C, causing `hal_touch_init()` probe failure and dead touch. **Fix:** Remove the deep sleep register write. Instead, re-enable auto-sleep (0xFE=0x00) so the CST816 enters low-power mode naturally. The INT pin toggle in `hal_touch_init()` reliably wakes it from auto-sleep. Same root cause as FT3168 — both boards lack RST pins.

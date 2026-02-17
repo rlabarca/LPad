@@ -86,6 +86,14 @@ public:
      */
     FetchStatus getFetchStatus() const { return m_fetch_status; }
 
+    /**
+     * @brief Wakes the background task from its sleep delay
+     *
+     * Called after suspend/resume to force an immediate fetch cycle
+     * instead of waiting for the remainder of a vTaskDelay.
+     */
+    void notifyResume();
+
 private:
     /**
      * @brief Performs a single data fetch from Yahoo Finance API

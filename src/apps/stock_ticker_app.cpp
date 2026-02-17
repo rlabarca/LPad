@@ -84,6 +84,12 @@ void StockTickerApp::onUnpause() {
     m_lastDataTimestamp = 0;
     m_graphInitialRenderDone = false;
     m_lastRenderedFetchStatus = -1;
+
+    // Wake the stock tracker task from its sleep delay so it retries
+    // immediately instead of waiting up to 60s from a pre-suspend delay.
+    if (m_stockTracker) {
+        m_stockTracker->notifyResume();
+    }
 }
 
 void StockTickerApp::onClose() {
@@ -111,10 +117,17 @@ void StockTickerApp::render() {
         m_graph->render();
     }
 
-    // Status screens (§4 scenarios): show centered message when no data
+    // Status screens (§4 scenarios): show centered message when no data.
+    // Per spec, "Data Error" persists "until data becomes available again."
+    // If the data series already has points (e.g., from before suspend), the
+    // data IS available — fall through to normal rendering instead of showing
+    // the error. NON_TRADING_HOURS is always shown since it's informational.
     FetchStatus fetchStatus = m_stockTracker->getFetchStatus();
+    DataItemTimeSeries* dataSeries = m_stockTracker->getDataSeries();
+    bool hasExistingData = (dataSeries != nullptr && dataSeries->getLength() > 0);
 
-    if (fetchStatus == FetchStatus::FETCH_ERROR || fetchStatus == FetchStatus::NON_TRADING_HOURS) {
+    if (fetchStatus == FetchStatus::NON_TRADING_HOURS ||
+        (fetchStatus == FetchStatus::FETCH_ERROR && !hasExistingData)) {
         // Only redraw when the status changes (avoids redundant writes)
         if (m_lastRenderedFetchStatus != static_cast<int>(fetchStatus)) {
             // Repaint clean background to clear any previous status text
@@ -143,7 +156,6 @@ void StockTickerApp::render() {
     }
 
     // Normal data rendering path
-    DataItemTimeSeries* dataSeries = m_stockTracker->getDataSeries();
     if (dataSeries == nullptr || dataSeries->getLength() == 0) return;
 
     // Check if data has been updated since last render

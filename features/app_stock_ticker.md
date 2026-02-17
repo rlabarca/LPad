@@ -113,3 +113,15 @@ Initial implementation used LittleFS filesystem to store test data, requiring se
 
 ### [2026-02-16] FetchStatus Enum for Status Screens
 Added `FetchStatus` enum (WAITING, HAS_DATA, NON_TRADING_HOURS, FETCH_ERROR) to StockTracker. Set in `fetchData()` and `parseYahooFinanceResponse()` based on failure mode. StockTickerApp::render() checks status and draws centered text ("Non Trading Hours" or "Data Error") using theme font when no chart data is available.
+
+### [2026-02-16] StockTracker Task Must Be Woken After Suspend/Resume
+**Problem:** The StockTracker FreeRTOS task uses `vTaskDelay(60000)` between fetches. If suspend happens mid-delay, the task resumes into the remaining delay on wake — user sees stale "Data Error" or last chart for up to 60s while WiFi is already reconnected.
+**Fix:** Replaced `vTaskDelay()` with `ulTaskNotifyTake()` (same timeout behavior, but interruptible). Added `StockTracker::notifyResume()` which calls `xTaskNotifyGive()` to wake the task immediately. Called from `StockTickerApp::onUnpause()` during the resume path.
+
+### [2026-02-16] "Data Error" Should Not Override Existing Chart Data
+**Problem:** An interrupted fetch during suspend sets `m_fetch_status = FETCH_ERROR`. On resume, the render path showed "Data Error" even though the data series contained valid chart data from before suspend. Per spec §4, error persists "until data becomes available" — but data was already available.
+**Fix:** `render()` now checks `dataSeries->getLength() > 0` before showing "Data Error." If existing data is present, the graph renders normally. "Data Error" only displays when the series is empty. NON_TRADING_HOURS always displays since it's informational.
+
+### [2026-02-16] WiFi Auto-Retry After Reconnect Timeout
+**Problem:** `hal_network_get_status()` transitions to ERROR after a 10s timeout and calls `WiFi.disconnect(true)`. No code retries — WiFi is permanently dead until reboot. After `esp_wifi_stop()` + light sleep, the first `WiFi.begin()` can take longer than usual.
+**Fix:** Added auto-retry logic in `hal_network_get_status()`: when status is ERROR and stored credentials exist, retries up to 3 times with 5s backoff between attempts. Counter resets on successful connection or explicit `hal_network_reconnect()` call.
