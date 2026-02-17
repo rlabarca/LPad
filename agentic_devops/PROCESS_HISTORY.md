@@ -2,6 +2,9 @@
 
 This log tracks the evolution of our DevOps processes and agentic protocols. Entries are used to populate the "Agentic Evolution" table in the root `README.md` before each GitHub push.
 
+## [2026-02-16] v0.75 CDD Monitor Enhancement
+- **Filesystem-Aware Status:** Modified the CDD Status Monitor (`cdd/serve.py`) to use filesystem modification timestamps instead of Git commit history for status detection. This ensures that uncommitted local changes to feature files are immediately reflected, correctly setting their status to `[TODO]`.
+
 ## [2026-02-12] v0.70 Agentic DevOps Refactor
 *   **Consolidated Home:** Created `agentic_devops/` as the central hub for the workflow.
 *   **Architectural Inquiry:** Mandated proactive questioning to improve specification clarity and architectural integrity in `ARCHITECT_INSTRUCTIONS.md`.
@@ -40,4 +43,3 @@ This log tracks the evolution of our DevOps processes and agentic protocols. Ent
 - **Milestone Consolidation:** Reinforced the "Single Active Release Specification" rule by requiring the consolidation of cumulative feature milestones into a single Living Spec file before release.
 - **Multi-Target Verification:** Mandated architectural parity checks across all build targets for structural changes.
 - **Zero-Queue Clarification:** Explicitly stated in `ARCHITECT_INSTRUCTIONS.md` that the release status tag is `[Complete]`, not `[DONE]`.
-

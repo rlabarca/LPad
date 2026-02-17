@@ -63,13 +63,12 @@ def get_feature_status(features_rel, features_abs):
         test_ts_str = run_command(
             f"git log -1 --grep='\\[Ready for HIL Test {f_path}\\]' --format=%ct"
         )
-        file_mod_ts_str = run_command(
-            f"git log -1 --format=%ct -- '{f_path}'"
-        )
+        f_abs_path = os.path.join(features_abs, fname)
+        file_mod_ts = int(os.path.getmtime(f_abs_path))
 
         complete_ts = int(complete_ts_str) if complete_ts_str else 0
         test_ts = int(test_ts_str) if test_ts_str else 0
-        file_mod_ts = int(file_mod_ts_str) if file_mod_ts_str else 0
+
 
         status = "TODO"
         if complete_ts > test_ts:

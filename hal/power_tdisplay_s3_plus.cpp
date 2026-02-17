@@ -190,6 +190,17 @@ hal_power_status_t hal_power_get_status(void) {
     // Direct register read: 0=not charging, 1=pre-charge, 2=fast charge, 3=done
     uint8_t chg = readChargeStatusRaw();
 
+    // Sticky NO_BATTERY: once confirmed (3 consecutive low-current reads),
+    // maintain status until a successful charge status read (chg 1 or 2) shows
+    // real current ≥50mA (meaning a battery was physically connected).
+    // Without this, I2C bus contention with the touch controller can cause
+    // readChargeStatusRaw() to fail (returning 0), bypassing the phantom
+    // battery check and falling through to DISCHARGING with the charger's
+    // elevated VBAT reading as 100%.
+    if (g_no_batt_count >= 3 && chg != 1 && chg != 2) {
+        return HAL_POWER_STATUS_NO_BATTERY;
+    }
+
     // Phantom battery detection: when USB is connected but no battery,
     // the charger pushes voltage onto VBAT pin and reports "pre-charge."
     // Real charging draws 50+ mA; no battery draws ~0 mA.

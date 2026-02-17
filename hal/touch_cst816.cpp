@@ -104,44 +104,54 @@ bool hal_touch_init(void) {
         return true;
     }
 
-    // Wake the CST816 using INT pin toggle (pseudo-reset) with retry.
-    // Without a dedicated RST pin, driving INT low forces the controller
-    // out of auto-sleep/gesture-only mode. Retry with progressively longer
-    // pulses AND post-release delays to handle:
-    //   - Normal auto-sleep (light sleep resume): ~50ms wake time
-    //   - Extended auto-sleep (deep sleep wakeup reboot): up to 300ms
-    //   - Residual deep-sleep states (previous firmware 0xE5=0x03)
-    //
-    // Wire.end() is called before each attempt because Wire.begin()'s
-    // internal _started flag survives across calls — without end(), the
-    // I2C peripheral is NOT reinitialized after a failed probe, leaving
-    // stale driver state that blocks all subsequent attempts.
-    bool found = false;
-    for (int attempt = 0; attempt < 5 && !found; attempt++) {
-        int pulse_ms = 50 + attempt * 50;   // 50, 100, 150, 200, 250ms
-        int settle_ms = 100 + attempt * 50;  // 100, 150, 200, 250, 300ms
-        Serial.printf("[HAL Touch CST816] Wake attempt %d (INT LOW %dms, settle %dms)...\n",
-                      attempt + 1, pulse_ms, settle_ms);
+    // Quick probe: if auto-sleep was kept disabled (e.g., after light sleep
+    // resume), the CST816 is still active and will respond immediately.
+    // This avoids the slow INT toggle retry loop in the common wake path.
+    Wire.end();
+    Wire.begin(TOUCH_SDA, TOUCH_SCL);
+    Wire.setClock(100000);
 
-        // Reset I2C peripheral to ensure clean state between attempts
-        Wire.end();
+    Wire.beginTransmission(TOUCH_ADDR);
+    bool found = (Wire.endTransmission() == 0);
+    if (found) {
+        Serial.println("[HAL Touch CST816] Quick probe: ACK (chip already active)");
+    } else {
+        // Chip is in auto-sleep or fresh from power-on. Use INT pin toggle
+        // (pseudo-reset) with retry. Without a dedicated RST pin, driving
+        // INT low may force the controller out of auto-sleep/gesture-only
+        // mode on some chip variants. Retry with progressively longer pulses
+        // AND post-release delays.
+        //
+        // Wire.end() is called before each attempt because Wire.begin()'s
+        // internal _started flag survives across calls — without end(), the
+        // I2C peripheral is NOT reinitialized after a failed probe, leaving
+        // stale driver state that blocks all subsequent attempts.
+        for (int attempt = 0; attempt < 5 && !found; attempt++) {
+            int pulse_ms = 50 + attempt * 50;   // 50, 100, 150, 200, 250ms
+            int settle_ms = 100 + attempt * 50;  // 100, 150, 200, 250, 300ms
+            Serial.printf("[HAL Touch CST816] Wake attempt %d (INT LOW %dms, settle %dms)...\n",
+                          attempt + 1, pulse_ms, settle_ms);
 
-        pinMode(TOUCH_INT, OUTPUT);
-        digitalWrite(TOUCH_INT, LOW);
-        delay(pulse_ms);
-        pinMode(TOUCH_INT, INPUT);
-        delay(settle_ms);
+            // Reset I2C peripheral to ensure clean state between attempts
+            Wire.end();
 
-        Wire.begin(TOUCH_SDA, TOUCH_SCL);
-        Wire.setClock(100000);
+            pinMode(TOUCH_INT, OUTPUT);
+            digitalWrite(TOUCH_INT, LOW);
+            delay(pulse_ms);
+            pinMode(TOUCH_INT, INPUT);
+            delay(settle_ms);
 
-        Wire.beginTransmission(TOUCH_ADDR);
-        uint8_t err = Wire.endTransmission();
-        if (err == 0) {
-            found = true;
-        } else {
-            Serial.printf("[HAL Touch CST816] Attempt %d: no ACK (error %d)\n",
-                          attempt + 1, err);
+            Wire.begin(TOUCH_SDA, TOUCH_SCL);
+            Wire.setClock(100000);
+
+            Wire.beginTransmission(TOUCH_ADDR);
+            uint8_t err = Wire.endTransmission();
+            if (err == 0) {
+                found = true;
+            } else {
+                Serial.printf("[HAL Touch CST816] Attempt %d: no ACK (error %d)\n",
+                              attempt + 1, err);
+            }
         }
     }
 
@@ -357,13 +367,15 @@ void hal_touch_configure_gesture_engine(TouchGestureEngine* engine) {
 
 void hal_touch_sleep(void) {
     if (!g_touch_initialized) return;
-    // Do NOT send deep sleep command (0xE5=0x03). Without a hardware RST pin,
-    // the INT pin toggle cannot wake the CST816 from register-initiated deep
-    // sleep — only from auto-sleep. Re-enable auto-sleep so the chip enters
-    // low-power mode naturally, then mark uninitialized for full re-init on wake.
-    cst_write_register(CST_REG_DIS_AUTOSLEEP, 0x00);
+    // Do NOT re-enable auto-sleep or send deep sleep (0xE5=0x03).
+    // The T-Display 1.91" has no RST pin (RST=-1), so we have no reliable
+    // mechanism to wake the CST816 from either auto-sleep or deep sleep.
+    // The INT pin toggle used in hal_touch_init() is a hack that only works
+    // on cold boot when the chip is already active (not yet in auto-sleep).
+    // Keeping auto-sleep disabled means the CST816 stays active during light
+    // sleep (~15mA), but it responds immediately to I2C probes on wake.
     g_touch_initialized = false;
-    Serial.println("[HAL Touch CST816] Auto-sleep re-enabled, marked for re-init on wake");
+    Serial.println("[HAL Touch CST816] Marked for re-init on wake (auto-sleep stays disabled)");
 }
 
 void hal_touch_wake(void) {

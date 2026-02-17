@@ -3,6 +3,15 @@
  * @brief ESP32 implementation of Network HAL
  *
  * Implements Wi-Fi connectivity using Arduino WiFi library.
+ *
+ * WiFi lifecycle notes:
+ *   WiFi.disconnect(true) calls esp_wifi_stop() which shuts down the radio
+ *   asynchronously. A subsequent WiFi.mode(WIFI_STA) restarts it, but
+ *   WiFi.begin() can race the async WIFI_EVENT_STA_START event, causing
+ *   "STA config failed". To avoid this, we only use disconnect(true) in
+ *   hal_network_disconnect() (the intentional shutdown path). All connection
+ *   paths use WiFi.disconnect(false) which disconnects from the AP but keeps
+ *   the radio running, so WiFi.begin() can configure immediately.
  */
 
 #include "network.h"
@@ -22,20 +31,49 @@ static char g_stored_password[64] = "";
 static unsigned long g_connect_start_ms = 0;
 static constexpr unsigned long CONNECT_TIMEOUT_MS = 10000; // 10 seconds
 
+// One-time WiFi subsystem init flag
+static bool g_wifi_started = false;
+
+/**
+ * @brief Ensure the WiFi radio is started in STA mode and ready for connections.
+ *
+ * On first call: sets persistent(false) to stop NVS auto-connect on future
+ * reboots, enables STA mode, and waits for the driver to report ready.
+ * On subsequent calls: disconnects any active/pending connection without
+ * stopping the radio, so WiFi.begin() can configure immediately.
+ */
+static void ensureWiFiReady(void) {
+    if (!g_wifi_started) {
+        // First call — full init. persistent(false) must be set BEFORE
+        // WiFi.mode() to prevent credentials from being saved to NVS.
+        WiFi.persistent(false);
+        WiFi.mode(WIFI_STA);
+
+        // Wait for the STA_START event. WiFi.begin() needs the driver fully
+        // started; without this, esp_wifi_set_config() can fail.
+        unsigned long start = millis();
+        while (WiFi.status() == WL_NO_SHIELD && millis() - start < 2000) {
+            delay(10);
+        }
+
+        g_wifi_started = true;
+        Serial.println("[hal_network] WiFi subsystem started (STA mode, persistent=false)");
+    }
+
+    // Disconnect from any active or pending connection. wifioff=false keeps
+    // the radio running so WiFi.begin() can configure without waiting for
+    // another async STA_START event.
+    WiFi.disconnect(false);
+    delay(50);
+}
+
 bool hal_network_init(const char* ssid, const char* password) {
     if (ssid == nullptr || password == nullptr) {
         g_status = HAL_NETWORK_STATUS_ERROR;
         return false;
     }
 
-    // Disconnect from any current network first
-    if (WiFi.status() == WL_CONNECTED) {
-        WiFi.disconnect(true);
-        delay(100);
-    }
-
-    // Set WiFi mode to station (client)
-    WiFi.mode(WIFI_STA);
+    ensureWiFiReady();
 
     // Store credentials for reconnect after suspend/resume
     strncpy(g_stored_ssid, ssid, sizeof(g_stored_ssid) - 1);
@@ -77,10 +115,10 @@ hal_network_status_t hal_network_get_status(void) {
             g_status = HAL_NETWORK_STATUS_ERROR;
             g_error_time_ms = millis();
         } else if (millis() - g_connect_start_ms > CONNECT_TIMEOUT_MS) {
-            // Timeout — mark as error
+            // Timeout — mark as error, disconnect without killing radio
             g_status = HAL_NETWORK_STATUS_ERROR;
             g_error_time_ms = millis();
-            WiFi.disconnect(true);
+            WiFi.disconnect(false);
         }
     } else if (g_status == HAL_NETWORK_STATUS_CONNECTED) {
         // Check if we've lost connection
@@ -96,7 +134,7 @@ hal_network_status_t hal_network_get_status(void) {
             g_reconnect_attempts++;
             Serial.printf("[hal_network] Auto-retry %d/%d to %s\n",
                          g_reconnect_attempts, MAX_RECONNECT_ATTEMPTS, g_stored_ssid);
-            WiFi.mode(WIFI_STA);
+            ensureWiFiReady();
             WiFi.begin(g_stored_ssid, g_stored_password);
             g_status = HAL_NETWORK_STATUS_CONNECTING;
             g_connect_start_ms = millis();
@@ -107,7 +145,10 @@ hal_network_status_t hal_network_get_status(void) {
 }
 
 void hal_network_disconnect(void) {
+    // Full shutdown: disconnect and stop the radio. Used before suspend/sleep
+    // where we want the WiFi driver completely torn down.
     WiFi.disconnect(true);
+    g_wifi_started = false;
     g_status = HAL_NETWORK_STATUS_DISCONNECTED;
     strncpy(g_ssid_buffer, "N/A", sizeof(g_ssid_buffer));
 }
@@ -121,7 +162,10 @@ bool hal_network_reconnect(void) {
     // Reset retry counter — this is a fresh reconnect (e.g., after resume)
     g_reconnect_attempts = 0;
 
-    WiFi.mode(WIFI_STA);
+    // After resume, WiFi was stopped by esp_wifi_stop() in hal_power_suspend().
+    // ensureWiFiReady() handles the full restart since g_wifi_started was
+    // cleared by hal_network_disconnect().
+    ensureWiFiReady();
     WiFi.begin(g_stored_ssid, g_stored_password);
     g_status = HAL_NETWORK_STATUS_CONNECTING;
     g_connect_start_ms = millis();
@@ -205,7 +249,7 @@ bool hal_network_http_get(const char* url, char* response_buffer, size_t buffer_
 
     HTTPClient http;
     Serial.printf("[hal_network_http_get] Fetching: %s\n", url);
-    Serial.printf("[hal_network_http_get] Buffer size: %d bytes\n", buffer_size);
+    Serial.printf("[hal_network_http_get] Buffer size: %zu bytes\n", buffer_size);
 
     // Begin HTTP connection
     Serial.println("[hal_network_http_get] Calling http.begin()...");

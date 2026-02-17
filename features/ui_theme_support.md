@@ -26,7 +26,7 @@ Themes are defined as C++ structures containing color palettes and font pointers
     - `text_status`: Network/SSID info (readable).
     - `text_version`: Subtle system metadata.
     - `text_error`: Pure red for critical alerts.
-    - `system_menu_background`: Dedicated background color for the overlay system menu.
+    - `system_menu_background`: Dedicated background for the overlay system menu. This color **must** be a perceptually darker shade of the primary `background` color to ensure the menu is visually distinct.
     - `bg_connecting`: Background color for widgets in a "connecting" state.
     - `scroll_indicator`: Color for the scroll bar indicator.
 2.  **`ThemeFonts` Struct:** Holds pointers to `GFXfont` objects for the 5 standardized typography levels.

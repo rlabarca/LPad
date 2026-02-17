@@ -35,6 +35,9 @@ Adapt the existing `UISystemMenu` (from `features/ui_system_menu.md` and `RELEAS
     *   When Active: Consumes ALL touch events (`return true`).
     *   Implements the swipe-to-close logic (`EDGE_DRAG: BOTTOM`).
 
+### 3.3 Visuals
+*   **Background:** The menu's background **must** be filled using the `system_menu_background` color from the currently active theme (`ThemeManager::getInstance().getTheme()->colors.system_menu_background`).
+
 ## 4. Scenarios
 
 ### Scenario: Activation from Background
