@@ -161,7 +161,11 @@ The core of this feature is handling the different hardware capabilities.
 The AXP2101 PMU's IRQ output on the Waveshare board is connected to XCA9554 GPIO expander pin 5 (`expander.digitalRead(5)` in vendor examples), NOT to a direct ESP32 GPIO. The vendor SDK sets `PMU_INTERRUPT_PIN = -1`. This means `esp_light_sleep_start()` with ext0/ext1 wakeup cannot be used for the Waveshare board. Instead, `hal_power_suspend()` enters a polling loop (`delay(100)` between PMU IRQ checks via I2C). The LilyGo T-Display S3 Plus CAN use proper `esp_light_sleep_start()` with GPIO 0 ext0 wakeup.
 
 ### [2026-02-16] AXP2101 Long-Press Shutdown Is Hardware-Managed
-`setPowerKeyPressOffTime(XPOWERS_POWEROFF_4S)` configures the AXP2101 to automatically cut all power rails after a 4-second PEK hold. The software `hal_power_shutdown()` is a fallback that calls `pmu.shutdown()` directly. On the LilyGo, `pmu.shutdown()` calls `disableBATFET()` which only works on battery power — it is ignored when USB is connected.
+`setPowerKeyPressOffTime(XPOWERS_POWEROFF_4S)` configures the AXP2101 to automatically cut all power rails after a 4-second PEK hold. The software `hal_power_shutdown()` is a fallback that calls `pmu.shutdown()` directly.
+
+### [2026-02-16] T-Display Shutdown Must Use Deep Sleep, Not BATFET Disable
+**Problem:** `pmu.shutdown()` calls `disableBATFET()` on the SY6970, cutting the battery-to-system FET. Unlike the AXP2101 which has a hardware PEK (Power Enable Key) to restart, the SY6970 has NO mechanism to re-enable BATFET from a button press. The device is permanently off until USB is connected. On USB, `disableBATFET()` is ignored entirely — the device enters an infinite loop instead of shutting down.
+**Fix:** Use `esp_deep_sleep_start()` with GPIO 0 as ext0 wakeup source. Deep sleep draws ~10µA and triggers a full ESP32 reset on button press, producing the expected startup experience (logo animation, WiFi connect). Also reduced software long-press threshold from 4s to 2s — the AXP2101 handles 4s in hardware (PEK), but the T-Display's software detection gives no user feedback during the hold, making 4s feel unresponsive.
 
 ### [2026-02-16] Suspend Orchestration Order
 Suspend sequence: display sleep → WiFi disconnect → touch sleep → CPU suspend. Resume sequence: CPU resume → power HAL re-seed → display wake → touch wake. WiFi reconnection is NOT automatic on resume — the application layer manages reconnection. This prevents the PowerManager from needing to know WiFi credentials.

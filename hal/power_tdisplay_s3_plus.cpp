@@ -287,7 +287,7 @@ uint16_t hal_power_get_voltage_mv(void) {
 
 #define POWER_BUTTON_GPIO    0
 #define SHORT_PRESS_MAX_MS   1000
-#define LONG_PRESS_THRESHOLD_MS  4000
+#define LONG_PRESS_THRESHOLD_MS  2000
 
 static enum {
     BTN_IDLE,
@@ -393,12 +393,23 @@ void hal_power_resume(void) {
 }
 
 void hal_power_shutdown(void) {
-    if (!g_pmu_ready) return;
-    Serial.println("[PowerHAL] SY6970 shutdown — disabling BATFET");
+    // The SY6970 has no PEK (Power Enable Key). disableBATFET() cuts the
+    // battery power path permanently — there is no hardware mechanism to
+    // re-enable it from a button press. The device is bricked until USB
+    // is connected. Instead, use ESP32 deep sleep with GPIO 0 wakeup.
+    // Deep sleep draws ~10µA and reboots from scratch on button press,
+    // giving the expected startup experience (logo animation, WiFi connect).
+    Serial.println("[PowerHAL] Entering deep sleep (GPIO 0 wakeup)...");
     Serial.flush();
-    delay(100);
-    pmu.shutdown();  // Calls disableBATFET() — cuts battery power path
-    // Does not return if on battery. If USB connected, BATFET disable
-    // is ignored by the SY6970, so we enter an infinite loop.
-    while (true) { delay(1000); }
+
+    // Fully stop WiFi driver (same reason as light sleep — flash inaccessible)
+    esp_wifi_stop();
+    delay(50);
+
+    // Configure GPIO 0 as wakeup source (active LOW = button pressed)
+    esp_sleep_enable_ext0_wakeup((gpio_num_t)POWER_BUTTON_GPIO, 0);
+
+    // Enter deep sleep — wakes via button press and reboots from scratch
+    esp_deep_sleep_start();
+    // Does not return — ESP32 resets on wake
 }
