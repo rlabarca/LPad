@@ -87,6 +87,13 @@ The MiniLogo overlay (Z=10) starts hidden via `hide()` in `main.cpp`. Since the 
 4. Hide MiniLogo, then call `mgr.setActiveApp(g_bootLogo)` to start the boot animation.
 5. On resume from suspend, the StockTicker is already the active app — BootLogo does NOT run again.
 
-### [2026-02-16] Dirty-Rect Optimization — Eliminates Animation Flashing
-**Problem:** The initial implementation called `drawSolidBackground()` (full-screen fill) every animation frame before drawing the logo. The display showed the cleared background momentarily before the logo was drawn at its new position, causing visible flashing during the ANIMATE phase.
-**Fix:** Draw the full background only once on the first frame (`m_backgroundDrawn` flag). On subsequent frames, erase only the previous logo's bounding box via `gfx->fillRect()` using the stored dirty rect (`m_prevX/Y/W/H`). The bounding box is calculated by replicating VectorRenderer's coordinate math (shape aspect ratio, screen aspect ratio, anchor offset) with 2px padding to cover triangle rasterization rounding. This reduces per-frame fill from 54,400 pixels (320x170) to ~2,000-8,000 pixels (logo bounds only).
+### [2026-02-16] Atomic Compose-and-Blit — Eliminates Animation Flashing
+**Problem:** Dirty-rect erase via `gfx->fillRect()` followed by `VectorRenderer::draw()` still flashed — the display briefly showed the erased background between the two operations.
+**Root cause:** Any two-step erase-then-draw sequence will flash because the display scanout can occur between the operations. The fix must ensure the display only ever sees a fully composed frame.
+**Fix:** Adopted the same atomic blit pattern used by `TimeSeriesGraph::drawLiveIndicator()`:
+1. Compute union bounding box of previous and current logo positions.
+2. Create an off-screen `Arduino_Canvas` (PSRAM) sized to the union region.
+3. Fill the canvas with the background color (erasing the old logo area).
+4. Rasterize the logo triangles directly into the canvas using VectorRenderer's coordinate math, offset by the canvas origin.
+5. Single atomic `hal_display_fast_blit()` writes the entire composed result to the display.
+The first frame still uses a full-screen `drawSolidBackground()` + `VectorRenderer::draw()` since there is no prior content to flash against.

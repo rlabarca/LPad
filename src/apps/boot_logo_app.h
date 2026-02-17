@@ -83,6 +83,7 @@ private:
     float heightToWidthPercent(float heightPercent) const;
     void calculateEndPosition(float& x, float& y) const;
     void calculateLogoBounds(int16_t& x, int16_t& y, int16_t& w, int16_t& h) const;
+    void renderAtomicFrame();
 };
 
 #endif // BOOT_LOGO_APP_H

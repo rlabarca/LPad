@@ -23,6 +23,8 @@ flowchart TD
 
     subgraph Applications [" "]
         title_Applications["APPLICATIONS"]
+        app_boot_logo["App Component: Boot Logo<br/><small>app_boot_logo.md</small>"]
+        title_Applications ~~~ app_boot_logo
         app_stock_ticker["App Component: Stock Ticker<br/><small>app_stock_ticker.md</small>"]
         title_Applications ~~~ app_stock_ticker
     end
@@ -143,6 +145,10 @@ flowchart TD
     sys_mini_logo --> RELEASE_v0_75
     sys_serial_screenshot --> RELEASE_v0_75
     sys_system_menu --> RELEASE_v0_75
+    app_boot_logo --> RELEASE_v0_75
+    core_ui_render_manager --> app_boot_logo
+    ui_vector_assets --> app_boot_logo
+    app_stock_ticker --> app_boot_logo
     core_ui_render_manager --> app_stock_ticker
     data_layer_stock_tracker --> app_stock_ticker
     ui_themeable_time_series_graph --> app_stock_ticker
@@ -225,6 +231,7 @@ flowchart TD
     %% Style Applications
     class title_ARCHITECTURES subgraphTitle;
     class title_Applications subgraphTitle;
+    class app_boot_logo app;
     class app_stock_ticker app;
     class title_Data_Layer subgraphTitle;
     class title_Hardware_Layer subgraphTitle;

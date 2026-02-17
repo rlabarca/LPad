@@ -15,6 +15,8 @@
 #include "../relative_display.h"
 #include "../ui/ui_render_manager.h"
 #include "../themes/default/theme_colors.h"
+#include "../../hal/display.h"
+#include <Arduino_GFX_Library.h>
 
 BootLogoApp::BootLogoApp()
     : m_display(nullptr)
@@ -70,26 +72,21 @@ void BootLogoApp::render() {
 
     if (!m_needsRender) return;
 
-    Arduino_GFX* gfx = m_display->getGfx();
-
     if (!m_backgroundDrawn) {
-        // First frame: full background fill (once)
+        // First frame: full background fill + draw logo directly.
+        // No flashing risk since screen is freshly cleared.
         m_display->drawSolidBackground(LPad::THEME_BACKGROUND);
+        VectorRenderer::draw(*m_display, VectorAssets::Lpadlogo,
+                            m_x_percent, m_y_percent, m_width_percent,
+                            m_anchor_x, m_anchor_y);
+        calculateLogoBounds(m_prevX, m_prevY, m_prevW, m_prevH);
+        m_hasPrevBounds = true;
         m_backgroundDrawn = true;
-    } else if (m_hasPrevBounds) {
-        // Subsequent frames: erase only the previous logo position
-        gfx->fillRect(m_prevX, m_prevY, m_prevW, m_prevH,
-                      LPad::THEME_BACKGROUND);
+    } else {
+        // Animation frames: compose erase + draw into a single canvas,
+        // then blit atomically to prevent flashing.
+        renderAtomicFrame();
     }
-
-    // Draw logo at current animated position
-    VectorRenderer::draw(*m_display, VectorAssets::Lpadlogo,
-                        m_x_percent, m_y_percent, m_width_percent,
-                        m_anchor_x, m_anchor_y);
-
-    // Store current bounding box for next frame's dirty-rect erase
-    calculateLogoBounds(m_prevX, m_prevY, m_prevW, m_prevH);
-    m_hasPrevBounds = true;
 
     m_needsRender = false;
 }
@@ -226,4 +223,90 @@ void BootLogoApp::calculateLogoBounds(int16_t& x, int16_t& y,
     if (y < 0) { h += y; y = 0; }
     if (x + w > sw) w = sw - x;
     if (y + h > sh) h = sh - y;
+}
+
+void BootLogoApp::renderAtomicFrame() {
+    // Atomic compose-and-blit: same pattern as the live indicator in
+    // TimeSeriesGraph::drawLiveIndicator(). Erase + draw are composed
+    // into a single off-screen canvas, then blitted in one operation
+    // so the display never shows the intermediate erased state.
+
+    // 1. Calculate new logo bounds
+    int16_t newX, newY, newW, newH;
+    calculateLogoBounds(newX, newY, newW, newH);
+
+    // 2. Union of old and new bounding boxes
+    int16_t unionX, unionY, unionW, unionH;
+    if (m_hasPrevBounds) {
+        int16_t prevRight = m_prevX + m_prevW;
+        int16_t prevBottom = m_prevY + m_prevH;
+        int16_t newRight = newX + newW;
+        int16_t newBottom = newY + newH;
+
+        unionX = (m_prevX < newX) ? m_prevX : newX;
+        unionY = (m_prevY < newY) ? m_prevY : newY;
+        int16_t unionRight = (prevRight > newRight) ? prevRight : newRight;
+        int16_t unionBottom = (prevBottom > newBottom) ? prevBottom : newBottom;
+        unionW = unionRight - unionX;
+        unionH = unionBottom - unionY;
+    } else {
+        unionX = newX;
+        unionY = newY;
+        unionW = newW;
+        unionH = newH;
+    }
+
+    if (unionW <= 0 || unionH <= 0) return;
+
+    // 3. Create off-screen canvas for the union region
+    hal_canvas_handle_t canvas = hal_display_canvas_create(unionW, unionH);
+    if (canvas == nullptr) return;
+
+    // 4. Fill canvas with background color (this "erases" the old logo)
+    hal_display_canvas_fill(canvas, LPad::THEME_BACKGROUND);
+
+    // 5. Draw logo triangles into the canvas at the correct offset.
+    //    Replicates VectorRenderer's coordinate math but renders into
+    //    the local canvas instead of the main display.
+    Arduino_Canvas* canvasPtr = static_cast<Arduino_Canvas*>(canvas);
+    const VectorShape& shape = VectorAssets::Lpadlogo;
+    float shapeAspect = shape.original_height / shape.original_width;
+    float screenAspect = static_cast<float>(m_display->getWidth()) /
+                         static_cast<float>(m_display->getHeight());
+
+    float targetWidth = m_width_percent;
+    float targetHeight = m_width_percent * shapeAspect * screenAspect;
+
+    float baseX = m_x_percent - (m_anchor_x * targetWidth);
+    float baseY = m_y_percent - (m_anchor_y * targetHeight);
+
+    for (size_t pi = 0; pi < shape.num_paths; pi++) {
+        const VectorPath& path = shape.paths[pi];
+        for (size_t ti = 0; ti < path.num_tris; ti++) {
+            const VectorTriangle& tri = path.tris[ti];
+
+            // Absolute pixel coords minus canvas origin
+            int32_t x1 = m_display->relativeToAbsoluteX(baseX + tri.v1.x * targetWidth) - unionX;
+            int32_t y1 = m_display->relativeToAbsoluteY(baseY + tri.v1.y * targetHeight) - unionY;
+            int32_t x2 = m_display->relativeToAbsoluteX(baseX + tri.v2.x * targetWidth) - unionX;
+            int32_t y2 = m_display->relativeToAbsoluteY(baseY + tri.v2.y * targetHeight) - unionY;
+            int32_t x3 = m_display->relativeToAbsoluteX(baseX + tri.v3.x * targetWidth) - unionX;
+            int32_t y3 = m_display->relativeToAbsoluteY(baseY + tri.v3.y * targetHeight) - unionY;
+
+            canvasPtr->fillTriangle(x1, y1, x2, y2, x3, y3, path.color);
+        }
+    }
+
+    // 6. Single atomic blit — display never sees the erased state
+    uint16_t* fb = canvasPtr->getFramebuffer();
+    if (fb) {
+        hal_display_fast_blit(unionX, unionY, unionW, unionH, fb);
+    }
+
+    // 7. Cleanup and update bounds for next frame
+    hal_display_canvas_delete(canvas);
+    m_prevX = newX;
+    m_prevY = newY;
+    m_prevW = newW;
+    m_prevH = newH;
 }
