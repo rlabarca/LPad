@@ -24,11 +24,14 @@ BootLogoApp::BootLogoApp()
     , m_timer(0.0f)
     , m_needsRender(true)
     , m_transitioned(false)
+    , m_backgroundDrawn(false)
     , m_x_percent(START_X_PERCENT)
     , m_y_percent(START_Y_PERCENT)
     , m_width_percent(0.0f)
     , m_anchor_x(START_ANCHOR_X)
     , m_anchor_y(START_ANCHOR_Y)
+    , m_prevX(0), m_prevY(0), m_prevW(0), m_prevH(0)
+    , m_hasPrevBounds(false)
 {
 }
 
@@ -53,6 +56,8 @@ void BootLogoApp::onRun() {
     m_timer = 0.0f;
     m_needsRender = true;
     m_transitioned = false;
+    m_backgroundDrawn = false;
+    m_hasPrevBounds = false;
     m_x_percent = START_X_PERCENT;
     m_y_percent = START_Y_PERCENT;
     m_width_percent = heightToWidthPercent(START_HEIGHT_PERCENT);
@@ -65,13 +70,26 @@ void BootLogoApp::render() {
 
     if (!m_needsRender) return;
 
-    // Fill background
-    m_display->drawSolidBackground(LPad::THEME_BACKGROUND);
+    Arduino_GFX* gfx = m_display->getGfx();
+
+    if (!m_backgroundDrawn) {
+        // First frame: full background fill (once)
+        m_display->drawSolidBackground(LPad::THEME_BACKGROUND);
+        m_backgroundDrawn = true;
+    } else if (m_hasPrevBounds) {
+        // Subsequent frames: erase only the previous logo position
+        gfx->fillRect(m_prevX, m_prevY, m_prevW, m_prevH,
+                      LPad::THEME_BACKGROUND);
+    }
 
     // Draw logo at current animated position
     VectorRenderer::draw(*m_display, VectorAssets::Lpadlogo,
                         m_x_percent, m_y_percent, m_width_percent,
                         m_anchor_x, m_anchor_y);
+
+    // Store current bounding box for next frame's dirty-rect erase
+    calculateLogoBounds(m_prevX, m_prevY, m_prevW, m_prevH);
+    m_hasPrevBounds = true;
 
     m_needsRender = false;
 }
@@ -172,4 +190,40 @@ void BootLogoApp::calculateEndPosition(float& x, float& y) const {
     // Top-right corner with buffer
     x = 100.0f - offsetX;
     y = offsetY;
+}
+
+void BootLogoApp::calculateLogoBounds(int16_t& x, int16_t& y,
+                                      int16_t& w, int16_t& h) const {
+    // Replicate VectorRenderer's coordinate math to compute the pixel
+    // bounding box of the logo at its current animated position.
+    float shapeAspect = VectorAssets::Lpadlogo.original_height /
+                        VectorAssets::Lpadlogo.original_width;
+    float screenAspect = static_cast<float>(m_display->getWidth()) /
+                         static_cast<float>(m_display->getHeight());
+
+    float targetWidth = m_width_percent;
+    float targetHeight = m_width_percent * shapeAspect * screenAspect;
+
+    float baseX = m_x_percent - (m_anchor_x * targetWidth);
+    float baseY = m_y_percent - (m_anchor_y * targetHeight);
+
+    int32_t px1 = m_display->relativeToAbsoluteX(baseX);
+    int32_t py1 = m_display->relativeToAbsoluteY(baseY);
+    int32_t px2 = m_display->relativeToAbsoluteX(baseX + targetWidth);
+    int32_t py2 = m_display->relativeToAbsoluteY(baseY + targetHeight);
+
+    // Pad by 2px to cover rounding in triangle rasterization
+    static const int16_t PAD = 2;
+    x = static_cast<int16_t>(px1) - PAD;
+    y = static_cast<int16_t>(py1) - PAD;
+    w = static_cast<int16_t>(px2 - px1) + PAD * 2;
+    h = static_cast<int16_t>(py2 - py1) + PAD * 2;
+
+    // Clamp to screen bounds
+    int16_t sw = static_cast<int16_t>(m_display->getWidth());
+    int16_t sh = static_cast<int16_t>(m_display->getHeight());
+    if (x < 0) { w += x; x = 0; }
+    if (y < 0) { h += y; y = 0; }
+    if (x + w > sw) w = sw - x;
+    if (y + h > sh) h = sh - y;
 }

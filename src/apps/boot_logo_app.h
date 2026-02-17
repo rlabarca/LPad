@@ -51,6 +51,7 @@ private:
     float m_timer;
     bool m_needsRender;
     bool m_transitioned;
+    bool m_backgroundDrawn;
 
     // Current interpolated animation parameters
     float m_x_percent;
@@ -58,6 +59,10 @@ private:
     float m_width_percent;
     float m_anchor_x;
     float m_anchor_y;
+
+    // Dirty-rect: previous frame's logo bounding box (pixels)
+    int16_t m_prevX, m_prevY, m_prevW, m_prevH;
+    bool m_hasPrevBounds;
 
     // Timing
     static constexpr float WAIT_DURATION = 2.0f;
@@ -77,6 +82,7 @@ private:
     static float easeInOutCubic(float t);
     float heightToWidthPercent(float heightPercent) const;
     void calculateEndPosition(float& x, float& y) const;
+    void calculateLogoBounds(int16_t& x, int16_t& y, int16_t& w, int16_t& h) const;
 };
 
 #endif // BOOT_LOGO_APP_H

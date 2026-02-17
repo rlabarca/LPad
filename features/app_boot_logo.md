@@ -86,3 +86,7 @@ The MiniLogo overlay (Z=10) starts hidden via `hide()` in `main.cpp`. Since the 
 3. Register all components: PowerManager(Z=0), StockTicker(Z=1), BootLogo(Z=5), MiniLogo(Z=10), SystemMenu(Z=20).
 4. Hide MiniLogo, then call `mgr.setActiveApp(g_bootLogo)` to start the boot animation.
 5. On resume from suspend, the StockTicker is already the active app — BootLogo does NOT run again.
+
+### [2026-02-16] Dirty-Rect Optimization — Eliminates Animation Flashing
+**Problem:** The initial implementation called `drawSolidBackground()` (full-screen fill) every animation frame before drawing the logo. The display showed the cleared background momentarily before the logo was drawn at its new position, causing visible flashing during the ANIMATE phase.
+**Fix:** Draw the full background only once on the first frame (`m_backgroundDrawn` flag). On subsequent frames, erase only the previous logo's bounding box via `gfx->fillRect()` using the stored dirty rect (`m_prevX/Y/W/H`). The bounding box is calculated by replicating VectorRenderer's coordinate math (shape aspect ratio, screen aspect ratio, anchor offset) with 2px padding to cover triangle rasterization rounding. This reduces per-frame fill from 54,400 pixels (320x170) to ~2,000-8,000 pixels (logo bounds only).
