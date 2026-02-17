@@ -70,15 +70,19 @@ The component's lifecycle is based on the animation sequence defined in the lega
 
 ## Implementation Notes
 
-### [NEW] App Chaining Pattern
-This feature introduces a simple "App Chaining" pattern. The `BootLogo` app will be initialized with a pointer to the next app to run (the `StockTickerApp`). In its `update()` method, once the animation is complete, it will execute:
-`m_render_manager->setActiveApp(m_next_app);`
-This delegates the responsibility of app sequencing to the apps themselves, allowing for simple, linear flows without requiring a complex state machine in `main.cpp`. The `UIRenderManager` handles the `onClose()` and `onRun()` calls automatically.
+### [2026-02-16] App Chaining Pattern
+The `BootLogoApp` is initialized with a pointer to the next app (`StockTickerApp`) and an optional `SystemComponent*` for the MiniLogo overlay. In `update()`, once the animation reaches DONE state, it calls `UIRenderManager::getInstance().setActiveApp(m_nextApp)` which pauses the boot logo and runs the stock ticker. The `UIRenderManager` handles the `onPause()`/`onRun()` lifecycle automatically.
 
-### Main Application Setup
-`main.cpp` must be modified to support this flow:
-1.  Instantiate `UIRenderManager`.
-2.  Instantiate `StockTickerApp`.
-3.  Instantiate `BootLogoApp`, passing it pointers to the manager and the stock ticker app.
-4.  Call `manager->setActiveApp()` with the `BootLogoApp` instance.
-5.  Register other `SystemComponent`s as usual.
+### [2026-02-16] MiniLogo Visibility During Boot
+The MiniLogo overlay (Z=10) starts hidden via `hide()` in `main.cpp`. Since the boot logo animates FROM center TO the MiniLogo's corner position, showing both simultaneously would cause visual overlap. The BootLogoApp calls `m_miniLogo->show()` just before transitioning, ensuring seamless handoff — the logo appears to shrink into its permanent corner position.
+
+### [2026-02-16] Height-to-Width Conversion for VectorRenderer
+`VectorRenderer::draw()` takes `width_percent` (percent of screen width), but the spec defines logo size in terms of screen height percentage. Conversion: `width_percent = height_percent * (screen_height / screen_width) * (logo_width / logo_height)`. This matches the formula used by `MiniLogo` and ensures the end state is pixel-identical to the permanent mini logo overlay.
+
+### [2026-02-16] Main Application Setup
+`main.cpp` boot sequence:
+1. Instantiate `StockTickerApp` and `MiniLogoComponent`.
+2. Instantiate `BootLogoApp`, passing `RelativeDisplay*`, `StockTickerApp*`, and `MiniLogoComponent*`.
+3. Register all components: PowerManager(Z=0), StockTicker(Z=1), BootLogo(Z=5), MiniLogo(Z=10), SystemMenu(Z=20).
+4. Hide MiniLogo, then call `mgr.setActiveApp(g_bootLogo)` to start the boot animation.
+5. On resume from suspend, the StockTicker is already the active app — BootLogo does NOT run again.

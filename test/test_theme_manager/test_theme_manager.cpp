@@ -108,7 +108,7 @@ void test_dynamic_theme_switching() {
             .graph_ticks = 0x2104,
             .axis_labels = 0x0000,
             .data_labels = 0x001F,
-            .system_menu_bg = 0x0000
+            .system_menu_background = 0x0000
         },
         // fonts (use same fonts for this test)
         {

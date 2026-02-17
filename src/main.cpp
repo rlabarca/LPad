@@ -3,11 +3,12 @@
  * @brief LPad v0.75 Entry Point
  *
  * UIRenderManager-driven architecture with Widget-based System Menu,
- * background battery metering, and power state management (suspend/resume/shutdown).
+ * background battery metering, power state management, and boot logo animation.
  *
  * Components:
  *   Z=0  PowerManager         (SystemComponent, battery polling + power states)
- *   Z=1  StockTickerApp       (AppComponent)
+ *   Z=1  StockTickerApp       (AppComponent, main app)
+ *   Z=5  BootLogoApp          (AppComponent, initial boot animation)
  *   Z=10 MiniLogoComponent    (SystemComponent, passive overlay)
  *   Z=20 SystemMenuComponent  (SystemComponent, activation=EDGE_DRAG TOP)
  */
@@ -15,6 +16,7 @@
 #include <Arduino.h>
 #include <Arduino_GFX_Library.h>
 
+#include "apps/boot_logo_app.h"
 #include "apps/stock_ticker_app.h"
 #include "system/mini_logo_component.h"
 #include "system/system_menu_component.h"
@@ -35,6 +37,7 @@ static AnimationTicker* g_ticker = nullptr;
 static RelativeDisplay* g_relativeDisplay = nullptr;
 static TouchGestureEngine* g_gestureEngine = nullptr;
 
+static BootLogoApp* g_bootLogo = nullptr;
 static StockTickerApp* g_stockTicker = nullptr;
 static MiniLogoComponent* g_miniLogo = nullptr;
 static SystemMenuComponent* g_systemMenu = nullptr;
@@ -183,10 +186,17 @@ void setup() {
         while (1) delay(1000);
     }
 
-    // Mini Logo (Z=10)
+    // Mini Logo (Z=10) - hidden during boot animation, shown by BootLogoApp
     g_miniLogo = new MiniLogoComponent();
     if (!g_miniLogo->begin(g_relativeDisplay)) {
         displayError("MiniLogoComponent init failed");
+        while (1) delay(1000);
+    }
+
+    // Boot Logo (Z=5) - plays once on initial boot, transitions to StockTicker
+    g_bootLogo = new BootLogoApp();
+    if (!g_bootLogo->begin(g_relativeDisplay, g_stockTicker, g_miniLogo)) {
+        displayError("BootLogoApp init failed");
         while (1) delay(1000);
     }
 
@@ -199,7 +209,7 @@ void setup() {
     g_systemMenu->setVersion("Version 0.75");
     g_systemMenu->setSSIDProvider(hal_network_get_ssid);
     g_systemMenu->setSSID(hal_network_get_ssid());
-    g_systemMenu->setBackgroundColor(theme->colors.system_menu_bg);
+    g_systemMenu->setBackgroundColor(theme->colors.system_menu_background);
     g_systemMenu->setRevealColor(theme->colors.background);
     g_systemMenu->setVersionFont(theme->fonts.smallest);
     g_systemMenu->setVersionColor(theme->colors.text_version);
@@ -228,7 +238,7 @@ void setup() {
         Serial.printf("  [INFO] WiFi list populated with %d networks\n", g_wifi_count);
     }
 
-    Serial.println("  [PASS] StockTicker + MiniLogo + SystemMenu(Widgets) created");
+    Serial.println("  [PASS] BootLogo + StockTicker + MiniLogo + SystemMenu(Widgets) created");
     yield();
 
     // [7/7] Register with UIRenderManager
@@ -241,19 +251,23 @@ void setup() {
 
     mgr.registerComponent(g_powerManager, 0);
     mgr.registerComponent(g_stockTicker, 1);
+    mgr.registerComponent(g_bootLogo, 5);
     mgr.registerComponent(g_miniLogo, 10);
 
+    g_miniLogo->hide(); // Hidden during boot animation, shown by BootLogoApp
     g_systemMenu->setActivationEvent(TOUCH_EDGE_DRAG, TOUCH_DIR_UP);
     g_systemMenu->hide(); // Start hidden
     mgr.registerComponent(g_systemMenu, 20);
 
-    mgr.setActiveApp(g_stockTicker);
+    // Boot sequence: BootLogoApp plays first, then transitions to StockTicker
+    mgr.setActiveApp(g_bootLogo);
 
     Serial.println("  [PASS] UIRenderManager configured:");
     Serial.printf("    Components: %d\n", mgr.getComponentCount());
     Serial.println("    Z=0:  PowerManager (System, background polling)");
-    Serial.println("    Z=1:  StockTicker  (App)");
-    Serial.println("    Z=10: MiniLogo     (System, always visible)");
+    Serial.println("    Z=1:  StockTicker  (App, main — activated after boot logo)");
+    Serial.println("    Z=5:  BootLogo     (App, initial boot animation)");
+    Serial.println("    Z=10: MiniLogo     (System, shown after boot animation)");
     Serial.println("    Z=20: SystemMenu   (System, activation=EDGE_DRAG TOP, Widget-based)");
 
     // Clear display with theme background

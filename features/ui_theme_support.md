@@ -70,3 +70,8 @@ And the UI reflects these changes upon the next redraw.
 Given the application starts up
 When the `ThemeManager` is initialized
 Then it should load the `Default` theme (located in `src/themes/default`) as the initial active theme.
+
+## Implementation Notes
+
+### [2026-02-16] system_menu_background Field Naming
+The `ThemeColors` struct field was renamed from `system_menu_bg` to `system_menu_background` to match the spec. The semantic constant in `theme_colors.h` remains `THEME_SYSTEM_MENU_BG` (short form is acceptable for constants). The current value is `0x0000` (AMOLED black — pixels physically off), which is perceptually darker than the primary `background` color (`0x1923` / Night).

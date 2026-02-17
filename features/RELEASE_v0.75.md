@@ -15,9 +15,10 @@
 > Prerequisite: features/sys_mini_logo.md
 > Prerequisite: features/sys_serial_screenshot.md
 > Prerequisite: features/sys_system_menu.md
+> Prerequisite: features/app_boot_logo.md
 
 ## 1. Introduction
-This release introduces comprehensive power management (suspend, resume, shutdown) and consolidates all prior features from v0.74.
+This release introduces comprehensive power management (suspend, resume, shutdown) and a formal application boot sequence, consolidating all prior features from v0.74.
 
 ## 2. Success Criteria
 
@@ -26,12 +27,17 @@ This release introduces comprehensive power management (suspend, resume, shutdow
 - [ ] **Shutdown/Startup:** A long press correctly shuts down and starts up the device.
 - [ ] **Board Parity:** The above actions work correctly on both AXP2101 and SY6970-based boards, abstracting the hardware differences.
 
-### 2.2 UI & Widgets (Regression from v0.74)
+### 2.2 Application Flow (New for v0.75)
+- [ ] **Boot Sequence:** On initial power-on, the device must first display the full-screen Boot Logo animation.
+- [ ] **App Handoff:** Upon completion of the logo animation, the `StockTicker` application must automatically load and run.
+- [ ] **No Resume Logo:** The Boot Logo must NOT appear when resuming from a suspended state.
+
+### 2.3 UI & Widgets (Regression from v0.74)
 - [x] Widget System manages the System Menu layout (1x5 Grid).
 - [x] `WiFiListWidget` supports scrolling and asynchronous connection status.
 - [x] `Manual WiFi selection overrides auto-connect sequence.
 
-### 2.3 System Services & HAL (Regression from v0.74)
+### 2.4 System Services & HAL (Regression from v0.74)
 - [x] `PowerManager` correctly polls and exposes `BatteryStatus` every 2s.
 - [x] HAL provides `CORNER_BUFFER_X` and `CORNER_BUFFER_Y` constants per-device.
 - [x] System Menu overlays (Battery, SSID) use these HAL offsets instead of hard-coded padding.
@@ -53,5 +59,11 @@ This release introduces comprehensive power management (suspend, resume, shutdow
 ### Test 4: Corner Buffer Alignment (Regression)
 - **Action:** Verify corner elements on **ESP32-S3 AMOLED**.
 - **Verification:** Battery text (top-left) and SSID text (top-right) are inset by exactly 20px from the sides and 4px from the top.
+
+### Test 5: Boot Sequence (New)
+- **Action:** Power on the device from a fully off state.
+- **Verification:** The full-screen logo animation plays first, then automatically transitions to the Stock Ticker application.
+- **Action:** Suspend and resume the device.
+- **Verification:** The device resumes directly to the Stock Ticker application without showing the logo animation.
 
 [Complete]

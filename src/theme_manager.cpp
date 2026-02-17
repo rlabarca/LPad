@@ -26,7 +26,7 @@ Theme ThemeManager::default_theme_ = {
         .axis_labels = THEME_AXIS_LABELS,
         .data_labels = THEME_DATA_LABELS,
 
-        .system_menu_bg = THEME_SYSTEM_MENU_BG,
+        .system_menu_background = THEME_SYSTEM_MENU_BG,
         .text_heading = THEME_TEXT,  // Khaki per ui_system_menu.md
 
         .text_highlight = THEME_TEXT_HIGHLIGHT,

@@ -33,7 +33,7 @@ struct ThemeColors {
     uint16_t data_labels;
 
     // System menu
-    uint16_t system_menu_bg;
+    uint16_t system_menu_background;
     uint16_t text_heading;
 
     // Widget system

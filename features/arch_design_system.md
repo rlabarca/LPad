@@ -13,7 +13,7 @@
     *   `text_error` (Critical alerts/errors - formerly `0xF800`).
     *   `text_version` (System metadata - formerly `0x7BEF`).
     *   `text_status` (Network/SSID info - formerly `0xFFFF`).
-    *   `system_menu_bg` (System Menu overlay background).
+    *   `system_menu_background` (System Menu overlay background).
 *   **Default Fallbacks:** Default themes MUST provide high-contrast values for all semantic keys.
 
 ## 2. Typography & Fonts
