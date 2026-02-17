@@ -187,7 +187,10 @@ bool StockTracker::fetchData() {
 
             Serial.printf("[StockTracker] Initial fetch: Loaded %zu data points (6h trading data)\n", num_points);
             m_is_first_fetch = false;
-            m_fetch_status = FetchStatus::HAS_DATA;
+            // Preserve NON_TRADING_HOURS when data came from meta fallback
+            if (m_fetch_status != FetchStatus::NON_TRADING_HOURS) {
+                m_fetch_status = FetchStatus::HAS_DATA;
+            }
         } else {
             // Incremental update: Append only NEW data points
             long latest_existing_timestamp = 0;
@@ -214,7 +217,9 @@ bool StockTracker::fetchData() {
 
             Serial.printf("[StockTracker] Incremental update: Added %zu new data points (total: %zu)\n",
                           added_count, m_data_series.getLength());
-            m_fetch_status = FetchStatus::HAS_DATA;
+            if (m_fetch_status != FetchStatus::NON_TRADING_HOURS) {
+                m_fetch_status = FetchStatus::HAS_DATA;
+            }
         }
 
         return true;
@@ -234,11 +239,10 @@ bool StockTracker::parseYahooFinanceResponse(const char* json_response,
     // Debug: Show first 300 chars of response
     size_t response_len = strlen(json_response);
     Serial.printf("[StockTracker] Response length: %zu bytes\n", response_len);
-    Serial.print("[StockTracker] Response preview (first 300 chars): ");
     size_t preview_len = (response_len < 300) ? response_len : 300;
-    for (size_t i = 0; i < preview_len; i++) {
-        Serial.print(json_response[i]);
-    }
+    // Use single write() call to avoid serial interleaving with touch/power tasks
+    Serial.print("[StockTracker] Response preview: ");
+    Serial.write(json_response, preview_len);
     Serial.println();
 
     // Sanity check: a valid JSON response must start with '{'
@@ -291,33 +295,34 @@ bool StockTracker::parseYahooFinanceResponse(const char* json_response,
 
     // Check if timestamp exists (may be missing during non-trading hours)
     if (!result["timestamp"].is<JsonArray>()) {
-        Serial.println("[StockTracker] No timestamp field (non-trading hours)");
-        m_fetch_status = FetchStatus::NON_TRADING_HOURS;
+        Serial.println("[StockTracker] No timestamp array (market closed or non-trading hours)");
 
-        // Log what we do have
-        Serial.print("[StockTracker] Available keys: ");
-        for (JsonPair kv : result) {
-            Serial.printf("%s ", kv.key().c_str());
-        }
-        Serial.println();
-
-        // Log meta information
+        // Fallback: extract last known price from meta object.
+        // During non-trading hours, Yahoo Finance still provides
+        // meta.regularMarketPrice (last traded price) and
+        // meta.regularMarketTime (epoch of last trade).
         if (result["meta"].is<JsonObject>()) {
             JsonObject meta = result["meta"];
-            Serial.println("[StockTracker] Meta info:");
-            Serial.printf("  regularMarketTime: %ld\n", meta["regularMarketTime"].as<long>());
-            Serial.printf("  symbol: %s\n", meta["symbol"].as<const char*>());
-            Serial.printf("  exchangeName: %s\n", meta["exchangeName"].as<const char*>());
+            double market_price = meta["regularMarketPrice"] | 0.0;
+            long market_time = meta["regularMarketTime"] | 0L;
 
-            // Check if there's an error field in the response
-            if (doc["chart"]["error"].is<JsonObject>()) {
-                JsonObject error = doc["chart"]["error"];
-                Serial.println("[StockTracker] Yahoo Finance API Error:");
-                Serial.printf("  code: %s\n", error["code"].as<const char*>());
-                Serial.printf("  description: %s\n", error["description"].as<const char*>());
+            Serial.printf("[StockTracker] Meta: price=%.4f time=%ld symbol=%s exchange=%s\n",
+                          market_price, market_time,
+                          meta["symbol"].as<const char*>(),
+                          meta["exchangeName"].as<const char*>());
+
+            if (market_price > 0.0 && market_time > 0) {
+                out_timestamps.push_back(market_time);
+                out_prices.push_back(market_price);
+                Serial.printf("[StockTracker] Using meta fallback: %.4f @ %ld\n",
+                              market_price, market_time);
+                m_fetch_status = FetchStatus::NON_TRADING_HOURS;
+                return true;
             }
         }
 
+        Serial.println("[StockTracker] No meta price available — parse failed");
+        m_fetch_status = FetchStatus::NON_TRADING_HOURS;
         return false;
     }
 

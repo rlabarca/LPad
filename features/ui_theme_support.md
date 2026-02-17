@@ -74,4 +74,7 @@ Then it should load the `Default` theme (located in `src/themes/default`) as the
 ## Implementation Notes
 
 ### [2026-02-16] system_menu_background Field Naming
-The `ThemeColors` struct field was renamed from `system_menu_bg` to `system_menu_background` to match the spec. The semantic constant in `theme_colors.h` remains `THEME_SYSTEM_MENU_BG` (short form is acceptable for constants). The current value is `0x0000` (AMOLED black — pixels physically off), which is perceptually darker than the primary `background` color (`0x1923` / Night).
+The `ThemeColors` struct field was renamed from `system_menu_bg` to `system_menu_background` to match the spec. The semantic constant in `theme_colors.h` remains `THEME_SYSTEM_MENU_BG` (short form is acceptable for constants).
+
+### [2026-02-16] system_menu_background Color Correction
+Changed from `0x0000` (pure AMOLED black) to `COLOR_DEEP_NIGHT_16` (`0x0881` / `#0C100C`), a 50% darker shade of Night that preserves the green hue. Per spec: "must be a perceptually darker shade of the primary background color." Pure black had no color relationship to Night and created harsh contrast on AMOLED (pixels off vs on).

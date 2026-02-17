@@ -108,6 +108,7 @@ bool SystemMenu::begin(Arduino_GFX* gfx, int32_t width, int32_t height) {
 
     // WiFi list widget (Rows 1-4, spanning 4 rows)
     m_wifiList = new WiFiListWidget();
+    m_wifiList->setBackgroundColor(m_bgColor);
     m_wifiList->setSSIDChangeCallback(onWiFiSSIDChanged, this);
     m_gridLayout->addWidget(m_wifiList, 1, 0, 4, 1);
 
@@ -134,6 +135,9 @@ void SystemMenu::setSSID(const char* ssid) {
 
 void SystemMenu::setBackgroundColor(uint16_t color) {
     m_bgColor = color;
+    if (m_wifiList) {
+        m_wifiList->setBackgroundColor(color);
+    }
     m_dirty = true;
 }
 

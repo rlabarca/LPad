@@ -21,6 +21,7 @@ namespace LPad {
     // ==========================================
     // 24-Bit RGB888 Color Definitions
     // ==========================================
+    static const uint32_t COLOR_DEEP_NIGHT_24 = 0x0C100C; // System menu bg (50% darker Night)
     static const uint32_t COLOR_NIGHT_24     = 0x1E231E; // Background
     static const uint32_t COLOR_FOREST_24    = 0x464C42; // Deepest Green
     static const uint32_t COLOR_RESEDA_24    = 0x6D7361; // Muted Green
@@ -34,6 +35,7 @@ namespace LPad {
     // 16-Bit RGB565 Color Definitions
     // (Calculated: ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3))
     // ==========================================
+    static const uint16_t COLOR_DEEP_NIGHT_16 = 0x0881; // System menu bg (50% darker Night)
     static const uint16_t COLOR_NIGHT_16     = 0x1923;
     static const uint16_t COLOR_FOREST_16    = 0x4268;
     static const uint16_t COLOR_RESEDA_16    = 0x6B8C;
@@ -59,7 +61,7 @@ namespace LPad {
     static const uint16_t THEME_TEXT_ERROR    = 0xF800;          // Pure red for critical alerts
     static const uint16_t THEME_TEXT_VERSION  = COLOR_FOREST_16; // Subtle system metadata
     static const uint16_t THEME_TEXT_STATUS   = COLOR_CHAMOISEE_16; // Network/SSID info is Chamoisee
-    static const uint16_t THEME_SYSTEM_MENU_BG = 0x0000;        // AMOLED black (pixels OFF)
+    static const uint16_t THEME_SYSTEM_MENU_BG = COLOR_DEEP_NIGHT_16; // Darker shade of Night per spec
 
     // ==========================================
     // Power / Battery Colors
