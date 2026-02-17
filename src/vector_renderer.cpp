@@ -2,8 +2,8 @@
 #include "../hal/display.h"
 #include <Arduino_GFX_Library.h>
 
-// Transparent color for canvas-based rendering (bright magenta — unlikely in real content)
-static const uint16_t VECTOR_TRANSPARENT = 0xF81F;
+// Transparent color for canvas-based rendering (per arch_ui_compositing.md §4)
+static const uint16_t VECTOR_TRANSPARENT = 0x0001;
 
 void VectorRenderer::draw(
     RelativeDisplay& display,

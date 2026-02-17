@@ -132,8 +132,9 @@ pio run -e tdisplay_s3_plus -t upload
 
 ## Current Features (Firmware)
 
-The firmware is currently at **Milestone v0.74**.
+The firmware is currently at **Milestone v0.75**.
 
+*   **Power Management:** Comprehensive suspend/resume cycle; Application boot sequence with logo screen.
 *   **HAL Corner Buffers:** Hardware-aware rendering zones that automatically adjust UI padding based on physical screen geometry (e.g., 20px offset for ESP32-S3 AMOLED).
 *   **Battery Status & Metering:** Background monitoring of battery health and visual representation in the System Menu, supporting both PMU and ADC-based hardware.
 *   **UI Widget System:** Modular framework for building interactive UI elements using relative coordinates and grid-based layout heuristics.

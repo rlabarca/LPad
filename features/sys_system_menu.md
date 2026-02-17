@@ -59,8 +59,8 @@ Adapt the existing `UISystemMenu` (from `features/ui_system_menu.md` and `RELEAS
 
 ## Implementation Notes
 
-### [2026-02-11] Direct Display Rendering (No PSRAM Canvas)
-The SystemMenu draws directly to the main display GFX (not a PSRAM canvas) to avoid the known GFXfont crash on PSRAM Arduino_Canvas. This is safe because the menu suppresses all other rendering while active.
+### [2026-02-11] PSRAM Canvas Rendering (Updated from v0.67 Direct Rendering)
+The SystemMenu renders to an off-screen PSRAM `Arduino_Canvas`, then blits the entire frame to the display via `hal_display_fast_blit()`. This produces flicker-free transitions. The original v0.67 approach drew directly to the main GFX to avoid a known GFXfont crash on PSRAM Arduino_Canvas; the Widget-based v0.74 rewrite resolved that issue by correctly initializing the canvas with `GFX_SKIP_OUTPUT_BEGIN`.
 
 ### [2026-02-11] GFXfont Forward Declaration Conflict
 **Problem:** `struct GFXfont;` forward declaration in the header conflicts with C-style `typedef struct { ... } GFXfont;` used by Arduino_GFX and native test mocks.
