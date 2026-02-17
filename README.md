@@ -42,6 +42,7 @@ This project evolves both its **Firmware Capabilities** and its **DevOps Process
 | **v0.72** | **UI Widgets & WiFi:** Formal Widget System (Layouts/Relative Positioning); Multi-WiFi HAL with fallback; "Window Shade" menu. | **Milestone Mutation:** Single active Release Specification rule. Consistent visual hierarchy refinement (The "Section" style). |
 | **v0.73** | **[STABLE]** No firmware changes. | **Meta-Process Evolution:** Spec-Driven Agentic DevOps; Recursive Governance; Universal/Portable Framework Refactor. |
 | **v0.74** | **Hardware-Aware UI:** Battery Status & Metering with HAL Power abstraction; Dynamic rounded-corner safe UI overlays (20px/4px offsets). | **Process Cleanup:** Reinforced "Single Release Specification" rule; Consolidated cumulative milestones; Multi-target architectural parity mandate. |
+| **v0.75** | **Power Management:** Suspend/Resume cycle; Application boot sequence with logo screen. | **CDD Monitor:** Filesystem-aware status detection for immediate `[TODO]` updates. |
 
 ## Testing Strategy
 
