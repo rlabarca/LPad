@@ -107,19 +107,30 @@ bool hal_touch_init(void) {
     // Wake the CST816 using INT pin toggle (pseudo-reset) with retry.
     // Without a dedicated RST pin, driving INT low forces the controller
     // out of auto-sleep/gesture-only mode. Retry with progressively longer
-    // pulses to handle slow wake or residual deep-sleep states (e.g., if a
-    // previous firmware sent 0xE5=0x03 and the board was reset without a
-    // full power cycle).
+    // pulses AND post-release delays to handle:
+    //   - Normal auto-sleep (light sleep resume): ~50ms wake time
+    //   - Extended auto-sleep (deep sleep wakeup reboot): up to 300ms
+    //   - Residual deep-sleep states (previous firmware 0xE5=0x03)
+    //
+    // Wire.end() is called before each attempt because Wire.begin()'s
+    // internal _started flag survives across calls — without end(), the
+    // I2C peripheral is NOT reinitialized after a failed probe, leaving
+    // stale driver state that blocks all subsequent attempts.
     bool found = false;
-    for (int attempt = 0; attempt < 3 && !found; attempt++) {
-        int pulse_ms = 50 + attempt * 50;  // 50ms, 100ms, 150ms
-        Serial.printf("[HAL Touch CST816] Wake attempt %d (INT LOW %dms)...\n",
-                      attempt + 1, pulse_ms);
+    for (int attempt = 0; attempt < 5 && !found; attempt++) {
+        int pulse_ms = 50 + attempt * 50;   // 50, 100, 150, 200, 250ms
+        int settle_ms = 100 + attempt * 50;  // 100, 150, 200, 250, 300ms
+        Serial.printf("[HAL Touch CST816] Wake attempt %d (INT LOW %dms, settle %dms)...\n",
+                      attempt + 1, pulse_ms, settle_ms);
+
+        // Reset I2C peripheral to ensure clean state between attempts
+        Wire.end();
+
         pinMode(TOUCH_INT, OUTPUT);
         digitalWrite(TOUCH_INT, LOW);
         delay(pulse_ms);
         pinMode(TOUCH_INT, INPUT);
-        delay(50);
+        delay(settle_ms);
 
         Wire.begin(TOUCH_SDA, TOUCH_SCL);
         Wire.setClock(100000);
@@ -135,7 +146,7 @@ bool hal_touch_init(void) {
     }
 
     if (!found) {
-        Serial.printf("[HAL Touch CST816] Controller not found at 0x%02X after 3 attempts\n",
+        Serial.printf("[HAL Touch CST816] Controller not found at 0x%02X after 5 attempts\n",
                       TOUCH_ADDR);
         return false;
     }
