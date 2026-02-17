@@ -9,6 +9,7 @@
  */
 
 #include "power_manager.h"
+#include "../ui/ui_render_manager.h"
 #include "../../hal/power.h"
 #include "../../hal/display.h"
 #include "../../hal/network.h"
@@ -103,19 +104,24 @@ void PowerManager::resume() {
     // 1. Restore power HAL state (re-seed rate limiter etc.)
     hal_power_resume();
 
-    // 2. Wake display
+    // 2. Reconnect WiFi (was stopped by hal_network_disconnect + esp_wifi_stop)
+    hal_network_reconnect();
+
+    // 3. Wake display
     hal_display_wake();
 
-    // 3. Wake touch controller
+    // 4. Wake touch controller
     hal_touch_wake();
 
-    // 4. Reconnect WiFi (asynchronous — connection happens in background)
-    // The WiFi config is managed by the application layer; we just
-    // signal that the network should be re-initialized. The system menu
-    // and other components will pick up the new connection status.
-    // Note: We don't re-init WiFi here because the SSID/password are
-    // managed at the application level. The main loop or system menu
-    // will handle reconnection.
+    // 5. Force active app to fully redraw.
+    // The AMOLED display controller's internal GRAM is undefined after a
+    // MIPI Sleep In / Sleep Out cycle, so the screen shows stale pixels.
+    // Calling onUnpause() resets the app's render flags (m_backgroundDrawn,
+    // m_lastDataTimestamp, etc.) so the next render() paints from scratch.
+    AppComponent* app = UIRenderManager::getInstance().getActiveApp();
+    if (app) {
+        app->onUnpause();
+    }
 
     m_state = PowerState::RUNNING;
 

@@ -14,6 +14,10 @@
 static hal_network_status_t g_status = HAL_NETWORK_STATUS_DISCONNECTED;
 static char g_ssid_buffer[64] = "N/A";
 
+// Stored credentials for reconnect after suspend/resume
+static char g_stored_ssid[64] = "";
+static char g_stored_password[64] = "";
+
 // Connection timeout tracking
 static unsigned long g_connect_start_ms = 0;
 static constexpr unsigned long CONNECT_TIMEOUT_MS = 10000; // 10 seconds
@@ -33,7 +37,13 @@ bool hal_network_init(const char* ssid, const char* password) {
     // Set WiFi mode to station (client)
     WiFi.mode(WIFI_STA);
 
-    // Store SSID for tracking
+    // Store credentials for reconnect after suspend/resume
+    strncpy(g_stored_ssid, ssid, sizeof(g_stored_ssid) - 1);
+    g_stored_ssid[sizeof(g_stored_ssid) - 1] = '\0';
+    strncpy(g_stored_password, password, sizeof(g_stored_password) - 1);
+    g_stored_password[sizeof(g_stored_password) - 1] = '\0';
+
+    // Also store SSID in display buffer
     strncpy(g_ssid_buffer, ssid, sizeof(g_ssid_buffer) - 1);
     g_ssid_buffer[sizeof(g_ssid_buffer) - 1] = '\0';
 
@@ -77,6 +87,21 @@ void hal_network_disconnect(void) {
     WiFi.disconnect(true);
     g_status = HAL_NETWORK_STATUS_DISCONNECTED;
     strncpy(g_ssid_buffer, "N/A", sizeof(g_ssid_buffer));
+}
+
+bool hal_network_reconnect(void) {
+    if (g_stored_ssid[0] == '\0') {
+        Serial.println("[hal_network_reconnect] No stored credentials");
+        return false;
+    }
+
+    WiFi.mode(WIFI_STA);
+    WiFi.begin(g_stored_ssid, g_stored_password);
+    g_status = HAL_NETWORK_STATUS_CONNECTING;
+    g_connect_start_ms = millis();
+
+    Serial.printf("[hal_network_reconnect] Reconnecting to %s...\n", g_stored_ssid);
+    return true;
 }
 
 bool hal_network_ping(const char* host) {

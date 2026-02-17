@@ -75,6 +75,16 @@ bool hal_network_http_get(const char* url, char* response_buffer, size_t buffer_
 void hal_network_disconnect(void);
 
 /**
+ * @brief Reconnects to the previously configured Wi-Fi network
+ *
+ * Uses the credentials stored from the last hal_network_init() call.
+ * Intended for use after suspend/resume where the WiFi driver was stopped.
+ *
+ * @return true if reconnection attempt was started, false if no stored credentials
+ */
+bool hal_network_reconnect(void);
+
+/**
  * @brief Gets the SSID of the currently connected Wi-Fi network
  *
  * @return The SSID string, or "N/A" if not connected. Pointer is valid

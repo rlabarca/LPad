@@ -37,6 +37,11 @@ void hal_network_disconnect(void) {
     g_stub_status = HAL_NETWORK_STATUS_DISCONNECTED;
 }
 
+bool hal_network_reconnect(void) {
+    g_stub_status = HAL_NETWORK_STATUS_CONNECTED;
+    return true;
+}
+
 bool hal_network_http_get(const char* url, char* response_buffer, size_t buffer_size) {
     (void)url;
     (void)buffer_size;
