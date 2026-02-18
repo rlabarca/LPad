@@ -21,6 +21,7 @@
  */
 enum class FetchStatus {
     WAITING,            // Initial state — no fetch attempted yet
+    NO_NETWORK,         // Device has no network connection (DISCONNECTED or ERROR)
     HAS_DATA,           // Successful fetch with renderable data
     NON_TRADING_HOURS,  // Yahoo returned valid JSON but no timestamp array
     FETCH_ERROR         // HTTP failure, JSON parse error, or other fetch error

@@ -409,6 +409,12 @@ void StockTracker::taskLoop() {
         hal_network_status_t net_status = hal_network_get_status();
 
         if (net_status != HAL_NETWORK_STATUS_CONNECTED) {
+            // Update fetch status for "No Network" status screen (§4).
+            // DISCONNECTED/ERROR = no network; CONNECTING = still trying (show "Retrieving Data").
+            if (net_status == HAL_NETWORK_STATUS_DISCONNECTED ||
+                net_status == HAL_NETWORK_STATUS_ERROR) {
+                m_fetch_status = FetchStatus::NO_NETWORK;
+            }
             // Network not ready: poll every 500ms, remain responsive to shutdown/resume
             ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(500));
             continue;

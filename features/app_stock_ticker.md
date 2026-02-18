@@ -28,9 +28,10 @@ Encapsulate the stock tracking and graphing functionality (from `RELEASE_v0.60`)
     *   Suspends graph rendering updates to save cycles.
     *   The background data fetch task is suspended. No data updates occur during sleep.
 *   **Unpause / Wake:**
-    *   Triggers a full graph redraw (`force_redraw = true`) to ensure clean state after being obscured.
-    *   Immediately triggers a new data fetch to get the latest data.
-    *   Resumes the periodic data fetch cycle and normal render loop.
+    *   Triggers a full graph redraw (`force_redraw = true`).
+    *   Immediately initiates a network connection attempt, following established WiFi priorities.
+    *   Upon successful connection, immediately triggers a fetch for the latest data.
+    *   After the initial fetch completes, resumes the normal periodic data fetch cycle.
 *   **Close:**
     *   Stops the `StockTracker` task.
     *   Frees the `TimeSeriesGraph` resources (PSRAM buffers).
@@ -46,8 +47,9 @@ Encapsulate the stock tracking and graphing functionality (from `RELEASE_v0.60`)
     Given the StockTicker was asleep (Paused)
     And the data fetch task was suspended
     When the device wakes up (StockTicker is Unpaused)
-    Then the StockTracker immediately initiates a fetch for the latest data
-    And the periodic data fetch cycle is resumed
+    Then the system immediately tries to connect to a network based on saved priorities
+    And once connected, the StockTracker immediately fetches the latest data
+    And only after the wake-up fetch is complete, the normal periodic update cycle is resumed
 
 ### Scenario: Resume Rendering
     Given the StockTicker was Paused
@@ -65,6 +67,15 @@ Encapsulate the stock tracking and graphing functionality (from `RELEASE_v0.60`)
     And an empty graph container is drawn
     And the title "Retrieving Data" is displayed in the center of the graph area
     And this state persists until data is successfully retrieved or an error occurs
+
+### Scenario: No Network Available
+    Given the StockTicker is running
+    And the device has no network connection
+    When the UI attempts to render the graph
+    Then the graph area is cleared
+    And an empty graph container is drawn
+    And the title "No Network" is displayed in the center of the graph area
+    And this state persists until a network connection becomes available
 
 ### Scenario: Data Fetching or Parsing Error
     Given the StockTicker is running
@@ -137,6 +148,10 @@ Added `FetchStatus` enum (WAITING, HAS_DATA, NON_TRADING_HOURS, FETCH_ERROR) to 
 ### [2026-02-17] "Retrieving Data" Status Screen
 **Problem:** When `FetchStatus::WAITING` and data series is empty (initial boot, or resume before first successful fetch), `render()` returned early with no visual output — user saw a blank graph area with no indication the device was working.
 **Fix:** Added `WAITING` to the status-screen condition block alongside `NON_TRADING_HOURS` and `FETCH_ERROR`. Displays centered "Retrieving Data" text using theme font. Only shown when data series is empty (same guard as "Data Error"). Completes spec §4 Scenario: Display "Retrieving Data".
+
+### [2026-02-17] "No Network" Status Screen
+**Problem:** Spec §4 "No Network Available" scenario was unimplemented. When the device had no network, users saw "Retrieving Data" (WAITING) or "Data Error" (FETCH_ERROR) instead of the correct "No Network" message.
+**Fix:** Added `NO_NETWORK` variant to `FetchStatus` enum. `taskLoop()` now sets `NO_NETWORK` when `hal_network_get_status()` returns DISCONNECTED or ERROR (but not CONNECTING — during CONNECTING, "Retrieving Data" is still correct). `render()` displays "No Network" centered text. Only shown when data series is empty (same guard as "Data Error" — existing chart data takes precedence).
 
 ### [2026-02-16] WiFi Auto-Retry After Reconnect Timeout
 **Problem:** `hal_network_get_status()` transitions to ERROR after a 10s timeout and calls `WiFi.disconnect(true)`. No code retries — WiFi is permanently dead until reboot. After `esp_wifi_stop()` + light sleep, the first `WiFi.begin()` can take longer than usual.

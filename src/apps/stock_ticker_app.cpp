@@ -128,7 +128,8 @@ void StockTickerApp::render() {
 
     if (fetchStatus == FetchStatus::NON_TRADING_HOURS ||
         (fetchStatus == FetchStatus::FETCH_ERROR && !hasExistingData) ||
-        (fetchStatus == FetchStatus::WAITING && !hasExistingData)) {
+        (fetchStatus == FetchStatus::WAITING && !hasExistingData) ||
+        (fetchStatus == FetchStatus::NO_NETWORK && !hasExistingData)) {
         // Only redraw when the status changes (avoids redundant writes)
         if (m_lastRenderedFetchStatus != static_cast<int>(fetchStatus)) {
             // Repaint clean background to clear any previous status text
@@ -138,6 +139,8 @@ void StockTickerApp::render() {
             const char* msg;
             if (fetchStatus == FetchStatus::NON_TRADING_HOURS)
                 msg = "Non Trading Hours";
+            else if (fetchStatus == FetchStatus::NO_NETWORK)
+                msg = "No Network";
             else if (fetchStatus == FetchStatus::FETCH_ERROR)
                 msg = "Data Error";
             else
