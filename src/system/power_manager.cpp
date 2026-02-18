@@ -79,10 +79,19 @@ void PowerManager::suspend() {
 
     m_state = PowerState::SUSPENDED;
 
+    // 0. Pause the active app FIRST — this stops background tasks (e.g.,
+    //    StockTracker HTTP fetches) before WiFi is torn down. Without this,
+    //    a mid-flight HTTP request holds a TCP socket that gets freed by
+    //    WiFi.disconnect(), corrupting LWIP state and preventing reconnection.
+    AppComponent* app = UIRenderManager::getInstance().getActiveApp();
+    if (app) {
+        app->onPause();
+    }
+
     // 1. Turn off display
     hal_display_sleep();
 
-    // 2. Disconnect WiFi
+    // 2. Disconnect WiFi (safe now — no active HTTP requests)
     hal_network_disconnect();
 
     // 3. Put touch controller to sleep
@@ -104,8 +113,29 @@ void PowerManager::resume() {
     // 1. Restore power HAL state (re-seed rate limiter etc.)
     hal_power_resume();
 
-    // 2. Reconnect WiFi (was stopped by hal_network_disconnect + esp_wifi_stop)
+    // 2. Reconnect WiFi (was stopped by hal_network_disconnect + esp_wifi_stop).
+    //    Block until connected or timeout. This prevents the stock tracker
+    //    from racing WiFi state — by the time onUnpause() restarts the task,
+    //    WiFi is either connected or in a stable error state with auto-retry.
     hal_network_reconnect();
+#ifndef UNIT_TEST
+    {
+        unsigned long start = millis();
+        const unsigned long WIFI_RESUME_TIMEOUT_MS = 10000;
+        hal_network_status_t net_status = hal_network_get_status();
+        while (net_status == HAL_NETWORK_STATUS_CONNECTING &&
+               millis() - start < WIFI_RESUME_TIMEOUT_MS) {
+            delay(250);
+            net_status = hal_network_get_status();
+        }
+        if (net_status == HAL_NETWORK_STATUS_CONNECTED) {
+            Serial.printf("[PowerManager] WiFi reconnected in %lums\n", millis() - start);
+        } else {
+            Serial.printf("[PowerManager] WiFi reconnect timeout (%lums), status=%d\n",
+                         millis() - start, net_status);
+        }
+    }
+#endif
 
     // 3. Wake display
     hal_display_wake();

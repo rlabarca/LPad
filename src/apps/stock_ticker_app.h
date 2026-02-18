@@ -25,7 +25,7 @@ public:
 
     // UIComponent lifecycle
     void onRun() override;
-    void onPause() override {}
+    void onPause() override;
     void onUnpause() override;
     void onClose() override;
     void render() override;

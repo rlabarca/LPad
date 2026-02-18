@@ -78,6 +78,9 @@ void StockTracker::stop() {
         return;
     }
 
+    // Set flag first so taskLoop() exits its while loop if it's mid-iteration
+    m_is_running = false;
+
 #ifdef ARDUINO
     if (m_task_handle != nullptr) {
         vTaskDelete(m_task_handle);
@@ -85,8 +88,6 @@ void StockTracker::stop() {
     }
     Serial.println("[StockTracker] Stopped");
 #endif
-
-    m_is_running = false;
 }
 
 std::string StockTracker::buildApiUrl() const {
@@ -405,6 +406,9 @@ void StockTracker::taskLoop() {
     // Single polling loop — no blocking waits (arch_data_strategy.md §1)
     // Uses ulTaskNotifyTake() instead of vTaskDelay() so the task can be
     // woken immediately on suspend/resume via notifyResume().
+    //
+    // WiFi outages do NOT stop the loop. The task keeps polling and
+    // skips the fetch until the network is back.
     while (m_is_running) {
         hal_network_status_t net_status = hal_network_get_status();
 
@@ -415,25 +419,36 @@ void StockTracker::taskLoop() {
                 net_status == HAL_NETWORK_STATUS_ERROR) {
                 m_fetch_status = FetchStatus::NO_NETWORK;
             }
-            // Network not ready: poll every 500ms, remain responsive to shutdown/resume
+            // Network not ready: skip this cycle, poll again in 500ms
             ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(500));
             continue;
         }
 
-        // Network connected: fetch data
-        fetchData();
+        // Network connected: attempt fetch.
+        // A failure does NOT stop the loop — just retry sooner.
+        bool success = fetchData();
 
-        // After success: use configured refresh interval (60s).
-        // After failure: 30s backoff. The 5s retry was too aggressive —
-        // during non-trading hours every HTTPS request (TLS handshake)
-        // monopolizes the CPU, causing I2C timeouts on the shared bus
-        // (touch + PMU + GPIO expander on Waveshare).
-        uint32_t delay_ms = m_is_first_fetch
-            ? 30000
-            : (m_refresh_interval_seconds * 1000);
+        uint32_t delay_ms;
+        if (!success && m_is_first_fetch) {
+            // Never had a successful fetch — retry in 10s
+            delay_ms = 10000;
+        } else if (!success) {
+            // Had data before but this fetch failed — backoff 30s.
+            // (Not 5s — TLS handshakes monopolize the CPU and cause
+            // I2C timeouts on the shared bus.)
+            delay_ms = 30000;
+        } else {
+            // Success — normal refresh interval
+            delay_ms = m_refresh_interval_seconds * 1000;
+        }
+
         ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(delay_ms));
     }
 
+    // Task exiting — mark as not running so onUnpause() can restart us
+    m_is_running = false;
+    m_task_handle = nullptr;
     Serial.println("[StockTracker] Task ended");
+    vTaskDelete(nullptr);
 }
 #endif

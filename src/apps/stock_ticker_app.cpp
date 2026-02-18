@@ -78,6 +78,16 @@ void StockTickerApp::onRun() {
     }
 }
 
+void StockTickerApp::onPause() {
+    // Stop the stock tracker task before WiFi teardown.
+    // If the task is mid-HTTP-request when WiFi.disconnect() frees the socket,
+    // LWIP state gets corrupted, preventing all future WiFi connections.
+    if (m_stockTracker && m_stockTracker->isRunning()) {
+        m_stockTracker->stop();
+        Serial.println("[StockTickerApp] StockTracker stopped for suspend");
+    }
+}
+
 void StockTickerApp::onUnpause() {
     // Graph was obscured — force full redraw
     m_backgroundDrawn = false;
@@ -85,10 +95,16 @@ void StockTickerApp::onUnpause() {
     m_graphInitialRenderDone = false;
     m_lastRenderedFetchStatus = -1;
 
-    // Wake the stock tracker task from its sleep delay so it retries
-    // immediately instead of waiting up to 60s from a pre-suspend delay.
+    // Restart the stock tracker task. onPause() stopped it cleanly before
+    // suspend, so isRunning() is always false here. A fresh start ensures
+    // clean socket state after WiFi reconnection.
     if (m_stockTracker) {
-        m_stockTracker->notifyResume();
+        if (!m_stockTracker->isRunning()) {
+            m_stockTracker->start();
+            Serial.println("[StockTickerApp] StockTracker restarted after resume");
+        } else {
+            m_stockTracker->notifyResume();
+        }
     }
 }
 
