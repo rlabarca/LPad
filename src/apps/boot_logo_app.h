@@ -18,7 +18,7 @@ class UIRenderManager;
 
 class BootLogoApp : public AppComponent {
 public:
-    enum class AnimState { WAIT, ANIMATE, DONE };
+    enum class AnimState { WAIT, ANIMATE, HOLDING, DONE, ERROR };
 
     BootLogoApp();
     ~BootLogoApp();
@@ -42,7 +42,20 @@ public:
     bool isOpaque() const override { return true; }
     bool isFullscreen() const override { return true; }
 
+    /** Signal that boot completed successfully — transitions HOLDING → DONE. */
+    void setBootComplete();
+
+    /** Report a fatal error — stops animation, displays message centered. */
+    void setErrorMessage(const char* message);
+
 private:
+    // Cross-core signaling (written by WiFi task on Core 0, read by update/render on Core 1)
+    volatile bool m_bootComplete;
+    volatile bool m_hasError;
+    const char* volatile m_errorMessage;
+    bool m_errorRendered;
+
+    void renderErrorScreen();
     RelativeDisplay* m_display;
     AppComponent* m_nextApp;
     SystemComponent* m_miniLogo;

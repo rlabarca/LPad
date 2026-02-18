@@ -51,6 +51,52 @@ static void displayError(const char* message) {
     Serial.println("=============");
 }
 
+// Background WiFi task — runs on Core 0 (where WiFi stack lives).
+// Tries each configured network, then signals boot logo on success/failure.
+static void wifiTaskFunction(void* param) {
+    BootLogoApp* bootLogo = static_cast<BootLogoApp*>(param);
+
+    Serial.println("[6/6] WiFi task started (background)...");
+    Serial.printf("  [INFO] %d WiFi networks configured\n", g_wifi_count);
+
+    bool connected = false;
+    for (int i = 0; i < g_wifi_count; i++) {
+        const char* ssid = g_wifi_config[i].ssid;
+        Serial.printf("  [INFO] Trying %d/%d: %s ...\n", i + 1, g_wifi_count, ssid);
+        Serial.flush();
+
+        if (!hal_network_init(ssid, g_wifi_config[i].password)) {
+            Serial.printf("  [FAIL] Init failed for %s\n", ssid);
+            continue;
+        }
+
+        // Poll until connected, failed, or timeout (HAL handles 10s timeout internally)
+        hal_network_status_t status = HAL_NETWORK_STATUS_CONNECTING;
+        while (status == HAL_NETWORK_STATUS_CONNECTING) {
+            vTaskDelay(pdMS_TO_TICKS(250));
+            status = hal_network_get_status();
+        }
+
+        if (status == HAL_NETWORK_STATUS_CONNECTED) {
+            Serial.printf("  [PASS] Connected to %s\n", ssid);
+            connected = true;
+            break;
+        }
+
+        Serial.printf("  [FAIL] Could not connect to %s\n", ssid);
+    }
+
+    if (connected) {
+        bootLogo->setBootComplete();
+        Serial.println("  [INFO] WiFi connected — boot complete signaled");
+    } else {
+        bootLogo->setErrorMessage("No WiFi Network Found");
+        Serial.println("  [WARN] All WiFi networks failed — error displayed");
+    }
+
+    vTaskDelete(nullptr);  // One-shot task, self-delete
+}
+
 void setup() {
     Serial.begin(115200);
 
@@ -67,8 +113,8 @@ void setup() {
     Serial.flush();
     yield();
 
-    // [1/7] Display HAL
-    Serial.println("[1/7] Initializing display HAL...");
+    // [1/6] Display HAL
+    Serial.println("[1/6] Initializing display HAL...");
     Serial.flush();
 
     if (!hal_display_init()) {
@@ -87,8 +133,8 @@ void setup() {
     Serial.printf("  [INFO] Display resolution: %d x %d pixels\n", width, height);
     yield();
 
-    // [2/7] Touch HAL
-    Serial.println("[2/7] Initializing touch HAL...");
+    // [2/6] Touch HAL
+    Serial.println("[2/6] Initializing touch HAL...");
     Serial.flush();
 
     if (!hal_touch_init()) {
@@ -98,44 +144,8 @@ void setup() {
     Serial.println("  [PASS] Touch initialized");
     yield();
 
-    // [3/7] WiFi (iterative boot — try each configured network in order)
-    Serial.println("[3/7] Initializing WiFi...");
-    Serial.flush();
-    Serial.printf("  [INFO] %d WiFi networks configured\n", g_wifi_count);
-
-    for (int i = 0; i < g_wifi_count; i++) {
-        const char* ssid = g_wifi_config[i].ssid;
-        Serial.printf("  [INFO] Trying %d/%d: %s ...\n", i + 1, g_wifi_count, ssid);
-        Serial.flush();
-
-        if (!hal_network_init(ssid, g_wifi_config[i].password)) {
-            Serial.printf("  [FAIL] Init failed for %s\n", ssid);
-            continue;
-        }
-
-        // Poll until connected, failed, or timeout (HAL handles 10s timeout internally)
-        hal_network_status_t status = HAL_NETWORK_STATUS_CONNECTING;
-        while (status == HAL_NETWORK_STATUS_CONNECTING) {
-            delay(250);
-            yield();
-            status = hal_network_get_status();
-        }
-
-        if (status == HAL_NETWORK_STATUS_CONNECTED) {
-            Serial.printf("  [PASS] Connected to %s\n", ssid);
-            break;
-        }
-
-        Serial.printf("  [FAIL] Could not connect to %s\n", ssid);
-    }
-
-    if (hal_network_get_status() != HAL_NETWORK_STATUS_CONNECTED) {
-        Serial.println("  [WARN] All WiFi networks failed — status: NONE");
-    }
-    yield();
-
-    // [4/7] RelativeDisplay + AnimationTicker + TouchGestureEngine
-    Serial.println("[4/7] Creating display abstraction and timing...");
+    // [3/6] RelativeDisplay + AnimationTicker + TouchGestureEngine
+    Serial.println("[3/6] Creating display abstraction and timing...");
     Serial.flush();
 
     display_relative_init();
@@ -161,23 +171,19 @@ void setup() {
     Serial.println("  [PASS] RelativeDisplay + 30fps Ticker + GestureEngine");
     yield();
 
-    // [5/7] Power Manager (background polling at Z=0)
-    Serial.println("[5/7] Initializing Power Manager...");
+    // [4/6] Create standalone UI components + Power Manager
+    Serial.println("[4/6] Creating UI components...");
     Serial.flush();
 
+    const LPad::Theme* theme = LPad::ThemeManager::getInstance().getTheme();
+
+    // Power Manager (Z=0) — created early so it can be registered with UIRenderManager
     g_powerManager = new PowerManager();
     if (!g_powerManager->begin()) {
         Serial.println("  [WARN] Power monitoring unavailable");
     } else {
         Serial.println("  [PASS] Power HAL initialized");
     }
-    yield();
-
-    // [6/7] Create standalone components
-    Serial.println("[6/7] Creating UI components...");
-    Serial.flush();
-
-    const LPad::Theme* theme = LPad::ThemeManager::getInstance().getTheme();
 
     // Stock Ticker (Z=1)
     g_stockTicker = new StockTickerApp();
@@ -241,8 +247,8 @@ void setup() {
     Serial.println("  [PASS] BootLogo + StockTicker + MiniLogo + SystemMenu(Widgets) created");
     yield();
 
-    // [7/7] Register with UIRenderManager
-    Serial.println("[7/7] Registering with UIRenderManager...");
+    // [5/6] Register with UIRenderManager + start boot logo
+    Serial.println("[5/6] Registering with UIRenderManager...");
     Serial.flush();
 
     auto& mgr = UIRenderManager::getInstance();
@@ -262,19 +268,41 @@ void setup() {
     // Boot sequence: BootLogoApp plays first, then transitions to StockTicker
     mgr.setActiveApp(g_bootLogo);
 
-    Serial.println("  [PASS] UIRenderManager configured:");
+    // Clear display with theme background
+    hal_display_clear(theme->colors.background);
+    hal_display_flush();
+
+    Serial.println("  [PASS] UIRenderManager configured — boot logo active");
+    yield();
+
+    // [6/6] Launch background WiFi task (Core 0, where WiFi stack runs)
+    Serial.println("[6/6] Launching background WiFi task...");
+    Serial.flush();
+
+    BaseType_t result = xTaskCreatePinnedToCore(
+        wifiTaskFunction,
+        "wifi_boot",
+        8192,        // 8KB stack — no TLS, just WiFi connect
+        g_bootLogo,  // Task parameter
+        1,           // Priority
+        nullptr,     // No handle needed (one-shot, self-deleting)
+        0            // Core 0 (WiFi stack core)
+    );
+
+    if (result != pdPASS) {
+        Serial.println("  [FAIL] WiFi task creation failed");
+        g_bootLogo->setErrorMessage("WiFi Task Failed");
+    } else {
+        Serial.println("  [PASS] WiFi task launched on Core 0");
+    }
+
+    Serial.println("\n=== LPad v0.75 Started ===");
     Serial.printf("    Components: %d\n", mgr.getComponentCount());
     Serial.println("    Z=0:  PowerManager (System, background polling)");
     Serial.println("    Z=1:  StockTicker  (App, main — activated after boot logo)");
     Serial.println("    Z=5:  BootLogo     (App, initial boot animation)");
     Serial.println("    Z=10: MiniLogo     (System, shown after boot animation)");
     Serial.println("    Z=20: SystemMenu   (System, activation=EDGE_DRAG TOP, Widget-based)");
-
-    // Clear display with theme background
-    hal_display_clear(theme->colors.background);
-    hal_display_flush();
-
-    Serial.println("\n=== LPad v0.75 Started ===");
     Serial.println("Swipe down from top edge to open System Menu");
     Serial.println("Short press power button to suspend/resume");
     Serial.println("Long press (4s) power button to shutdown");

@@ -2,7 +2,7 @@
  * @file boot_logo_app.cpp
  * @brief Boot Logo Application Implementation
  *
- * State machine: WAIT (2s static) -> ANIMATE (1.5s interpolation) -> DONE (transition)
+ * State machine: WAIT (2s) -> ANIMATE (1.5s) -> HOLDING (wait for signal) -> DONE | ERROR
  * Logo animates from center (75% height) to top-right corner (10% height)
  * using EaseInOutCubic easing, then hands off to the next app.
  *
@@ -14,12 +14,17 @@
 #include "../generated/vector_assets.h"
 #include "../relative_display.h"
 #include "../ui/ui_render_manager.h"
+#include "../theme_manager.h"
 #include "../themes/default/theme_colors.h"
 #include "../../hal/display.h"
 #include <Arduino_GFX_Library.h>
 
 BootLogoApp::BootLogoApp()
-    : m_display(nullptr)
+    : m_bootComplete(false)
+    , m_hasError(false)
+    , m_errorMessage(nullptr)
+    , m_errorRendered(false)
+    , m_display(nullptr)
     , m_nextApp(nullptr)
     , m_miniLogo(nullptr)
     , m_state(AnimState::WAIT)
@@ -60,6 +65,7 @@ void BootLogoApp::onRun() {
     m_transitioned = false;
     m_backgroundDrawn = false;
     m_hasPrevBounds = false;
+    m_errorRendered = false;
     m_x_percent = START_X_PERCENT;
     m_y_percent = START_Y_PERCENT;
     m_width_percent = heightToWidthPercent(START_HEIGHT_PERCENT);
@@ -69,6 +75,15 @@ void BootLogoApp::onRun() {
 
 void BootLogoApp::render() {
     if (m_display == nullptr || m_transitioned) return;
+
+    // Error state: one-shot render of centered error message
+    if (m_state == AnimState::ERROR) {
+        if (!m_errorRendered) {
+            renderErrorScreen();
+            m_errorRendered = true;
+        }
+        return;
+    }
 
     if (!m_needsRender) return;
 
@@ -93,6 +108,12 @@ void BootLogoApp::render() {
 
 void BootLogoApp::update(float dt) {
     if (m_transitioned) return;
+
+    // Highest priority: error from background task overrides all states
+    if (m_hasError && m_state != AnimState::ERROR) {
+        m_state = AnimState::ERROR;
+        return;
+    }
 
     m_timer += dt;
 
@@ -129,10 +150,17 @@ void BootLogoApp::update(float dt) {
             m_needsRender = true;
 
             if (t >= 1.0f) {
-                m_state = AnimState::DONE;
+                m_state = AnimState::HOLDING;
             }
             break;
         }
+
+        case AnimState::HOLDING:
+            // Wait for background task to signal boot complete
+            if (m_bootComplete) {
+                m_state = AnimState::DONE;
+            }
+            break;
 
         case AnimState::DONE:
             // Show the mini logo overlay before transitioning
@@ -143,12 +171,43 @@ void BootLogoApp::update(float dt) {
             m_transitioned = true;
             UIRenderManager::getInstance().setActiveApp(m_nextApp);
             break;
+
+        case AnimState::ERROR:
+            // Halted — do nothing
+            break;
     }
 }
 
 bool BootLogoApp::handleInput(const touch_gesture_event_t& event) {
     (void)event;
     return false;
+}
+
+void BootLogoApp::setBootComplete() {
+    m_bootComplete = true;
+}
+
+void BootLogoApp::setErrorMessage(const char* message) {
+    m_errorMessage = message;  // Set pointer first (string literal in flash)
+    m_hasError = true;         // Then set flag (reader checks flag first)
+}
+
+void BootLogoApp::renderErrorScreen() {
+    const LPad::Theme* theme = LPad::ThemeManager::getInstance().getTheme();
+    m_display->drawSolidBackground(theme->colors.background);
+
+    Arduino_GFX* gfx = m_display->getGfx();
+    gfx->setFont(static_cast<const GFXfont*>(theme->fonts.normal));
+    gfx->setTextColor(theme->colors.text_main);
+
+    const char* msg = m_errorMessage ? m_errorMessage : "Unknown Error";
+    int16_t x1, y1;
+    uint16_t tw, th;
+    gfx->getTextBounds(msg, 0, 0, &x1, &y1, &tw, &th);
+    int16_t cx = (m_display->getWidth() - tw) / 2 - x1;
+    int16_t cy = (m_display->getHeight() - th) / 2 - y1;
+    gfx->setCursor(cx, cy);
+    gfx->print(msg);
 }
 
 float BootLogoApp::easeInOutCubic(float t) {
