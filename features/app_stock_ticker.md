@@ -24,12 +24,13 @@ Encapsulate the stock tracking and graphing functionality (from `RELEASE_v0.60`)
 *   **Run:**
     *   Starts the `StockTracker` background task.
     *   Enables graph rendering.
-*   **Pause:**
+*   **Pause / Sleep:**
     *   Suspends graph rendering updates to save cycles.
-    *   *Optional:* Can pause the background data fetch task if power saving is required, but typically data continues to accumulate.
-*   **Unpause:**
+    *   The background data fetch task is suspended. No data updates occur during sleep.
+*   **Unpause / Wake:**
     *   Triggers a full graph redraw (`force_redraw = true`) to ensure clean state after being obscured.
-    *   Resumes normal render loop.
+    *   Immediately triggers a new data fetch to get the latest data.
+    *   Resumes the periodic data fetch cycle and normal render loop.
 *   **Close:**
     *   Stops the `StockTracker` task.
     *   Frees the `TimeSeriesGraph` resources (PSRAM buffers).
@@ -41,18 +42,29 @@ Encapsulate the stock tracking and graphing functionality (from `RELEASE_v0.60`)
 
 ## 4. Scenarios
 
-### Scenario: Background Updates
-    Given the StockTicker is running
-    And the System Menu is Active (StockTicker is Paused)
-    When new stock data arrives from the network
-    Then the StockTracker data model is updated
-    But the Graph UI is NOT redrawn (saving cycles)
+### Scenario: Wake from Sleep
+    Given the StockTicker was asleep (Paused)
+    And the data fetch task was suspended
+    When the device wakes up (StockTicker is Unpaused)
+    Then the StockTracker immediately initiates a fetch for the latest data
+    And the periodic data fetch cycle is resumed
 
 ### Scenario: Resume Rendering
     Given the StockTicker was Paused
     When the System Menu closes (StockTicker Unpaused)
     Then the Graph triggers a full repaint
-    And the Graph includes the new data points received while paused
+    And the Graph includes any new data points received just after wake
+
+### Scenario: Display "Retrieving Data"
+    Given the StockTicker is running
+    And the data series is empty
+    And the StockTracker is actively fetching data
+    And there is no other error message to display
+    When the UI renders the graph
+    Then the graph area is cleared
+    And an empty graph container is drawn
+    And the title "Retrieving Data" is displayed in the center of the graph area
+    And this state persists until data is successfully retrieved or an error occurs
 
 ### Scenario: Data Fetching or Parsing Error
     Given the StockTicker is running
@@ -121,6 +133,10 @@ Added `FetchStatus` enum (WAITING, HAS_DATA, NON_TRADING_HOURS, FETCH_ERROR) to 
 ### [2026-02-16] "Data Error" Should Not Override Existing Chart Data
 **Problem:** An interrupted fetch during suspend sets `m_fetch_status = FETCH_ERROR`. On resume, the render path showed "Data Error" even though the data series contained valid chart data from before suspend. Per spec §4, error persists "until data becomes available" — but data was already available.
 **Fix:** `render()` now checks `dataSeries->getLength() > 0` before showing "Data Error." If existing data is present, the graph renders normally. "Data Error" only displays when the series is empty. NON_TRADING_HOURS always displays since it's informational.
+
+### [2026-02-17] "Retrieving Data" Status Screen
+**Problem:** When `FetchStatus::WAITING` and data series is empty (initial boot, or resume before first successful fetch), `render()` returned early with no visual output — user saw a blank graph area with no indication the device was working.
+**Fix:** Added `WAITING` to the status-screen condition block alongside `NON_TRADING_HOURS` and `FETCH_ERROR`. Displays centered "Retrieving Data" text using theme font. Only shown when data series is empty (same guard as "Data Error"). Completes spec §4 Scenario: Display "Retrieving Data".
 
 ### [2026-02-16] WiFi Auto-Retry After Reconnect Timeout
 **Problem:** `hal_network_get_status()` transitions to ERROR after a 10s timeout and calls `WiFi.disconnect(true)`. No code retries — WiFi is permanently dead until reboot. After `esp_wifi_stop()` + light sleep, the first `WiFi.begin()` can take longer than usual.

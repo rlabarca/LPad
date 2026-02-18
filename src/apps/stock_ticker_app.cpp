@@ -127,15 +127,21 @@ void StockTickerApp::render() {
     bool hasExistingData = (dataSeries != nullptr && dataSeries->getLength() > 0);
 
     if (fetchStatus == FetchStatus::NON_TRADING_HOURS ||
-        (fetchStatus == FetchStatus::FETCH_ERROR && !hasExistingData)) {
+        (fetchStatus == FetchStatus::FETCH_ERROR && !hasExistingData) ||
+        (fetchStatus == FetchStatus::WAITING && !hasExistingData)) {
         // Only redraw when the status changes (avoids redundant writes)
         if (m_lastRenderedFetchStatus != static_cast<int>(fetchStatus)) {
             // Repaint clean background to clear any previous status text
             m_graph->drawBackground();
             m_graph->render();
 
-            const char* msg = (fetchStatus == FetchStatus::NON_TRADING_HOURS)
-                ? "Non Trading Hours" : "Data Error";
+            const char* msg;
+            if (fetchStatus == FetchStatus::NON_TRADING_HOURS)
+                msg = "Non Trading Hours";
+            else if (fetchStatus == FetchStatus::FETCH_ERROR)
+                msg = "Data Error";
+            else
+                msg = "Retrieving Data";
 
             Arduino_GFX* gfx = m_display->getGfx();
             const LPad::Theme* lpadTheme = LPad::ThemeManager::getInstance().getTheme();

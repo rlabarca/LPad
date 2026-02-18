@@ -138,6 +138,14 @@ hal_network_status_t hal_network_get_status(void) {
             WiFi.begin(g_stored_ssid, g_stored_password);
             g_status = HAL_NETWORK_STATUS_CONNECTING;
             g_connect_start_ms = millis();
+        } else if (g_reconnect_attempts >= MAX_RECONNECT_ATTEMPTS &&
+                   millis() - g_error_time_ms > 60000) {
+            // Fast retries exhausted — try again after 60s.
+            // Prevents permanent WiFi death if all initial attempts failed
+            // (e.g., AP was temporarily unreachable after light sleep).
+            Serial.println("[hal_network] Periodic retry (60s backoff)");
+            g_reconnect_attempts = 0;
+            g_error_time_ms = millis();
         }
     }
 
@@ -162,9 +170,16 @@ bool hal_network_reconnect(void) {
     // Reset retry counter — this is a fresh reconnect (e.g., after resume)
     g_reconnect_attempts = 0;
 
-    // After resume, WiFi was stopped by esp_wifi_stop() in hal_power_suspend().
-    // ensureWiFiReady() handles the full restart since g_wifi_started was
-    // cleared by hal_network_disconnect().
+    // Force a clean WiFi shutdown before re-init.
+    // After light sleep, the WiFi driver and Arduino wrapper may have stale
+    // internal state from the suspend sequence (WiFi.disconnect(true) called
+    // esp_wifi_deinit(), then hal_power_suspend() called esp_wifi_stop()).
+    // WiFi.mode(WIFI_OFF) ensures ALL internal state (netif, event handlers,
+    // driver flags) is torn down cleanly before re-initialization.
+    WiFi.mode(WIFI_OFF);
+    delay(100);
+    g_wifi_started = false;
+
     ensureWiFiReady();
     WiFi.begin(g_stored_ssid, g_stored_password);
     g_status = HAL_NETWORK_STATUS_CONNECTING;
@@ -226,6 +241,63 @@ const char* hal_network_get_ssid(void) {
         strncpy(g_ssid_buffer, "N/A", sizeof(g_ssid_buffer));
     }
     return g_ssid_buffer;
+}
+
+/**
+ * Decode HTTP chunked transfer encoding in-place.
+ * Format: <hex-size>\r\n<data>\r\n ... 0\r\n\r\n
+ * Returns decoded size, or 0 if not chunked / malformed.
+ */
+static size_t decodeChunkedInPlace(char* buf, size_t len) {
+    // Quick check: first byte must be a hex digit
+    char c0 = buf[0];
+    bool isHex = (c0 >= '0' && c0 <= '9') || (c0 >= 'a' && c0 <= 'f') || (c0 >= 'A' && c0 <= 'F');
+    if (!isHex) return 0;
+
+    size_t read_pos = 0;
+    size_t write_pos = 0;
+
+    while (read_pos < len) {
+        // Parse chunk size (hex digits)
+        size_t chunk_size = 0;
+        bool found_digit = false;
+        while (read_pos < len) {
+            char c = buf[read_pos];
+            if (c >= '0' && c <= '9')      { chunk_size = chunk_size * 16 + (c - '0'); found_digit = true; }
+            else if (c >= 'a' && c <= 'f') { chunk_size = chunk_size * 16 + (c - 'a' + 10); found_digit = true; }
+            else if (c >= 'A' && c <= 'F') { chunk_size = chunk_size * 16 + (c - 'A' + 10); found_digit = true; }
+            else break;
+            read_pos++;
+        }
+
+        if (!found_digit) break;  // Malformed
+
+        // Skip \r\n after chunk size
+        if (read_pos + 1 < len && buf[read_pos] == '\r' && buf[read_pos + 1] == '\n') {
+            read_pos += 2;
+        } else {
+            break;  // Malformed
+        }
+
+        // Terminal chunk (size 0) — done
+        if (chunk_size == 0) break;
+
+        // Copy chunk data in-place
+        size_t to_copy = (read_pos + chunk_size <= len) ? chunk_size : (len - read_pos);
+        if (write_pos != read_pos) {
+            memmove(buf + write_pos, buf + read_pos, to_copy);
+        }
+        write_pos += to_copy;
+        read_pos += to_copy;
+
+        // Skip trailing \r\n after chunk data
+        if (read_pos + 1 < len && buf[read_pos] == '\r' && buf[read_pos + 1] == '\n') {
+            read_pos += 2;
+        }
+    }
+
+    buf[write_pos] = '\0';
+    return write_pos;
 }
 
 bool hal_network_http_get(const char* url, char* response_buffer, size_t buffer_size) {
@@ -321,6 +393,19 @@ bool hal_network_http_get(const char* url, char* response_buffer, size_t buffer_
         }
 
         response_buffer[totalRead] = '\0';
+
+        // Decode chunked transfer encoding if present.
+        // When Content-Length is unknown (-1), servers may use chunked encoding.
+        // getStreamPtr() returns the raw TCP stream which includes chunk headers
+        // (e.g. "7c42\r\n{...}\r\n0\r\n\r\n"). Decode in-place to get clean content.
+        if (contentLength < 0 && totalRead > 0) {
+            size_t decoded = decodeChunkedInPlace(response_buffer, totalRead);
+            if (decoded > 0) {
+                Serial.printf("[hal_network_http_get] Decoded chunked encoding: %zu -> %zu bytes\n",
+                              totalRead, decoded);
+                totalRead = decoded;
+            }
+        }
 
         // Debug first 50 bytes
         Serial.print("[hal_network_http_get] First 50 bytes: ");
