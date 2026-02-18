@@ -23,14 +23,15 @@ This release introduces comprehensive power management (suspend, resume, shutdow
 ## 2. Success Criteria
 
 ### 2.1 Power Management (New for v0.75)
-- [ ] **Suspend/Resume:** A short press of the power button/equivalent correctly suspends and resumes the device.
-- [ ] **Shutdown/Startup:** A long press correctly shuts down and starts up the device.
-- [ ] **Board Parity:** The above actions work correctly on both AXP2101 and SY6970-based boards, abstracting the hardware differences.
+- [x] **Suspend/Resume:** A short press of the power button/equivalent correctly suspends and resumes the device.
+- [x] **Shutdown/Startup:** A long press correctly shuts down and starts up the device.
+- [x] **Board Parity:** The above actions work correctly on both AXP2101 and SY6970-based boards, abstracting the hardware differences.
 
 ### 2.2 Application Flow (New for v0.75)
-- [ ] **Boot Sequence:** On initial power-on, the device must first display the full-screen Boot Logo animation.
-- [ ] **App Handoff:** Upon completion of the logo animation, the `StockTicker` application must automatically load and run.
-- [ ] **No Resume Logo:** The Boot Logo must NOT appear when resuming from a suspended state.
+- [x] **Boot Sequence:** On initial power-on, the device must immediately display the Boot Logo animation while other system services (Network, etc.) initialize in the background.
+- [x] **App Handoff:** Once all background initializations are successful, the `StockTicker` application must automatically load and run, and the boot screen must be dismissed.
+- [x] **Boot Failure:** If any critical initialization fails (e.g., no WiFi, touch sensor failure), the boot screen must stop animating and display a descriptive, user-friendly error message, halting the boot process.
+- [x] **No Resume Logo:** The Boot Logo must NOT appear when resuming from a suspended state.
 
 ### 2.3 UI & Widgets (Regression from v0.74)
 - [x] Widget System manages the System Menu layout (1x5 Grid).
