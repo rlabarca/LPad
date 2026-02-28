@@ -180,6 +180,7 @@ void BootLogoApp::update(float dt) {
             if (m_bootComplete && !m_showingConnected) {
                 m_showingConnected = true;
                 m_connectedHoldTimer = 0.0f;
+                m_textRegionComputed = false;  // Recompute region for "Connected to SSID" text
                 m_needsRender = true;
             }
 
@@ -291,14 +292,16 @@ void BootLogoApp::renderStatusText() {
     Arduino_GFX* gfx = m_display->getGfx();
     gfx->setFont(static_cast<const GFXfont*>(theme->fonts.normal));
 
-    // Lazily compute the fixed text region from "Connecting..." max-width.
-    // Pre-computing once ensures all ellipsis variants ("Connecting",
-    // "Connecting.", etc.) left-align from the same x-origin. Only dots
-    // appear/disappear on the right edge; the base text never shifts.
+    // Lazily compute the fixed text region for the current phase:
+    // - Ellipsis phase: sized from "Connecting..." (widest variant) so cursor
+    //   is stable as dots appear/disappear on the right edge.
+    // - Connected phase: sized from the actual "Connected to SSID" string so
+    //   it is neither clipped nor off-center. Reset by update() on transition.
     if (!m_textRegionComputed) {
         int16_t bx, by;
         uint16_t bw, bh;
-        gfx->getTextBounds("Connecting...", 0, 0, &bx, &by, &bw, &bh);
+        const char* sizeText = m_showingConnected ? getStatusText() : "Connecting...";
+        gfx->getTextBounds(sizeText, 0, 0, &bx, &by, &bw, &bh);
         m_textRegionW = static_cast<int16_t>(bw);
         m_textRegionH = static_cast<int16_t>(bh);
         m_textCursorX = static_cast<int16_t>((m_display->getWidth() - bw) / 2) - bx;
