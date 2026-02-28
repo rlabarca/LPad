@@ -41,6 +41,9 @@ BootLogoApp::BootLogoApp()
     , m_anchor_y(START_ANCHOR_Y)
     , m_prevX(0), m_prevY(0), m_prevW(0), m_prevH(0)
     , m_hasPrevBounds(false)
+    , m_textRegionX(0), m_textRegionY(0), m_textRegionW(0), m_textRegionH(0)
+    , m_textCursorX(0), m_textCursorY(0)
+    , m_textRegionComputed(false)
     , m_ellipsisTimer(0.0f)
     , m_ellipsisDots(0)
     , m_connectedHoldTimer(0.0f)
@@ -72,6 +75,7 @@ void BootLogoApp::onRun() {
     m_transitioned = false;
     m_backgroundDrawn = false;
     m_hasPrevBounds = false;
+    m_textRegionComputed = false;
     m_errorRendered = false;
     m_x_percent = START_X_PERCENT;
     m_y_percent = START_Y_PERCENT;
@@ -270,17 +274,14 @@ const char* BootLogoApp::getStatusText() const {
 }
 
 void BootLogoApp::eraseStatusText() {
-    if (m_display == nullptr) return;
+    if (m_display == nullptr || !m_textRegionComputed) return;
+    if (m_textRegionW <= 0 || m_textRegionH <= 0) return;
     const LPad::Theme* theme = LPad::ThemeManager::getInstance().getTheme();
     Arduino_GFX* gfx = m_display->getGfx();
-    gfx->setFont(static_cast<const GFXfont*>(theme->fonts.normal));
-    // Use max-width string "Connecting..." to avoid residual pixels as dot count decreases
-    int16_t x1, y1;
-    uint16_t tw, th;
-    gfx->getTextBounds("Connecting...", 0, 0, &x1, &y1, &tw, &th);
-    int16_t cx = static_cast<int16_t>((m_display->getWidth() - tw) / 2) - x1;
-    int16_t cy = static_cast<int16_t>((m_display->getHeight() - th) / 2) - y1;
-    gfx->fillRect(cx + x1, cy + y1, static_cast<int16_t>(tw), static_cast<int16_t>(th),
+    // Pre-DONE wipe: solid background fill over the fixed text region.
+    // Uses the pre-computed region (max-width "Connecting...") so no residual
+    // pixels remain regardless of which dot variant was last rendered.
+    gfx->fillRect(m_textRegionX, m_textRegionY, m_textRegionW, m_textRegionH,
                   theme->colors.background);
 }
 
@@ -290,23 +291,50 @@ void BootLogoApp::renderStatusText() {
     Arduino_GFX* gfx = m_display->getGfx();
     gfx->setFont(static_cast<const GFXfont*>(theme->fonts.normal));
 
-    // Erase previous text using max-width bounding box to prevent residual pixels
-    eraseStatusText();
+    // Lazily compute the fixed text region from "Connecting..." max-width.
+    // Pre-computing once ensures all ellipsis variants ("Connecting",
+    // "Connecting.", etc.) left-align from the same x-origin. Only dots
+    // appear/disappear on the right edge; the base text never shifts.
+    if (!m_textRegionComputed) {
+        int16_t bx, by;
+        uint16_t bw, bh;
+        gfx->getTextBounds("Connecting...", 0, 0, &bx, &by, &bw, &bh);
+        m_textRegionW = static_cast<int16_t>(bw);
+        m_textRegionH = static_cast<int16_t>(bh);
+        m_textCursorX = static_cast<int16_t>((m_display->getWidth() - bw) / 2) - bx;
+        m_textCursorY = static_cast<int16_t>((m_display->getHeight() - bh) / 2) - by;
+        m_textRegionX = m_textCursorX + bx;
+        m_textRegionY = m_textCursorY + by;
+        m_textRegionComputed = true;
+    }
 
+    if (m_textRegionW <= 0 || m_textRegionH <= 0) return;
+
+    // Dirty-rect atomic blit: composite erase + draw into a temporary canvas,
+    // then DMA-transfer as a single operation. Direct draw-erase-redraw on the
+    // live display is prohibited (causes visible flicker on AMOLED panels).
+    hal_canvas_handle_t canvas = hal_display_canvas_create(m_textRegionW, m_textRegionH);
+    if (canvas == nullptr) return;
+
+    hal_display_canvas_fill(canvas, theme->colors.background);
+
+    Arduino_Canvas* canvasPtr = static_cast<Arduino_Canvas*>(canvas);
     const char* text = getStatusText();
-    if (text[0] == '\0') return;
+    if (text[0] != '\0') {
+        bool isError = (hal_network_get_status() == HAL_NETWORK_STATUS_ERROR && !m_showingConnected);
+        uint16_t textColor = isError ? theme->colors.text_error : theme->colors.text_main;
+        canvasPtr->setFont(static_cast<const GFXfont*>(theme->fonts.normal));
+        canvasPtr->setTextColor(textColor);
+        // Left-align from fixed anchor within canvas coordinate space
+        canvasPtr->setCursor(m_textCursorX - m_textRegionX, m_textCursorY - m_textRegionY);
+        canvasPtr->print(text);
+    }
 
-    // "No Network Found" uses error color; all other messages use text_main
-    bool isError = (hal_network_get_status() == HAL_NETWORK_STATUS_ERROR && !m_showingConnected);
-    gfx->setTextColor(isError ? theme->colors.text_error : theme->colors.text_main);
-
-    int16_t x1, y1;
-    uint16_t tw, th;
-    gfx->getTextBounds(text, 0, 0, &x1, &y1, &tw, &th);
-    int16_t cx = static_cast<int16_t>((m_display->getWidth() - tw) / 2) - x1;
-    int16_t cy = static_cast<int16_t>((m_display->getHeight() - th) / 2) - y1;
-    gfx->setCursor(cx, cy);
-    gfx->print(text);
+    uint16_t* fb = canvasPtr->getFramebuffer();
+    if (fb) {
+        hal_display_fast_blit(m_textRegionX, m_textRegionY, m_textRegionW, m_textRegionH, fb);
+    }
+    hal_display_canvas_delete(canvas);
 }
 
 float BootLogoApp::easeInOutCubic(float t) {

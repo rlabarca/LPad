@@ -93,6 +93,14 @@ private:
     int16_t m_prevX, m_prevY, m_prevW, m_prevH;
     bool m_hasPrevBounds;
 
+    // Text dirty-rect: fixed region pre-computed from "Connecting..." max-width.
+    // All ellipsis variants left-align from the same cursor so the base text
+    // never shifts; dots only appear/disappear on the right edge.
+    int16_t m_textRegionX, m_textRegionY;
+    int16_t m_textRegionW, m_textRegionH;
+    int16_t m_textCursorX, m_textCursorY;
+    bool m_textRegionComputed;
+
     // Timing
     static constexpr float WAIT_DURATION = 2.0f;
     static constexpr float ANIMATE_DURATION = 1.5f;

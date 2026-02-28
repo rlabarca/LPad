@@ -10,9 +10,11 @@
 
 **[DISCOVERY]** `StockTracker::notifyResume()` was defined only inside `#ifdef ARDUINO` in `stock_tracker.cpp`, leaving it undefined on native when `stock_ticker_app.cpp` was added to the native build. A `#ifndef ARDUINO` no-op stub was added to `stock_tracker.cpp`. The data_stock_tracker spec should be updated to clarify native build behavior of this method. (Severity: HIGH) Acknowledged. Native no-op stubs for platform-specific APIs (FreeRTOS, Arduino) are test infrastructure decisions, not behavioral spec concerns. The data_stock_tracker spec correctly describes target-platform behavior; no spec change needed.
 
+**[AUTONOMOUS]** `renderStatusText()` rewritten to use dirty-rect canvas blitting per `arch_display_pipeline.md`. The fixed text region is pre-computed from "Connecting..." max-width on the first CONNECTING render (`m_textRegionComputed` flag guards lazy init). All ellipsis variants left-align from `m_textCursorX` (fixed x-origin) — dots only extend right. `eraseStatusText()` simplified to use the pre-computed `m_textRegionX/Y/W/H` with a direct `fillRect` (only called once before DONE transition, not during animation). Canvas is `nullptr` in native tests due to stub, so `renderStatusText()` early-returns cleanly after setting `m_textRegionComputed`. (Severity: WARN)
+
 ## Test Coverage
 
-Tests live in `test/test_boot_logo_app/test_boot_logo_app.cpp`. Covers all 11 automated scenarios from the spec: null pointer guards, state machine WAIT→ANIMATE→CONNECTING→DONE, ellipsis cycling, connected SSID display, early WiFi completion path, cross-core error signaling, and one-shot error render.
+Tests live in `test/test_boot_logo_app/test_boot_logo_app.cpp`. Covers all 15 automated scenarios from the spec: null pointer guards, state machine WAIT→ANIMATE→CONNECTING→DONE, ellipsis cycling, connected SSID display, early WiFi completion path, cross-core error signaling, one-shot error render, ellipsis position stability, dirty-rect blitting (smoke), network error text, and pre-DONE text erase.
 
 **[AUTONOMOUS]** `getStatusText()` public accessor added to `BootLogoApp` to allow state machine text logic to be verified in tests without requiring GFX mock spy infrastructure. The method builds the same string that `renderStatusText()` would display, using a `mutable char m_statusTextBuf[64]` member. (Severity: WARN)
 

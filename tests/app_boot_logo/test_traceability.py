@@ -16,3 +16,7 @@ def test_error_message_renders_once(): pass
 def test_ellipsis_animation_cycles_during_connecting(): pass
 def test_connected_ssid_displayed_on_boot_complete(): pass
 def test_early_wifi_completion_skips_ellipsis(): pass
+def test_ellipsis_text_does_not_shift_horizontal(): pass
+def test_status_text_uses_dirty_rect_blitting(): pass
+def test_network_error_displays_error_text(): pass
+def test_status_text_erased_before_done_transition(): pass

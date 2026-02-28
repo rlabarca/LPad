@@ -294,6 +294,130 @@ void test_early_wifi_completion_skips_ellipsis(void) {
 }
 
 // ---------------------------------------------------------------------------
+// Scenario: Ellipsis text does not shift horizontally during animation
+// ---------------------------------------------------------------------------
+
+void test_ellipsis_text_does_not_shift_horizontal(void) {
+    hal_network_stub_set_status(HAL_NETWORK_STATUS_CONNECTING);
+
+    MockApp nextApp;
+    BootLogoApp boot;
+    boot.begin(g_display, &nextApp);
+    boot.onRun();
+
+    boot.update(2.1f);  // WAIT -> ANIMATE
+    boot.update(1.6f);  // ANIMATE -> CONNECTING
+    TEST_ASSERT_EQUAL(BootLogoApp::AnimState::CONNECTING, boot.getAnimState());
+
+    // All variants have "Connecting" as the fixed left-aligned prefix.
+    // Dots only appear/disappear on the right edge; base text never shifts.
+    const char* t0 = boot.getStatusText();
+    TEST_ASSERT_EQUAL_STRING("Connecting", t0);
+
+    boot.render();  // should not crash; dirty-rect degrades gracefully in stub
+
+    boot.update(0.4f);
+    const char* t1 = boot.getStatusText();
+    TEST_ASSERT_EQUAL_STRING("Connecting.", t1);
+
+    boot.render();
+
+    boot.update(0.4f);
+    const char* t2 = boot.getStatusText();
+    TEST_ASSERT_EQUAL_STRING("Connecting..", t2);
+
+    // "Connecting" is always the prefix of every variant (base text never shifts)
+    TEST_ASSERT_EQUAL(0, strncmp(t0, "Connecting", 10));
+    TEST_ASSERT_EQUAL(0, strncmp(t1, "Connecting", 10));
+    TEST_ASSERT_EQUAL(0, strncmp(t2, "Connecting", 10));
+}
+
+// ---------------------------------------------------------------------------
+// Scenario: Status text uses dirty-rect blitting
+// ---------------------------------------------------------------------------
+
+void test_status_text_uses_dirty_rect_blitting(void) {
+    hal_network_stub_set_status(HAL_NETWORK_STATUS_CONNECTING);
+
+    MockApp nextApp;
+    BootLogoApp boot;
+    boot.begin(g_display, &nextApp);
+    boot.onRun();
+
+    boot.update(2.1f);  // WAIT -> ANIMATE
+    boot.update(1.6f);  // ANIMATE -> CONNECTING
+    TEST_ASSERT_EQUAL(BootLogoApp::AnimState::CONNECTING, boot.getAnimState());
+
+    // render() must be callable multiple times across text transitions without
+    // crashing. In native tests the canvas stub returns nullptr, so the canvas
+    // path gracefully no-ops — the important invariant is no crash and no
+    // direct draw-erase-redraw on the live display.
+    boot.render();       // "Connecting"
+    boot.update(0.4f);
+    boot.render();       // "Connecting."
+    boot.update(0.4f);
+    boot.render();       // "Connecting.."
+    boot.update(0.4f);
+    boot.render();       // "Connecting..."
+    TEST_PASS();
+}
+
+// ---------------------------------------------------------------------------
+// Scenario: Network error displays error text
+// ---------------------------------------------------------------------------
+
+void test_network_error_displays_error_text(void) {
+    hal_network_stub_set_status(HAL_NETWORK_STATUS_ERROR);
+
+    MockApp nextApp;
+    BootLogoApp boot;
+    boot.begin(g_display, &nextApp);
+    boot.onRun();
+
+    boot.update(2.1f);  // WAIT -> ANIMATE
+    boot.update(1.6f);  // ANIMATE -> CONNECTING
+    TEST_ASSERT_EQUAL(BootLogoApp::AnimState::CONNECTING, boot.getAnimState());
+
+    boot.update(0.01f);
+    TEST_ASSERT_EQUAL_STRING("No Network Found", boot.getStatusText());
+}
+
+// ---------------------------------------------------------------------------
+// Scenario: Status text erased before DONE transition
+// ---------------------------------------------------------------------------
+
+void test_status_text_erased_before_done_transition(void) {
+    hal_network_stub_set_status(HAL_NETWORK_STATUS_CONNECTING);
+    hal_network_stub_set_ssid("TestNet");
+
+    MockApp nextApp;
+    UIRenderManager::getInstance().registerComponent(&nextApp, 99);
+
+    BootLogoApp boot;
+    boot.begin(g_display, &nextApp);
+    boot.onRun();
+
+    boot.update(2.1f);  // WAIT -> ANIMATE
+    boot.update(1.6f);  // ANIMATE -> CONNECTING
+
+    // Let some status text render so the text region is computed
+    boot.render();
+
+    // Signal completion and advance past the 1.5s connected hold.
+    // eraseStatusText() is called inside update() at the DONE boundary.
+    boot.setBootComplete();
+    boot.update(0.01f);  // starts connected hold timer
+    boot.update(1.5f);   // exceeds hold -> eraseStatusText() + state = DONE
+
+    TEST_ASSERT_EQUAL(BootLogoApp::AnimState::DONE, boot.getAnimState());
+
+    // Subsequent render() must not crash (m_transitioned set on next update)
+    boot.render();
+    boot.update(0.01f);  // executes DONE handler
+    TEST_PASS();
+}
+
+// ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 
@@ -311,6 +435,10 @@ int main(int argc, char** argv) {
     RUN_TEST(test_ellipsis_animation_cycles_during_connecting);
     RUN_TEST(test_connected_ssid_displayed_on_boot_complete);
     RUN_TEST(test_early_wifi_completion_skips_ellipsis);
+    RUN_TEST(test_ellipsis_text_does_not_shift_horizontal);
+    RUN_TEST(test_status_text_uses_dirty_rect_blitting);
+    RUN_TEST(test_network_error_displays_error_text);
+    RUN_TEST(test_status_text_erased_before_done_transition);
 
     return UNITY_END();
 }

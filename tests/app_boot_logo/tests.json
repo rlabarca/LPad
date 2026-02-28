@@ -11,6 +11,10 @@
     {"name": "test_error_message_renders_once", "status": "PASS"},
     {"name": "test_ellipsis_animation_cycles_during_connecting", "status": "PASS"},
     {"name": "test_connected_ssid_displayed_on_boot_complete", "status": "PASS"},
-    {"name": "test_early_wifi_completion_skips_ellipsis", "status": "PASS"}
+    {"name": "test_early_wifi_completion_skips_ellipsis", "status": "PASS"},
+    {"name": "test_ellipsis_text_does_not_shift_horizontal", "status": "PASS"},
+    {"name": "test_status_text_uses_dirty_rect_blitting", "status": "PASS"},
+    {"name": "test_network_error_displays_error_text", "status": "PASS"},
+    {"name": "test_status_text_erased_before_done_transition", "status": "PASS"}
   ]
 }
