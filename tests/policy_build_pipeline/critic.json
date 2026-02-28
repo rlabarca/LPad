@@ -1,0 +1,101 @@
+{
+    "action_items": {
+        "architect": [],
+        "builder": [],
+        "qa": []
+    },
+    "feature_file": "features/policy_build_pipeline.md",
+    "generated_at": "2026-02-28T17:17:48Z",
+    "implementation_gate": {
+        "checks": {
+            "builder_decisions": {
+                "detail": "All entries are INFO/CLARIFICATION.",
+                "status": "PASS",
+                "summary": {
+                    "AUTONOMOUS": 0,
+                    "CLARIFICATION": 0,
+                    "DEVIATION": 0,
+                    "DISCOVERY": 0,
+                    "INFEASIBLE": 0,
+                    "acknowledged": {
+                        "DEVIATION": 0,
+                        "DISCOVERY": 0
+                    }
+                }
+            },
+            "logic_drift": {
+                "detail": "N/A - anchor node exempt",
+                "pairs": [],
+                "status": "PASS"
+            },
+            "policy_adherence": {
+                "detail": "N/A - anchor node exempt",
+                "status": "PASS",
+                "violations": []
+            },
+            "structural_completeness": {
+                "detail": "N/A - anchor node exempt",
+                "status": "PASS"
+            },
+            "traceability": {
+                "coverage": 1.0,
+                "detail": "N/A - anchor node exempt",
+                "status": "PASS"
+            }
+        },
+        "status": "PASS"
+    },
+    "regression_scope": {
+        "cross_validation_warnings": [],
+        "declared": "full",
+        "scenarios": [],
+        "visual_items": 0
+    },
+    "role_status": {
+        "architect": "DONE",
+        "builder": "DONE",
+        "qa": "CLEAN"
+    },
+    "spec_gate": {
+        "checks": {
+            "gherkin_quality": {
+                "detail": "N/A - anchor node",
+                "status": "PASS"
+            },
+            "policy_anchoring": {
+                "detail": "Anchor node is exempt from prerequisite requirement.",
+                "status": "PASS"
+            },
+            "prerequisite_integrity": {
+                "detail": "No prerequisites to verify.",
+                "status": "PASS"
+            },
+            "scenario_classification": {
+                "detail": "N/A - anchor node",
+                "status": "PASS"
+            },
+            "section_completeness": {
+                "detail": "Required policy sections present (Purpose, Invariants).",
+                "status": "PASS"
+            }
+        },
+        "status": "PASS"
+    },
+    "user_testing": {
+        "bugs": 0,
+        "discoveries": 0,
+        "intent_drifts": 0,
+        "spec_disputes": 0,
+        "status": "CLEAN"
+    },
+    "visual_spec": {
+        "items": 0,
+        "missing_reference_count": 0,
+        "present": false,
+        "references": [],
+        "screen_names": [],
+        "screens": 0,
+        "stale_count": 0,
+        "unprocessed_count": 0
+    }
+}

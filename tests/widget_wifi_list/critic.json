@@ -1,0 +1,117 @@
+{
+    "action_items": {
+        "architect": [
+            {
+                "category": "spec_gate",
+                "description": "Improve spec: section_completeness -- All required sections present; Implementation Notes empty.",
+                "feature": "widget_wifi_list",
+                "priority": "LOW"
+            }
+        ],
+        "builder": [],
+        "qa": [
+            {
+                "category": "testing_status",
+                "description": "Verify widget_wifi_list: 1 manual scenario(s)",
+                "feature": "widget_wifi_list",
+                "priority": "MEDIUM"
+            }
+        ]
+    },
+    "feature_file": "features/widget_wifi_list.md",
+    "generated_at": "2026-02-28T17:17:49Z",
+    "implementation_gate": {
+        "checks": {
+            "builder_decisions": {
+                "detail": "All entries are INFO/CLARIFICATION.",
+                "status": "PASS",
+                "summary": {
+                    "AUTONOMOUS": 0,
+                    "CLARIFICATION": 0,
+                    "DEVIATION": 0,
+                    "DISCOVERY": 0,
+                    "INFEASIBLE": 0,
+                    "acknowledged": {
+                        "DEVIATION": 0,
+                        "DISCOVERY": 0
+                    }
+                }
+            },
+            "logic_drift": {
+                "detail": "Logic drift check skipped (LLM disabled).",
+                "pairs": [],
+                "status": "WARN"
+            },
+            "policy_adherence": {
+                "detail": "No FORBIDDEN patterns in referenced policies.",
+                "status": "PASS",
+                "violations": []
+            },
+            "structural_completeness": {
+                "detail": "tests/widget_wifi_list/tests.json: PASS.",
+                "status": "PASS"
+            },
+            "traceability": {
+                "coverage": 1.0,
+                "detail": "7/7 automated scenarios traced",
+                "status": "PASS"
+            }
+        },
+        "status": "PASS"
+    },
+    "regression_scope": {
+        "cross_validation_warnings": [],
+        "declared": "full",
+        "scenarios": [
+            "WiFi connection visual feedback on device"
+        ],
+        "visual_items": 0
+    },
+    "role_status": {
+        "architect": "DONE",
+        "builder": "DONE",
+        "qa": "TODO"
+    },
+    "spec_gate": {
+        "checks": {
+            "gherkin_quality": {
+                "detail": "All 8 scenarios have Given/When/Then.",
+                "status": "PASS"
+            },
+            "policy_anchoring": {
+                "detail": "Anchored to: arch_component_model.md, design_visual_language.md.",
+                "status": "PASS"
+            },
+            "prerequisite_integrity": {
+                "detail": "All prerequisite files exist.",
+                "status": "PASS"
+            },
+            "scenario_classification": {
+                "detail": "Both Automated and Manual subsections present.",
+                "status": "PASS"
+            },
+            "section_completeness": {
+                "detail": "All required sections present; Implementation Notes empty.",
+                "status": "WARN"
+            }
+        },
+        "status": "WARN"
+    },
+    "user_testing": {
+        "bugs": 0,
+        "discoveries": 0,
+        "intent_drifts": 0,
+        "spec_disputes": 0,
+        "status": "CLEAN"
+    },
+    "visual_spec": {
+        "items": 0,
+        "missing_reference_count": 0,
+        "present": false,
+        "references": [],
+        "screen_names": [],
+        "screens": 0,
+        "stale_count": 0,
+        "unprocessed_count": 0
+    }
+}

@@ -1,0 +1,8 @@
+{
+  "status": "PASS",
+  "tests": [
+    {"name": "test_all_semantic_color_roles_defined", "status": "PASS"},
+    {"name": "test_all_font_pointers_nonnull", "status": "PASS"},
+    {"name": "test_background_color_is_night", "status": "PASS"}
+  ]
+}

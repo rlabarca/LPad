@@ -47,3 +47,9 @@ agentic_devops/tools/cdd/test_status.json
 .purlin/runtime/
 .purlin/cache/*
 !.purlin/cache/delivery_plan.md
+
+# Claude Code
+.claude/
+
+# CDD generated reports
+CRITIC_REPORT.md
