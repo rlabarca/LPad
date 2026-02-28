@@ -1,0 +1,127 @@
+{
+    "action_items": {
+        "architect": [
+            {
+                "category": "spec_gate",
+                "description": "Improve spec: section_completeness -- All required sections present; Implementation Notes empty.",
+                "feature": "sys_power_manager",
+                "priority": "LOW"
+            }
+        ],
+        "builder": [
+            {
+                "category": "lifecycle_reset",
+                "description": "Review and implement spec changes for sys_power_manager",
+                "feature": "sys_power_manager",
+                "priority": "HIGH"
+            },
+            {
+                "category": "structural_completeness",
+                "description": "Fix failing tests for sys_power_manager",
+                "feature": "sys_power_manager",
+                "priority": "HIGH"
+            },
+            {
+                "category": "traceability",
+                "description": "Write tests for sys_power_manager: 2/6 automated scenarios traced. Unmatched: Short press triggers suspend, Long press triggers shutdown, Resume waits for WiFi with timeout, Immediate battery poll after resume",
+                "feature": "sys_power_manager",
+                "priority": "MEDIUM"
+            }
+        ],
+        "qa": []
+    },
+    "feature_file": "features/sys_power_manager.md",
+    "generated_at": "2026-02-28T14:25:11Z",
+    "implementation_gate": {
+        "checks": {
+            "builder_decisions": {
+                "detail": "All entries are INFO/CLARIFICATION.",
+                "status": "PASS",
+                "summary": {
+                    "AUTONOMOUS": 0,
+                    "CLARIFICATION": 0,
+                    "DEVIATION": 0,
+                    "DISCOVERY": 0,
+                    "INFEASIBLE": 0,
+                    "acknowledged": {
+                        "DEVIATION": 0,
+                        "DISCOVERY": 0
+                    }
+                }
+            },
+            "logic_drift": {
+                "detail": "Logic drift check skipped (LLM disabled).",
+                "pairs": [],
+                "status": "WARN"
+            },
+            "policy_adherence": {
+                "detail": "No FORBIDDEN patterns in referenced policies.",
+                "status": "PASS",
+                "violations": []
+            },
+            "structural_completeness": {
+                "detail": "Missing tests/sys_power_manager/tests.json.",
+                "status": "FAIL"
+            },
+            "traceability": {
+                "coverage": 0.3333,
+                "detail": "2/6 automated scenarios traced. Unmatched: Short press triggers suspend, Long press triggers shutdown, Resume waits for WiFi with timeout, Immediate battery poll after resume",
+                "status": "FAIL"
+            }
+        },
+        "status": "FAIL"
+    },
+    "regression_scope": {
+        "cross_validation_warnings": [],
+        "declared": "full",
+        "scenarios": [],
+        "visual_items": 0
+    },
+    "role_status": {
+        "architect": "DONE",
+        "builder": "TODO",
+        "qa": "N/A"
+    },
+    "spec_gate": {
+        "checks": {
+            "gherkin_quality": {
+                "detail": "All 7 scenarios have Given/When/Then.",
+                "status": "PASS"
+            },
+            "policy_anchoring": {
+                "detail": "Anchored to: arch_component_model.md, arch_concurrency.md, arch_hal_contract.md.",
+                "status": "PASS"
+            },
+            "prerequisite_integrity": {
+                "detail": "All prerequisite files exist.",
+                "status": "PASS"
+            },
+            "scenario_classification": {
+                "detail": "Both Automated and Manual subsections present.",
+                "status": "PASS"
+            },
+            "section_completeness": {
+                "detail": "All required sections present; Implementation Notes empty.",
+                "status": "WARN"
+            }
+        },
+        "status": "WARN"
+    },
+    "user_testing": {
+        "bugs": 0,
+        "discoveries": 0,
+        "intent_drifts": 0,
+        "spec_disputes": 0,
+        "status": "CLEAN"
+    },
+    "visual_spec": {
+        "items": 0,
+        "missing_reference_count": 0,
+        "present": false,
+        "references": [],
+        "screen_names": [],
+        "screens": 0,
+        "stale_count": 0,
+        "unprocessed_count": 0
+    }
+}

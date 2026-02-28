@@ -1,0 +1,133 @@
+{
+    "action_items": {
+        "architect": [
+            {
+                "category": "spec_gate",
+                "description": "Improve spec: section_completeness -- All required sections present; Implementation Notes empty.",
+                "feature": "render_time_series_graph",
+                "priority": "LOW"
+            },
+            {
+                "category": "spec_gate",
+                "description": "Improve spec: gherkin_quality -- 5/6 scenarios have complete Given/When/Then.",
+                "feature": "render_time_series_graph",
+                "priority": "LOW"
+            }
+        ],
+        "builder": [
+            {
+                "category": "lifecycle_reset",
+                "description": "Review and implement spec changes for render_time_series_graph",
+                "feature": "render_time_series_graph",
+                "priority": "HIGH"
+            },
+            {
+                "category": "structural_completeness",
+                "description": "Fix failing tests for render_time_series_graph",
+                "feature": "render_time_series_graph",
+                "priority": "HIGH"
+            },
+            {
+                "category": "traceability",
+                "description": "Write tests for render_time_series_graph: 2/5 automated scenarios traced. Unmatched: Data line redrawn on new data, Origin suppression hides near-axis ticks, Live indicator pulses with smoothstep easing",
+                "feature": "render_time_series_graph",
+                "priority": "MEDIUM"
+            }
+        ],
+        "qa": []
+    },
+    "feature_file": "features/render_time_series_graph.md",
+    "generated_at": "2026-02-28T14:25:11Z",
+    "implementation_gate": {
+        "checks": {
+            "builder_decisions": {
+                "detail": "All entries are INFO/CLARIFICATION.",
+                "status": "PASS",
+                "summary": {
+                    "AUTONOMOUS": 0,
+                    "CLARIFICATION": 0,
+                    "DEVIATION": 0,
+                    "DISCOVERY": 0,
+                    "INFEASIBLE": 0,
+                    "acknowledged": {
+                        "DEVIATION": 0,
+                        "DISCOVERY": 0
+                    }
+                }
+            },
+            "logic_drift": {
+                "detail": "Logic drift check skipped (LLM disabled).",
+                "pairs": [],
+                "status": "WARN"
+            },
+            "policy_adherence": {
+                "detail": "No FORBIDDEN patterns in referenced policies.",
+                "status": "PASS",
+                "violations": []
+            },
+            "structural_completeness": {
+                "detail": "Missing tests/render_time_series_graph/tests.json.",
+                "status": "FAIL"
+            },
+            "traceability": {
+                "coverage": 0.4,
+                "detail": "2/5 automated scenarios traced. Unmatched: Data line redrawn on new data, Origin suppression hides near-axis ticks, Live indicator pulses with smoothstep easing",
+                "status": "FAIL"
+            }
+        },
+        "status": "FAIL"
+    },
+    "regression_scope": {
+        "cross_validation_warnings": [],
+        "declared": "full",
+        "scenarios": [],
+        "visual_items": 0
+    },
+    "role_status": {
+        "architect": "DONE",
+        "builder": "TODO",
+        "qa": "N/A"
+    },
+    "spec_gate": {
+        "checks": {
+            "gherkin_quality": {
+                "detail": "5/6 scenarios have complete Given/When/Then.",
+                "status": "WARN"
+            },
+            "policy_anchoring": {
+                "detail": "Anchored to: arch_display_pipeline.md, arch_concurrency.md.",
+                "status": "PASS"
+            },
+            "prerequisite_integrity": {
+                "detail": "All prerequisite files exist.",
+                "status": "PASS"
+            },
+            "scenario_classification": {
+                "detail": "Both Automated and Manual subsections present.",
+                "status": "PASS"
+            },
+            "section_completeness": {
+                "detail": "All required sections present; Implementation Notes empty.",
+                "status": "WARN"
+            }
+        },
+        "status": "WARN"
+    },
+    "user_testing": {
+        "bugs": 0,
+        "discoveries": 0,
+        "intent_drifts": 0,
+        "spec_disputes": 0,
+        "status": "CLEAN"
+    },
+    "visual_spec": {
+        "items": 0,
+        "missing_reference_count": 0,
+        "present": false,
+        "references": [],
+        "screen_names": [],
+        "screens": 0,
+        "stale_count": 0,
+        "unprocessed_count": 0
+    }
+}

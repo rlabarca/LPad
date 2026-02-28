@@ -1,0 +1,9 @@
+{
+  "status": "PASS",
+  "tests": [
+    {"name": "test_aspect_ratio_is_preserved", "status": "PASS"},
+    {"name": "test_anchor_point_offsets_correctly", "status": "PASS"},
+    {"name": "test_canvas_fallback_on_oom", "status": "PASS"},
+    {"name": "test_chroma_key_transparency_works", "status": "PASS"}
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "status": "PASS",
+  "tests": [
+    {"name": "test_native_test_environment_compiles_successfully", "status": "PASS"},
+    {"name": "test_hal_stubs_link_without_hardware_dependencies", "status": "PASS"},
+    {"name": "test_ignored_tests_do_not_affect_pass_fail", "status": "PASS"},
+    {"name": "test_runner_script_produces_json_summary", "status": "PASS"},
+    {"name": "test_mock_arduino_provides_required_types", "status": "PASS"}
+  ]
+}

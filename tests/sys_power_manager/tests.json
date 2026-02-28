@@ -1,0 +1,21 @@
+{
+  "status": "PASS",
+  "tests": [
+    {"name": "test_battery_status_name", "status": "PASS"},
+    {"name": "test_battery_status_default_values", "status": "PASS"},
+    {"name": "test_battery_status_update_all_fields", "status": "PASS"},
+    {"name": "test_battery_status_update_no_battery", "status": "PASS"},
+    {"name": "test_battery_status_touch_updates_timestamp", "status": "PASS"},
+    {"name": "test_battery_status_inherits_data_item", "status": "PASS"},
+    {"name": "test_power_manager_begin_succeeds", "status": "PASS"},
+    {"name": "test_power_manager_battery_status_not_null", "status": "PASS"},
+    {"name": "test_power_manager_initial_poll_on_first_update", "status": "PASS"},
+    {"name": "test_power_manager_does_not_poll_before_interval", "status": "PASS"},
+    {"name": "test_power_manager_polls_at_interval", "status": "PASS"},
+    {"name": "test_power_manager_no_battery_scenario", "status": "PASS"},
+    {"name": "test_power_manager_charged_scenario", "status": "PASS"},
+    {"name": "test_power_manager_low_battery_scenario", "status": "PASS"},
+    {"name": "test_power_manager_not_opaque_not_fullscreen", "status": "PASS"},
+    {"name": "test_power_manager_is_system_component", "status": "PASS"}
+  ]
+}

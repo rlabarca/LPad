@@ -1,0 +1,10 @@
+{
+  "status": "PASS",
+  "tests": [
+    {"name": "test_begin_fails_without_psram", "status": "PASS"},
+    {"name": "test_data_line_redrawn_on_new_data", "status": "PASS"},
+    {"name": "test_y_tick_labels_are_unique", "status": "PASS"},
+    {"name": "test_origin_suppression_hides_near_axis_ticks", "status": "PASS"},
+    {"name": "test_live_indicator_pulses_with_smoothstep_easing", "status": "PASS"}
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "status": "PASS",
+  "tests": [
+    {"name": "test_minilogo_instantiation", "status": "PASS"},
+    {"name": "test_minilogo_set_corner", "status": "PASS"},
+    {"name": "test_minilogo_render_smoke", "status": "PASS"},
+    {"name": "test_minilogo_render_null_display", "status": "PASS"},
+    {"name": "test_minilogo_render_all_corners", "status": "PASS"}
+  ]
+}

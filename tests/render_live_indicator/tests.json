@@ -1,0 +1,10 @@
+{
+  "status": "PASS",
+  "tests": [
+    {"name": "test_indicator_initialization", "status": "PASS"},
+    {"name": "test_pulse_animation", "status": "PASS"},
+    {"name": "test_reset", "status": "PASS"},
+    {"name": "test_draw_at_position", "status": "PASS"},
+    {"name": "test_zero_pulse_duration", "status": "PASS"}
+  ]
+}

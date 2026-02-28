@@ -1,0 +1,13 @@
+{
+  "status": "PASS",
+  "tests": [
+    {"name": "test_serial_trigger_invokes_screen_dump", "status": "PASS"},
+    {"name": "test_non_trigger_characters_are_ignored", "status": "PASS"},
+    {"name": "test_auto_detect_finds_esp32_s3_by_vid", "status": "PASS"},
+    {"name": "test_auto_detect_falls_back_to_chip_descriptor", "status": "PASS"},
+    {"name": "test_auto_detect_returns_none_when_no_device", "status": "PASS"},
+    {"name": "test_start_marker_timeout_produces_error", "status": "PASS"},
+    {"name": "test_rgb565_to_rgb888_conversion_is_correct", "status": "PASS"},
+    {"name": "test_incomplete_data_produces_warning", "status": "PASS"}
+  ]
+}

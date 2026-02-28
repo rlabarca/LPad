@@ -1,0 +1,11 @@
+{
+  "status": "PASS",
+  "tests": [
+    {"name": "test_top_edge_drag_opens_menu", "status": "PASS"},
+    {"name": "test_bottom_edge_drag_closes_menu", "status": "PASS"},
+    {"name": "test_close_animation_triggers_system_pause", "status": "PASS"},
+    {"name": "test_all_input_consumed_while_open", "status": "PASS"},
+    {"name": "test_widgets_not_rendered_during_animation", "status": "PASS"},
+    {"name": "test_ssid_refreshed_on_each_open", "status": "PASS"}
+  ]
+}
