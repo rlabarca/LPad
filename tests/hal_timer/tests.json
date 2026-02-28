@@ -1,0 +1,21 @@
+{
+  "status": "PASS",
+  "tests": [
+    {
+      "name": "test_timer_init_returns_bool",
+      "status": "PASS"
+    },
+    {
+      "name": "test_stub_timer_init_returns_false_by_default",
+      "status": "PASS"
+    },
+    {
+      "name": "test_stub_timer_can_be_overridden_by_test_fixture",
+      "status": "PASS"
+    },
+    {
+      "name": "test_timer_returns_monotonically_increasing_values",
+      "status": "PASS"
+    }
+  ]
+}

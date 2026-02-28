@@ -1,0 +1,49 @@
+{
+  "status": "PASS",
+  "tests": [
+    {
+      "name": "test_init_with_null_credentials_fails",
+      "status": "PASS"
+    },
+    {
+      "name": "test_init_stores_credentials_for_reconnect",
+      "status": "PASS"
+    },
+    {
+      "name": "test_status_polling_drives_connection_state_machine",
+      "status": "PASS"
+    },
+    {
+      "name": "test_auto_retry_after_connection_failure",
+      "status": "PASS"
+    },
+    {
+      "name": "test_http_get_rejects_when_not_connected",
+      "status": "PASS"
+    },
+    {
+      "name": "test_http_get_rejects_null_buffer",
+      "status": "PASS"
+    },
+    {
+      "name": "test_http_get_rejects_oversized_response",
+      "status": "PASS"
+    },
+    {
+      "name": "test_chunked_transfer_encoding_is_decoded_in_place",
+      "status": "PASS"
+    },
+    {
+      "name": "test_get_ssid_returns_na_when_disconnected",
+      "status": "PASS"
+    },
+    {
+      "name": "test_stub_init_succeeds_immediately",
+      "status": "PASS"
+    },
+    {
+      "name": "test_stub_http_get_returns_empty",
+      "status": "PASS"
+    }
+  ]
+}

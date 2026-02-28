@@ -1,0 +1,17 @@
+{
+  "status": "PASS",
+  "tests": [
+    {
+      "name": "test_missing_fontconvert_prints_instructions",
+      "status": "PASS"
+    },
+    {
+      "name": "test_custom_fontconvert_path_accepted",
+      "status": "PASS"
+    },
+    {
+      "name": "test_all_5_font_headers_generated",
+      "status": "PASS"
+    }
+  ]
+}

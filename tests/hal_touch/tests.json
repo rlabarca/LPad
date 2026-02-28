@@ -1,0 +1,37 @@
+{
+  "status": "PASS",
+  "tests": [
+    {
+      "name": "test_touch_init_succeeds_on_first_call",
+      "status": "PASS"
+    },
+    {
+      "name": "test_double_init_is_idempotent",
+      "status": "PASS"
+    },
+    {
+      "name": "test_read_with_no_touch_returns_unpressed_state",
+      "status": "PASS"
+    },
+    {
+      "name": "test_read_with_null_pointer_returns_false",
+      "status": "PASS"
+    },
+    {
+      "name": "test_i2c_transient_error_does_not_fail_the_read",
+      "status": "PASS"
+    },
+    {
+      "name": "test_touch_coordinates_are_clamped_to_display_bounds",
+      "status": "PASS"
+    },
+    {
+      "name": "test_home_button_detected_on_cst816t",
+      "status": "PASS"
+    },
+    {
+      "name": "test_stub_returns_default_unpressed_state",
+      "status": "PASS"
+    }
+  ]
+}

@@ -1,0 +1,73 @@
+{
+  "status": "PASS",
+  "tests": [
+    {
+      "name": "test_hal_display_init_returns_bool",
+      "status": "PASS"
+    },
+    {
+      "name": "test_hal_display_clear_accepts_color",
+      "status": "PASS"
+    },
+    {
+      "name": "test_hal_display_draw_pixel_accepts_coordinates",
+      "status": "PASS"
+    },
+    {
+      "name": "test_hal_display_flush_callable",
+      "status": "PASS"
+    },
+    {
+      "name": "test_hal_display_typical_usage_sequence",
+      "status": "PASS"
+    },
+    {
+      "name": "test_hal_display_multiple_draws_before_flush",
+      "status": "PASS"
+    },
+    {
+      "name": "test_hal_display_clear_multiple_colors",
+      "status": "PASS"
+    },
+    {
+      "name": "test_pixel_writes_mirror_to_shadow_framebuffer",
+      "status": "PASS"
+    },
+    {
+      "name": "test_clear_fills_entire_shadow_framebuffer",
+      "status": "PASS"
+    },
+    {
+      "name": "test_canvas_draw_updates_shadow_framebuffer",
+      "status": "PASS"
+    },
+    {
+      "name": "test_rotation_swaps_width_and_height_at_90_degrees",
+      "status": "PASS"
+    },
+    {
+      "name": "test_screenshot_dump_protocol_format",
+      "status": "PASS"
+    },
+    {
+      "name": "test_hal_display_set_rotation_callable",
+      "status": "PASS"
+    },
+    {
+      "name": "test_hal_display_rotation_90_swaps_dimensions",
+      "status": "PASS"
+    },
+    {
+      "name": "test_hal_display_rotation_270_swaps_dimensions",
+      "status": "PASS"
+    },
+    {
+      "name": "test_hal_display_rotation_0_180_no_swap",
+      "status": "PASS"
+    },
+    {
+      "name": "test_hal_display_multiple_rotations",
+      "status": "PASS"
+    }
+  ]
+}

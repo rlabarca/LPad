@@ -1,0 +1,37 @@
+{
+  "status": "PASS",
+  "tests": [
+    {
+      "name": "test_power_init_is_non_fatal_without_pmu",
+      "status": "PASS"
+    },
+    {
+      "name": "test_charge_level_maps_voltage_to_percentage",
+      "status": "PASS"
+    },
+    {
+      "name": "test_below_minimum_voltage_reports_no_battery",
+      "status": "PASS"
+    },
+    {
+      "name": "test_charge_level_rate_limited_while_charging",
+      "status": "PASS"
+    },
+    {
+      "name": "test_charge_level_frozen_while_discharging",
+      "status": "PASS"
+    },
+    {
+      "name": "test_button_event_is_consume_on_read",
+      "status": "PASS"
+    },
+    {
+      "name": "test_stub_default_state",
+      "status": "PASS"
+    },
+    {
+      "name": "test_stub_test_helper_overrides_charge_level",
+      "status": "PASS"
+    }
+  ]
+}

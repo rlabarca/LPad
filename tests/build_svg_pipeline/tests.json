@@ -1,0 +1,21 @@
+{
+  "status": "PASS",
+  "tests": [
+    {
+      "name": "test_svg_with_valid_paths_generates_output",
+      "status": "PASS"
+    },
+    {
+      "name": "test_coordinates_are_normalized_to_0_1",
+      "status": "PASS"
+    },
+    {
+      "name": "test_paths_without_fill_are_skipped",
+      "status": "PASS"
+    },
+    {
+      "name": "test_no_svg_files_returns_exit_code_1",
+      "status": "PASS"
+    }
+  ]
+}
