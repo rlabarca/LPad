@@ -1,0 +1,12 @@
+{
+  "status": "PASS",
+  "tests": [
+    {"name": "test_scrollable_list_add_items", "status": "PASS"},
+    {"name": "test_scrollable_list_clear", "status": "PASS"},
+    {"name": "test_scrollable_list_scroll_bounds", "status": "PASS"},
+    {"name": "test_scrollable_list_selection", "status": "PASS"},
+    {"name": "test_add_item_returns_sequential_indices", "status": "PASS"},
+    {"name": "test_swipe_up_scrolls_down_by_half_page", "status": "PASS"},
+    {"name": "test_scroll_clamps_to_bottom", "status": "PASS"}
+  ]
+}

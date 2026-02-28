@@ -1,0 +1,13 @@
+{
+  "status": "PASS",
+  "tests": [
+    {"name": "test_app_component_reports_correct_type", "status": "PASS"},
+    {"name": "test_system_component_reports_correct_type", "status": "PASS"},
+    {"name": "test_paused_hidden_component_not_rendered", "status": "PASS"},
+    {"name": "test_transparent_overlay_no_occlusion", "status": "PASS"},
+    {"name": "test_activation_event_pauses_app_wakes_system", "status": "PASS"},
+    {"name": "test_system_pause_hides_menu_resumes_app", "status": "PASS"},
+    {"name": "test_set_active_app_calls_on_run", "status": "PASS"},
+    {"name": "test_switching_app_pauses_previous", "status": "PASS"}
+  ]
+}

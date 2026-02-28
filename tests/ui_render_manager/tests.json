@@ -1,0 +1,29 @@
+{
+  "status": "PASS",
+  "tests": [
+    {"name": "test_register_components_succeed", "status": "PASS"},
+    {"name": "test_duplicate_zorder_fails", "status": "PASS"},
+    {"name": "test_null_registration_fails", "status": "PASS"},
+    {"name": "test_components_sorted_by_zorder", "status": "PASS"},
+    {"name": "test_render_ascending_z_order", "status": "PASS"},
+    {"name": "test_occlusion_by_opaque_fullscreen", "status": "PASS"},
+    {"name": "test_transparent_overlay_no_occlusion", "status": "PASS"},
+    {"name": "test_paused_hidden_component_not_rendered", "status": "PASS"},
+    {"name": "test_set_active_app_calls_on_run", "status": "PASS"},
+    {"name": "test_switching_app_pauses_previous", "status": "PASS"},
+    {"name": "test_activation_event_pauses_app_wakes_system", "status": "PASS"},
+    {"name": "test_system_pause_hides_menu_resumes_app", "status": "PASS"},
+    {"name": "test_input_dispatched_highest_z_first", "status": "PASS"},
+    {"name": "test_input_falls_through_when_not_consumed", "status": "PASS"},
+    {"name": "test_paused_component_skipped_for_input", "status": "PASS"},
+    {"name": "test_activation_event_consumed_no_dispatch", "status": "PASS"},
+    {"name": "test_unregister_removes_component", "status": "PASS"},
+    {"name": "test_unregister_active_app_clears_pointer", "status": "PASS"},
+    {"name": "test_unregister_allows_zorder_reuse", "status": "PASS"},
+    {"name": "test_update_all_calls_visible", "status": "PASS"},
+    {"name": "test_update_skips_paused_app", "status": "PASS"},
+    {"name": "test_update_skips_hidden_system", "status": "PASS"},
+    {"name": "test_app_component_reports_correct_type", "status": "PASS"},
+    {"name": "test_system_component_reports_correct_type", "status": "PASS"}
+  ]
+}

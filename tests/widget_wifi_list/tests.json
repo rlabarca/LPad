@@ -1,0 +1,8 @@
+{
+  "status": "PASS",
+  "tests": [
+    {"name": "test_tap_initiates_connection_attempt", "status": "PASS"},
+    {"name": "test_automatic_fallback_to_last_good_network", "status": "PASS"},
+    {"name": "test_blink_toggles_every_750ms_during_connecting", "status": "PASS"}
+  ]
+}

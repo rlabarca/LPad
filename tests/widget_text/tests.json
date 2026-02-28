@@ -1,0 +1,8 @@
+{
+  "status": "PASS",
+  "tests": [
+    {"name": "test_text_widget_creation", "status": "PASS"},
+    {"name": "test_text_widget_background_fills_cell", "status": "PASS"},
+    {"name": "test_text_widget_underline_draws_below_text", "status": "PASS"}
+  ]
+}
