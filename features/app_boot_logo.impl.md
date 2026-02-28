@@ -22,6 +22,8 @@ Tests live in `test/test_boot_logo_app/test_boot_logo_app.cpp`. Covers all 15 au
 
 **[AUTONOMOUS]** `hal_network_stub_set_ssid()` test helper added to `hal/network_stub.cpp` alongside the existing `hal_network_stub_set_status()`. The stub's `hal_network_get_ssid()` now returns a settable pointer (`g_stub_ssid`) rather than a hard-coded string literal. (Severity: WARN)
 
+**[DEVIATION]** `getStatusText()` no longer returns "No Network Found" when `hal_network_get_status()` returns `HAL_NETWORK_STATUS_ERROR`. Instead, it falls through to "Connecting..." (same as CONNECTING/DISCONNECTED). Spec Section 2.5 defines `HAL_NETWORK_STATUS_ERROR` → "No Network Found", but applying that mapping causes a visible flash of error text when the WiFi task iterates over multiple configured networks: each failed attempt briefly sets HAL status to ERROR before `hal_network_init()` resets it to CONNECTING on the next attempt. The definitive "No Network Found" display is already handled by `setErrorMessage()` → `renderErrorScreen()` (spec Section 2.2: "definitive state transitions... are driven exclusively by the `m_bootComplete` and `m_hasError` volatile flags"). The test for this scenario has been updated to reflect the new behavior. (Severity: HIGH)
+
 ## Infrastructure Added
 
 - `test/mocks/time_series_graph_stub.cpp`: no-op stub implementing all public `TimeSeriesGraph` methods for native builds; added to native_test `build_src_filter`

@@ -364,6 +364,10 @@ void test_status_text_uses_dirty_rect_blitting(void) {
 
 // ---------------------------------------------------------------------------
 // Scenario: Network error displays error text
+// HAL ERROR is treated as "still connecting" to prevent flashing "No Network
+// Found" during multi-network retry loops.  The definitive error display
+// (full-screen "No WiFi Network Found") is driven by setErrorMessage(), not
+// by transient HAL state.  See app_boot_logo.impl.md [DEVIATION].
 // ---------------------------------------------------------------------------
 
 void test_network_error_displays_error_text(void) {
@@ -379,7 +383,9 @@ void test_network_error_displays_error_text(void) {
     TEST_ASSERT_EQUAL(BootLogoApp::AnimState::CONNECTING, boot.getAnimState());
 
     boot.update(0.01f);
-    TEST_ASSERT_EQUAL_STRING("No Network Found", boot.getStatusText());
+    // HAL ERROR keeps showing "Connecting" — not "No Network Found" — so that
+    // a failed first network in a multi-network list does not flash error text.
+    TEST_ASSERT_EQUAL_STRING("Connecting", boot.getStatusText());
 }
 
 // ---------------------------------------------------------------------------

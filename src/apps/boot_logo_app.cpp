@@ -265,9 +265,14 @@ const char* BootLogoApp::getStatusText() const {
                       "Connected to %s", hal_network_get_ssid());
         return m_statusTextBuf;
     }
-    if (status == HAL_NETWORK_STATUS_ERROR) {
-        return "No Network Found";
-    }
+    // HAL_NETWORK_STATUS_ERROR is intentionally treated as "still connecting".
+    // The WiFi task may iterate over multiple configured networks; each failed
+    // attempt briefly sets HAL status to ERROR before the next hal_network_init()
+    // resets it to CONNECTING.  Showing "No Network Found" on transient HAL state
+    // causes a visible flash before the actual network connects.
+    //
+    // Definitive failure ("No Network Found" full-screen) is driven exclusively
+    // by m_hasError / setErrorMessage(), per spec Section 2.2.
     static const char* const dots[4] = {"", ".", "..", "..."};
     std::snprintf(m_statusTextBuf, sizeof(m_statusTextBuf),
                   "Connecting%s", dots[m_ellipsisDots]);
