@@ -12,7 +12,13 @@
 
 ## Test Coverage
 
-Tests live in `test/test_boot_logo_app/test_boot_logo_app.cpp`. Covers all 7 automated scenarios from the spec: null pointer guards, state machine WAIT→ANIMATE→HOLDING→DONE, cross-core error signaling, and one-shot error render. The error-render-once test is a smoke test (renders don't crash; the guard flag `m_errorRendered` prevents redundant draws).
+Tests live in `test/test_boot_logo_app/test_boot_logo_app.cpp`. Covers all 11 automated scenarios from the spec: null pointer guards, state machine WAIT→ANIMATE→CONNECTING→DONE, ellipsis cycling, connected SSID display, early WiFi completion path, cross-core error signaling, and one-shot error render.
+
+**[AUTONOMOUS]** `getStatusText()` public accessor added to `BootLogoApp` to allow state machine text logic to be verified in tests without requiring GFX mock spy infrastructure. The method builds the same string that `renderStatusText()` would display, using a `mutable char m_statusTextBuf[64]` member. (Severity: WARN)
+
+**[AUTONOMOUS]** `eraseStatusText()` is called directly from `update()` at the CONNECTING→DONE transition boundary (rather than deferring to the next `render()` call). This is intentional: by the time `render()` runs after the state transition, the active state is DONE, so a render()-based approach would need additional flags. The direct call from update() mirrors the one-time nature of the pre-DONE text wipe. (Severity: WARN)
+
+**[AUTONOMOUS]** `hal_network_stub_set_ssid()` test helper added to `hal/network_stub.cpp` alongside the existing `hal_network_stub_set_status()`. The stub's `hal_network_get_ssid()` now returns a settable pointer (`g_stub_ssid`) rather than a hard-coded string literal. (Severity: WARN)
 
 ## Infrastructure Added
 

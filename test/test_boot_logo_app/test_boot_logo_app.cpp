@@ -6,18 +6,27 @@
  * - Begin rejects null pointers
  * - State starts at WAIT
  * - WAIT transitions to ANIMATE after 2 seconds
- * - ANIMATE transitions to HOLDING when complete
- * - HOLDING transitions to DONE on boot complete signal
+ * - ANIMATE transitions to CONNECTING when complete
+ * - CONNECTING transitions to DONE after connected hold time
  * - Error state takes priority over all other states
  * - Error message renders once
+ * - Ellipsis animation cycles during CONNECTING
+ * - Connected SSID displayed on boot complete
+ * - Early WiFi completion skips ellipsis
  */
 
 #include <unity.h>
+#include <cstring>
 #include "apps/boot_logo_app.h"
 #include "ui/ui_render_manager.h"
 #include "relative_display.h"
 #include "../hal/display.h"
+#include "../hal/network.h"
 #include <Arduino_GFX_Library.h>
+
+// Test helpers from network stub (only available in UNIT_TEST builds)
+extern void hal_network_stub_set_status(hal_network_status_t status);
+extern void hal_network_stub_set_ssid(const char* ssid);
 
 // ---------------------------------------------------------------------------
 // Mock classes
@@ -53,6 +62,8 @@ static RelativeDisplay* g_display = nullptr;
 void setUp(void) {
     hal_display_init();
     UIRenderManager::getInstance().reset();
+    hal_network_stub_set_status(HAL_NETWORK_STATUS_DISCONNECTED);
+    hal_network_stub_set_ssid("Demo WiFi");
     g_gfx = new MockGFX();
     g_display = new RelativeDisplay(g_gfx, 320, 170);
     g_display->init();
@@ -113,10 +124,10 @@ void test_wait_transitions_to_animate_after_2s(void) {
 }
 
 // ---------------------------------------------------------------------------
-// Scenario: ANIMATE transitions to HOLDING when complete
+// Scenario: ANIMATE transitions to CONNECTING when complete
 // ---------------------------------------------------------------------------
 
-void test_animate_transitions_to_holding_when_complete(void) {
+void test_animate_transitions_to_connecting_when_complete(void) {
     MockApp nextApp;
     BootLogoApp boot;
     boot.begin(g_display, &nextApp);
@@ -125,15 +136,15 @@ void test_animate_transitions_to_holding_when_complete(void) {
     boot.update(2.1f);  // WAIT -> ANIMATE
     TEST_ASSERT_EQUAL(BootLogoApp::AnimState::ANIMATE, boot.getAnimState());
 
-    boot.update(1.6f);  // Exceed 1.5s animation -> HOLDING
-    TEST_ASSERT_EQUAL(BootLogoApp::AnimState::HOLDING, boot.getAnimState());
+    boot.update(1.6f);  // Exceed 1.5s animation -> CONNECTING
+    TEST_ASSERT_EQUAL(BootLogoApp::AnimState::CONNECTING, boot.getAnimState());
 }
 
 // ---------------------------------------------------------------------------
-// Scenario: HOLDING transitions to DONE on boot complete signal
+// Scenario: CONNECTING transitions to DONE after connected hold time
 // ---------------------------------------------------------------------------
 
-void test_holding_transitions_to_done_on_boot_complete(void) {
+void test_connecting_transitions_to_done_after_hold_time(void) {
     MockApp nextApp;
     UIRenderManager::getInstance().registerComponent(&nextApp, 99);
 
@@ -142,15 +153,19 @@ void test_holding_transitions_to_done_on_boot_complete(void) {
     boot.onRun();
 
     boot.update(2.1f);  // -> ANIMATE
-    boot.update(1.6f);  // -> HOLDING
-    TEST_ASSERT_EQUAL(BootLogoApp::AnimState::HOLDING, boot.getAnimState());
+    boot.update(1.6f);  // -> CONNECTING
+    TEST_ASSERT_EQUAL(BootLogoApp::AnimState::CONNECTING, boot.getAnimState());
 
+    // Signal boot complete — starts connected hold
     boot.setBootComplete();
-    boot.update(0.01f);  // HOLDING -> m_state = DONE
+    boot.update(0.01f);
+    TEST_ASSERT_EQUAL(BootLogoApp::AnimState::CONNECTING, boot.getAnimState());  // still holding
+
+    // Advance past 1.5s hold -> DONE
+    boot.update(1.5f);
     TEST_ASSERT_EQUAL(BootLogoApp::AnimState::DONE, boot.getAnimState());
 
     boot.update(0.01f);  // DONE handler: setActiveApp + m_transitioned = true
-    // Active app should now be nextApp
     TEST_ASSERT_EQUAL_PTR(&nextApp, UIRenderManager::getInstance().getActiveApp());
 }
 
@@ -194,6 +209,91 @@ void test_error_message_renders_once(void) {
 }
 
 // ---------------------------------------------------------------------------
+// Scenario: Ellipsis animation cycles during CONNECTING
+// ---------------------------------------------------------------------------
+
+void test_ellipsis_animation_cycles_during_connecting(void) {
+    hal_network_stub_set_status(HAL_NETWORK_STATUS_CONNECTING);
+
+    MockApp nextApp;
+    BootLogoApp boot;
+    boot.begin(g_display, &nextApp);
+    boot.onRun();
+
+    boot.update(2.1f);  // WAIT -> ANIMATE
+    boot.update(1.6f);  // ANIMATE -> CONNECTING
+    TEST_ASSERT_EQUAL(BootLogoApp::AnimState::CONNECTING, boot.getAnimState());
+
+    // Entry: 0 dots
+    TEST_ASSERT_EQUAL_STRING("Connecting", boot.getStatusText());
+
+    // ~400ms per step cycles 0→1→2→3→0
+    boot.update(0.4f);
+    TEST_ASSERT_EQUAL_STRING("Connecting.", boot.getStatusText());
+
+    boot.update(0.4f);
+    TEST_ASSERT_EQUAL_STRING("Connecting..", boot.getStatusText());
+
+    boot.update(0.4f);
+    TEST_ASSERT_EQUAL_STRING("Connecting...", boot.getStatusText());
+
+    boot.update(0.4f);
+    TEST_ASSERT_EQUAL_STRING("Connecting", boot.getStatusText());
+}
+
+// ---------------------------------------------------------------------------
+// Scenario: Connected SSID displayed on boot complete
+// ---------------------------------------------------------------------------
+
+void test_connected_ssid_displayed_on_boot_complete(void) {
+    hal_network_stub_set_status(HAL_NETWORK_STATUS_CONNECTING);
+    hal_network_stub_set_ssid("MyNetwork");
+
+    MockApp nextApp;
+    BootLogoApp boot;
+    boot.begin(g_display, &nextApp);
+    boot.onRun();
+
+    boot.update(2.1f);  // WAIT -> ANIMATE
+    boot.update(1.6f);  // ANIMATE -> CONNECTING
+    TEST_ASSERT_EQUAL(BootLogoApp::AnimState::CONNECTING, boot.getAnimState());
+
+    boot.setBootComplete();
+    boot.update(0.01f);
+
+    TEST_ASSERT_EQUAL_STRING("Connected to MyNetwork", boot.getStatusText());
+}
+
+// ---------------------------------------------------------------------------
+// Scenario: Early WiFi completion skips ellipsis
+// ---------------------------------------------------------------------------
+
+void test_early_wifi_completion_skips_ellipsis(void) {
+    hal_network_stub_set_ssid("MyNetwork");
+
+    MockApp nextApp;
+    BootLogoApp boot;
+    boot.begin(g_display, &nextApp);
+    boot.onRun();
+
+    // Advance to ANIMATE
+    boot.update(2.1f);
+    TEST_ASSERT_EQUAL(BootLogoApp::AnimState::ANIMATE, boot.getAnimState());
+
+    // Boot complete fires during ANIMATE (early completion)
+    boot.setBootComplete();
+
+    // Complete animation -> CONNECTING
+    boot.update(1.6f);
+    TEST_ASSERT_EQUAL(BootLogoApp::AnimState::CONNECTING, boot.getAnimState());
+
+    // First CONNECTING tick must immediately show "Connected to" — no ellipsis
+    boot.update(0.01f);
+    const char* text = boot.getStatusText();
+    TEST_ASSERT_NOT_NULL(strstr(text, "Connected to"));
+}
+
+// ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 
@@ -204,10 +304,13 @@ int main(int argc, char** argv) {
     RUN_TEST(test_begin_rejects_null_next_app);
     RUN_TEST(test_state_starts_at_wait_after_onrun);
     RUN_TEST(test_wait_transitions_to_animate_after_2s);
-    RUN_TEST(test_animate_transitions_to_holding_when_complete);
-    RUN_TEST(test_holding_transitions_to_done_on_boot_complete);
+    RUN_TEST(test_animate_transitions_to_connecting_when_complete);
+    RUN_TEST(test_connecting_transitions_to_done_after_hold_time);
     RUN_TEST(test_error_state_takes_priority_over_all);
     RUN_TEST(test_error_message_renders_once);
+    RUN_TEST(test_ellipsis_animation_cycles_during_connecting);
+    RUN_TEST(test_connected_ssid_displayed_on_boot_complete);
+    RUN_TEST(test_early_wifi_completion_skips_ellipsis);
 
     return UNITY_END();
 }

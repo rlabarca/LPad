@@ -18,7 +18,7 @@ class UIRenderManager;
 
 class BootLogoApp : public AppComponent {
 public:
-    enum class AnimState { WAIT, ANIMATE, HOLDING, DONE, ERROR };
+    enum class AnimState { WAIT, ANIMATE, CONNECTING, DONE, ERROR };
 
     BootLogoApp();
     ~BootLogoApp();
@@ -42,7 +42,7 @@ public:
     bool isOpaque() const override { return true; }
     bool isFullscreen() const override { return true; }
 
-    /** Signal that boot completed successfully — transitions HOLDING → DONE. */
+    /** Signal that boot completed successfully — transitions CONNECTING → DONE. */
     void setBootComplete();
 
     /** Report a fatal error — stops animation, displays message centered. */
@@ -51,6 +51,9 @@ public:
     /** Returns current animation state (for unit testing). */
     AnimState getAnimState() const { return m_state; }
 
+    /** Returns current status text for CONNECTING state (for unit testing). */
+    const char* getStatusText() const;
+
 private:
     // Cross-core signaling (written by WiFi task on Core 0, read by update/render on Core 1)
     volatile bool m_bootComplete;
@@ -58,7 +61,17 @@ private:
     const char* volatile m_errorMessage;
     bool m_errorRendered;
 
+    // CONNECTING state
+    float m_ellipsisTimer;       // Time accumulator for dot animation
+    int   m_ellipsisDots;        // Current dot count (0-3)
+    float m_connectedHoldTimer;  // Timer for "Connected to <SSID>" hold
+    bool  m_showingConnected;    // True when displaying connected message
+
+    mutable char m_statusTextBuf[64];  // Buffer for getStatusText() (mutable for const accessor)
+
     void renderErrorScreen();
+    void renderStatusText();
+    void eraseStatusText();
     RelativeDisplay* m_display;
     AppComponent* m_nextApp;
     SystemComponent* m_miniLogo;
@@ -83,6 +96,8 @@ private:
     // Timing
     static constexpr float WAIT_DURATION = 2.0f;
     static constexpr float ANIMATE_DURATION = 1.5f;
+    static constexpr float CONNECTED_HOLD_DURATION = 1.5f;
+    static constexpr float ELLIPSIS_STEP_DURATION = 0.4f;
 
     // Start state: centered, 75% of screen height
     static constexpr float START_HEIGHT_PERCENT = 75.0f;

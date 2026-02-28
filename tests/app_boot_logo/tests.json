@@ -5,9 +5,12 @@
     {"name": "test_begin_rejects_null_next_app", "status": "PASS"},
     {"name": "test_state_starts_at_wait_after_onrun", "status": "PASS"},
     {"name": "test_wait_transitions_to_animate_after_2s", "status": "PASS"},
-    {"name": "test_animate_transitions_to_holding_when_complete", "status": "PASS"},
-    {"name": "test_holding_transitions_to_done_on_boot_complete", "status": "PASS"},
+    {"name": "test_animate_transitions_to_connecting_when_complete", "status": "PASS"},
+    {"name": "test_connecting_transitions_to_done_after_hold_time", "status": "PASS"},
     {"name": "test_error_state_takes_priority_over_all", "status": "PASS"},
-    {"name": "test_error_message_renders_once", "status": "PASS"}
+    {"name": "test_error_message_renders_once", "status": "PASS"},
+    {"name": "test_ellipsis_animation_cycles_during_connecting", "status": "PASS"},
+    {"name": "test_connected_ssid_displayed_on_boot_complete", "status": "PASS"},
+    {"name": "test_early_wifi_completion_skips_ellipsis", "status": "PASS"}
   ]
 }
