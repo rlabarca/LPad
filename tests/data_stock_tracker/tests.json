@@ -1,0 +1,17 @@
+{
+  "status": "PASS",
+  "tests": [
+    {
+      "name": "test_stock_tracker_instantiation",
+      "status": "PASS"
+    },
+    {
+      "name": "test_stock_tracker_data_series",
+      "status": "PASS"
+    },
+    {
+      "name": "test_stock_tracker_start_stop",
+      "status": "PASS"
+    }
+  ]
+}
