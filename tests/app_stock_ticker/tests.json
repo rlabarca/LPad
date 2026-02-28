@@ -1,0 +1,11 @@
+{
+  "status": "PASS",
+  "tests": [
+    {"name": "test_begin_creates_tracker_and_graph", "status": "PASS"},
+    {"name": "test_status_screen_shown_when_waiting_with_no_data", "status": "PASS"},
+    {"name": "test_non_trading_hours_always_shown", "status": "PASS"},
+    {"name": "test_graph_renders_when_data_available", "status": "PASS"},
+    {"name": "test_pause_stops_tracker_before_wifi_teardown", "status": "PASS"},
+    {"name": "test_unpause_forces_full_redraw", "status": "PASS"}
+  ]
+}
