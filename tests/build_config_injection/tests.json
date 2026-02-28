@@ -1,0 +1,25 @@
+{
+  "status": "PASS",
+  "tests": [
+    {
+      "name": "test_multi_wifi_config_generates_correct_header",
+      "status": "PASS"
+    },
+    {
+      "name": "test_legacy_format_is_supported",
+      "status": "PASS"
+    },
+    {
+      "name": "test_missing_config_falls_back_to_demo_mode",
+      "status": "PASS"
+    },
+    {
+      "name": "test_special_characters_are_escaped",
+      "status": "PASS"
+    },
+    {
+      "name": "test_idempotent_write_prevents_rebuild",
+      "status": "PASS"
+    }
+  ]
+}
