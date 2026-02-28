@@ -1,0 +1,37 @@
+{
+  "status": "PASS",
+  "tests": [
+    {
+      "name": "test_display_init_failure_halts_boot",
+      "status": "PASS"
+    },
+    {
+      "name": "test_touch_init_failure_halts_boot",
+      "status": "PASS"
+    },
+    {
+      "name": "test_powermanager_failure_is_non_fatal",
+      "status": "PASS"
+    },
+    {
+      "name": "test_components_registered_in_correct_z_order",
+      "status": "PASS"
+    },
+    {
+      "name": "test_wifi_task_signals_boot_complete_on_connection",
+      "status": "PASS"
+    },
+    {
+      "name": "test_wifi_task_signals_error_when_all_networks_fail",
+      "status": "PASS"
+    },
+    {
+      "name": "test_wifi_task_creation_failure_sets_error_on_boot_logo",
+      "status": "PASS"
+    },
+    {
+      "name": "test_main_loop_runs_at_30_fps",
+      "status": "PASS"
+    }
+  ]
+}

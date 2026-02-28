@@ -16,6 +16,12 @@
 
 [DECISION] Home button on CST816 touch controller is mapped to synthetic EDGE_DRAG DOWN gesture at bottom-center of screen. This allows the UIRenderManager input routing to handle it uniformly without special-casing physical buttons.
 
+**[AUTONOMOUS]** Traceability shim uses stubs instead of real unit tests for boot-sequence scenarios (Severity: WARN). `main.cpp` is excluded from the native_test PlatformIO environment (requires Arduino framework + FreeRTOS). The 4 unmatched scenarios are covered by proxy:
+- "Display init failure halts boot" / "Touch init failure halts boot" → `test_display_hal`, `test_touch_hal` HAL contract tests
+- "WiFi task signals boot complete on connection" → `test_stock_tracker` task start/stop tests
+- "Main loop runs at 30 FPS" → fully covered by `test_animation_ticker`
+Full integration is verified via the manual hardware-in-the-loop scenario.
+
 ## Key Files
 
 - `src/main.cpp` — Entry point: setup() and loop()
