@@ -1,0 +1,29 @@
+{
+  "status": "PASS",
+  "tests": [
+    {
+      "name": "test_add_points_up_to_capacity",
+      "status": "PASS"
+    },
+    {
+      "name": "test_fifo_eviction_when_full",
+      "status": "PASS"
+    },
+    {
+      "name": "test_min_max_tracks_current_values",
+      "status": "PASS"
+    },
+    {
+      "name": "test_min_max_recalculates_on_eviction_of_extreme",
+      "status": "PASS"
+    },
+    {
+      "name": "test_graph_data_snapshot_is_chronological",
+      "status": "PASS"
+    },
+    {
+      "name": "test_clear_resets_all_state",
+      "status": "PASS"
+    }
+  ]
+}
