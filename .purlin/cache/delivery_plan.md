@@ -31,9 +31,9 @@
 **Completion Commit:** a3f8085
 **QA Bugs Addressed:** --
 
-## Phase 6 -- Applications [PENDING]
+## Phase 6 -- Applications [COMPLETE]
 **Features:** app_boot_logo.md, app_stock_ticker.md
-**Completion Commit:** --
+**Completion Commit:** 7a1ec3e
 **QA Bugs Addressed:** --
 
 ## Plan Amendments
