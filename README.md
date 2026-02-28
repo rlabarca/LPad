@@ -130,6 +130,8 @@ Starting with v0.76, the agentic framework was extracted into its own project --
 | :--- | :--- |
 | **v0.76** | Completely regenerated feature tree using Purlin. 6 anchor nodes, 31 feature specs, and companion files covering the full firmware surface -- HAL, UI framework, applications, data layer, system components, theme system, input, rendering, build pipelines, developer tools, and boot sequence. |
 
+The v0.76 feature tree was generated from scratch using Purlin's `/pl-spec-from-code` skill, which reverse-engineers a complete specification system from existing source code. The original feature map from the coupled-era releases was not referenced. The entire 19,000+ line C/C++ codebase was analyzed and decomposed into anchor nodes, feature specs with Gherkin scenarios, and companion implementation notes -- proving that a full spec-driven design can be produced for Purlin from complex existing code without prior specifications.
+
 ---
 
 ## Setup
