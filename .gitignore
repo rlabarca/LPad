@@ -24,6 +24,7 @@ compile_commands.json
 test/output/
 config.json
 src/wifi_config_generated.h
+src/generated/lpad_version.h
 
 # Python
 __pycache__/

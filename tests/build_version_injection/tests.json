@@ -1,0 +1,25 @@
+{
+  "status": "PASS",
+  "tests": [
+    {
+      "name": "test_missing_version_falls_back_to_unknown",
+      "status": "PASS"
+    },
+    {
+      "name": "test_generated_header_contains_correct_define",
+      "status": "PASS"
+    },
+    {
+      "name": "test_idempotent_write_does_not_rewrite_unchanged_header",
+      "status": "PASS"
+    },
+    {
+      "name": "test_lpad_version_macro_expands_in_application_code",
+      "status": "PASS"
+    },
+    {
+      "name": "test_startup_banner_uses_version_macro",
+      "status": "PASS"
+    }
+  ]
+}
