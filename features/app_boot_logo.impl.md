@@ -8,7 +8,7 @@
 
 **[AUTONOMOUS]** The HOLDING→DONE transition requires two `update()` ticks: the first tick transitions `m_state` to DONE, the second tick executes the DONE handler (calls `UIRenderManager::setActiveApp` and sets `m_transitioned = true`). This two-tick design means the app is observable in DONE state before the UIRenderManager side-effect fires. (Severity: INFO)
 
-**[DISCOVERY]** `StockTracker::notifyResume()` was defined only inside `#ifdef ARDUINO` in `stock_tracker.cpp`, leaving it undefined on native when `stock_ticker_app.cpp` was added to the native build. A `#ifndef ARDUINO` no-op stub was added to `stock_tracker.cpp`. The data_stock_tracker spec should be updated to clarify native build behavior of this method. (Severity: HIGH)
+**[DISCOVERY]** `StockTracker::notifyResume()` was defined only inside `#ifdef ARDUINO` in `stock_tracker.cpp`, leaving it undefined on native when `stock_ticker_app.cpp` was added to the native build. A `#ifndef ARDUINO` no-op stub was added to `stock_tracker.cpp`. The data_stock_tracker spec should be updated to clarify native build behavior of this method. (Severity: HIGH) Acknowledged. Native no-op stubs for platform-specific APIs (FreeRTOS, Arduino) are test infrastructure decisions, not behavioral spec concerns. The data_stock_tracker spec correctly describes target-platform behavior; no spec change needed.
 
 ## Test Coverage
 
