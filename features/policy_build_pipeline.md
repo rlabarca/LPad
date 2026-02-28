@@ -27,6 +27,7 @@ Defines the build and code generation policies for the LPad firmware project. Th
 - **SVG Pipeline** (`scripts/process_svgs.py`): Converts `assets/*.svg` to triangulated C++ mesh data in `src/generated/vector_assets.h/.cpp`. Generated files ARE committed. Re-run only when SVG source assets change.
 - **Font Pipeline** (`scripts/generate_theme_fonts.sh`): Converts TTF/OTF fonts to GFX-compatible C headers in `src/themes/default/fonts/`. Generated files ARE committed. Re-run only when font source files change.
 - **Config Pipeline** (`scripts/inject_config.py`): Generates `src/wifi_config_generated.h` at every build. Generated file is NOT committed (gitignored).
+- **Version Pipeline** (`scripts/inject_version.py`): Generates `src/generated/lpad_version.h` at every build. Generated file is NOT committed (gitignored). Registered in all three environments (including `native_test`).
 
 ### Test Framework
 

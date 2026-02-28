@@ -35,6 +35,7 @@ The config injection system is a PlatformIO pre-build hook (`scripts/inject_conf
 
 - Registered as `extra_scripts = pre:scripts/inject_config.py` in `platformio.ini` for embedded environments only (not `native_test`).
 - Uses PlatformIO `Import("env")` SCons API; cannot be run standalone.
+- A sibling pre-build hook (`scripts/inject_version.py`) is registered alongside this script in hardware environments. See `features/build_version_injection.md` for details.
 
 ---
 
