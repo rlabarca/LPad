@@ -26,10 +26,12 @@ Defines the display rendering pipeline constraints for LPad firmware. All visual
 - Multi-layer rendering (e.g., TimeSeriesGraph's background/data/main layers) composites canvases using `hal_display_fast_blit()` or `hal_display_fast_blit_transparent()`.
 - Blit operations MUST use DMA transfer. Pixel-by-pixel loops are prohibited for canvas-to-display transfers.
 
-### Tear Prevention
+### Tear Prevention and Dirty-Rect Animation
 
 - Any rendering that updates a region where the previous frame's content must be fully replaced MUST use atomic blit (single DMA transfer covering both old and new regions).
-- Dirty-rect tracking is used to minimize redraw area (e.g., BootLogoApp tracks previous logo bounding box).
+- All animated content (moving sprites, pulsing indicators, cycling text) MUST use dirty-rect blitting: track the previous frame's bounding box, compute the union of old and new bounding boxes, composite the updated region into a temporary canvas, and DMA blit the result as a single atomic operation.
+- Direct draw-erase-redraw sequences on the live display are PROHIBITED for animated content -- they cause visible flicker on the AMOLED panels.
+- Features that render animated content MUST declare `> Prerequisite: features/arch_display_pipeline.md` and follow this dirty-rect pattern.
 
 ### Shadow Framebuffer
 

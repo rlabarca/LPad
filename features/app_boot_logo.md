@@ -44,12 +44,14 @@ The BootLogoApp is an AppComponent (Z=5) that plays a one-time boot animation on
 - Bounding box includes 2px padding on all sides for triangle rasterization rounding.
 - Error screen: solid background + centered error message using theme normal font.
 - Status text (CONNECTING state):
-  - Font: `theme->fonts.normal` (12pt).
+  - Font: `theme->fonts.normal` (12pt proportional sans-serif).
   - "Connecting..." color: `theme->colors.text_main` (Khaki).
   - "Connected to \<SSID\>" color: `theme->colors.text_main` (Khaki).
   - "No Network Found" (on error) color: `theme->colors.text_error` (red).
-  - Text horizontally and vertically centered on screen.
-  - Ellipsis erasure uses max-width bounding box (width of "Connecting...") to prevent residual dot pixels when the dot count decreases.
+  - Text vertically centered on screen.
+  - Horizontal positioning: the x-origin is pre-computed by measuring the max-width string ("Connecting...") and centering that bounding box. All ellipsis variants ("Connecting", "Connecting.", "Connecting..", "Connecting...") are left-aligned from that same x-origin. The base text never shifts; dots only appear/disappear on the right edge. This avoids re-centering jitter with the proportional font.
+  - Text updates MUST use dirty-rect blitting per `arch_display_pipeline.md` Tear Prevention: the previous frame's text bounding box is tracked, the union of old and new bounds is composited into a temporary canvas, and the result is DMA-blitted as a single atomic operation. Direct draw-erase-redraw on the live display is prohibited.
+  - The dirty-rect bounding box uses the max-width measurement ("Connecting...") as a fixed width, ensuring dot removal never leaves residual pixels.
   - Before DONE transition: text area erased with solid `theme->colors.background` fill to leave a clean screen for the next app.
 
 ### 2.4 Component Properties
@@ -127,6 +129,22 @@ The BootLogoApp is an AppComponent (Z=5) that plays a one-time boot animation on
     When update is called repeatedly at ~400ms intervals
     Then the displayed text cycles through "Connecting", "Connecting.", "Connecting..", "Connecting..."
 
+#### Scenario: Ellipsis text does not shift horizontally during animation
+
+    Given the state is CONNECTING
+    And the ellipsis animation is cycling
+    When the dot count changes between frames
+    Then the "Connecting" base text x-position remains constant
+    And only dots appear or disappear on the right edge
+
+#### Scenario: Status text uses dirty-rect blitting
+
+    Given the state is CONNECTING
+    When the status text changes between frames
+    Then the previous text bounding box and new text bounding box are unioned
+    And the union region is composited into a temporary canvas
+    And the canvas is DMA-blitted as a single atomic operation
+
 #### Scenario: Connected SSID displayed on boot complete
 
     Given the state is CONNECTING
@@ -173,7 +191,9 @@ The BootLogoApp is an AppComponent (Z=5) that plays a one-time boot animation on
     Given the device is powered on from cold state with valid WiFi credentials
     Then the LPad logo appears centered on screen for 2 seconds
     And it smoothly shrinks and moves to the top-right corner
-    And "Connecting..." text with animated dots appears centered on screen
+    And "Connecting..." text with animated dots appears on screen
+    And the base "Connecting" text stays fixed while dots animate on the right
+    And no flickering or tearing is visible during any text transition
     And once WiFi connects, the text changes to "Connected to <SSID>"
     And after a brief hold the stock chart appears
 
