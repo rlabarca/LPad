@@ -1,0 +1,37 @@
+{
+  "status": "PASS",
+  "tests": [
+    {
+      "name": "test_quick_tap_produces_tap_event",
+      "status": "PASS"
+    },
+    {
+      "name": "test_hold_for_500ms_produces_hold_event",
+      "status": "PASS"
+    },
+    {
+      "name": "test_movement_during_hold_produces_hold_drag",
+      "status": "PASS"
+    },
+    {
+      "name": "test_fast_swipe_produces_swipe_event",
+      "status": "PASS"
+    },
+    {
+      "name": "test_edge_drag_from_top_produces_edge_drag_up",
+      "status": "PASS"
+    },
+    {
+      "name": "test_small_movement_on_release_produces_tap_not_swipe",
+      "status": "PASS"
+    },
+    {
+      "name": "test_axis_aware_thresholds_use_correct_dimension",
+      "status": "PASS"
+    },
+    {
+      "name": "test_custom_edge_zones_override_defaults",
+      "status": "PASS"
+    }
+  ]
+}
