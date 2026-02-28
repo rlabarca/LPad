@@ -1,0 +1,53 @@
+{
+  "status": "PASS",
+  "tests": [
+    {
+      "name": "test_relative_to_absolute_x",
+      "status": "PASS"
+    },
+    {
+      "name": "test_relative_to_absolute_y",
+      "status": "PASS"
+    },
+    {
+      "name": "test_relative_to_absolute_width",
+      "status": "PASS"
+    },
+    {
+      "name": "test_relative_to_absolute_height",
+      "status": "PASS"
+    },
+    {
+      "name": "test_draw_pixel",
+      "status": "PASS"
+    },
+    {
+      "name": "test_draw_horizontal_line",
+      "status": "PASS"
+    },
+    {
+      "name": "test_draw_vertical_line",
+      "status": "PASS"
+    },
+    {
+      "name": "test_fill_rect_scenario",
+      "status": "PASS"
+    },
+    {
+      "name": "test_get_gfx",
+      "status": "PASS"
+    },
+    {
+      "name": "test_non_square_surface",
+      "status": "PASS"
+    },
+    {
+      "name": "test_draw_solid_background",
+      "status": "PASS"
+    },
+    {
+      "name": "test_c_style_solid_background",
+      "status": "PASS"
+    }
+  ]
+}
