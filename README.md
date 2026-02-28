@@ -128,9 +128,21 @@ Starting with v0.76, the agentic framework was extracted into its own project --
 
 | Release | Changes |
 | :--- | :--- |
-| **v0.76** | Completely regenerated feature tree using Purlin. 6 anchor nodes, 31 feature specs, and companion files covering the full firmware surface -- HAL, UI framework, applications, data layer, system components, theme system, input, rendering, build pipelines, developer tools, and boot sequence. |
+| **v0.76** | Full Purlin-driven spec generation, implementation, and verification cycle. See details below. |
 
-The v0.76 feature tree was generated from scratch using Purlin's `/pl-spec-from-code` skill, which reverse-engineers a complete specification system from existing source code. The original feature map from the coupled-era releases was not referenced. The entire 19,000+ line C/C++ codebase was analyzed and decomposed into anchor nodes, feature specs with Gherkin scenarios, and companion implementation notes -- proving that a full spec-driven design can be produced for Purlin from complex existing code without prior specifications.
+**Spec Generation.** The v0.76 feature tree was generated from scratch using Purlin's `/pl-spec-from-code` skill, which reverse-engineers a complete specification system from existing source code. The original feature map from the coupled-era releases was not referenced. The entire 19,000+ line C/C++ codebase was analyzed and decomposed into 6 anchor nodes, 32 feature specs with Gherkin scenarios, and companion implementation notes -- proving that a full spec-driven design can be produced from complex existing code without prior specifications.
+
+**Implementation.** All 32 feature specs were implemented across a 6-phase Builder delivery plan with automated tests and traceability shims covering: HAL (display, touch, network, power, timer), UI framework (render manager, component model, widget system), data layer (time series, stock tracker), system components (power manager, mini logo, system menu), rendering (vector, time series graph, live indicator), input (gesture engine), themes (manager, default theme), widgets (text, scrollable list, WiFi list), build pipelines (config injection, SVG-to-C++, font compilation, version injection), developer tools (screenshot, test runner), and boot sequence.
+
+**Features.**
+- Build version injection: firmware version defined once in `platformio.ini`, compiled into `LPAD_VERSION` macro -- eliminates hardcoded version strings across the codebase
+- Boot logo CONNECTING state with WiFi visual feedback and dirty-rect blitting for flicker-free status text updates
+- Architectural mandate: dirty-rect blitting required for all animated content (display pipeline policy)
+- HTTP response buffer increased to 64KB for stock data reliability
+
+**Known Issues.**
+- Suspend mode is still a little unreliable turning on the touch driver when woken up.
+- Battery level is sometimes inaccurate, though this may be the battery itself rather than the firmware.
 
 ---
 
