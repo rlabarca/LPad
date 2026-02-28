@@ -292,6 +292,11 @@ void BootLogoApp::renderStatusText() {
     Arduino_GFX* gfx = m_display->getGfx();
     gfx->setFont(static_cast<const GFXfont*>(theme->fonts.normal));
 
+    // Snapshot old region before any recompute — used to union-blit on transition
+    // so pixels from the previous text phase are atomically cleared.
+    int16_t oldX = m_textRegionX, oldY = m_textRegionY;
+    int16_t oldW = m_textRegionW, oldH = m_textRegionH;
+
     // Lazily compute the fixed text region for the current phase:
     // - Ellipsis phase: sized from "Connecting..." (widest variant) so cursor
     //   is stable as dots appear/disappear on the right edge.
@@ -313,10 +318,24 @@ void BootLogoApp::renderStatusText() {
 
     if (m_textRegionW <= 0 || m_textRegionH <= 0) return;
 
+    // Compute the blit region as the union of old and new text regions so that
+    // any pixels from the previous phase that fall outside the new region are
+    // covered in the same atomic blit (no separate erase pass needed).
+    int16_t blitX = m_textRegionX, blitY = m_textRegionY;
+    int16_t blitW = m_textRegionW, blitH = m_textRegionH;
+    if (oldW > 0 && oldH > 0) {
+        int16_t x1 = (oldX < blitX) ? oldX : blitX;
+        int16_t y1 = (oldY < blitY) ? oldY : blitY;
+        int16_t x2 = (oldX + oldW > blitX + blitW) ? oldX + oldW : blitX + blitW;
+        int16_t y2 = (oldY + oldH > blitY + blitH) ? oldY + oldH : blitY + blitH;
+        blitX = x1; blitY = y1;
+        blitW = x2 - x1; blitH = y2 - y1;
+    }
+
     // Dirty-rect atomic blit: composite erase + draw into a temporary canvas,
     // then DMA-transfer as a single operation. Direct draw-erase-redraw on the
     // live display is prohibited (causes visible flicker on AMOLED panels).
-    hal_canvas_handle_t canvas = hal_display_canvas_create(m_textRegionW, m_textRegionH);
+    hal_canvas_handle_t canvas = hal_display_canvas_create(blitW, blitH);
     if (canvas == nullptr) return;
 
     hal_display_canvas_fill(canvas, theme->colors.background);
@@ -328,14 +347,14 @@ void BootLogoApp::renderStatusText() {
         uint16_t textColor = isError ? theme->colors.text_error : theme->colors.text_main;
         canvasPtr->setFont(static_cast<const GFXfont*>(theme->fonts.normal));
         canvasPtr->setTextColor(textColor);
-        // Left-align from fixed anchor within canvas coordinate space
-        canvasPtr->setCursor(m_textCursorX - m_textRegionX, m_textCursorY - m_textRegionY);
+        // Cursor relative to the union-canvas origin
+        canvasPtr->setCursor(m_textCursorX - blitX, m_textCursorY - blitY);
         canvasPtr->print(text);
     }
 
     uint16_t* fb = canvasPtr->getFramebuffer();
     if (fb) {
-        hal_display_fast_blit(m_textRegionX, m_textRegionY, m_textRegionW, m_textRegionH, fb);
+        hal_display_fast_blit(blitX, blitY, blitW, blitH, fb);
     }
     hal_display_canvas_delete(canvas);
 }
