@@ -11,7 +11,9 @@
 ![LilyGo T-Display-S3 AMOLED Plus](LilyGoT-Display-S3AMOLEDPlus.png)
 ![Waveshare ESP32-S3 1.8 AMOLED Touch](WaveshareESP32S31.png)
 
-[![LPad Demo Video](https://img.youtube.com/vi/8cr3_0OWj2Y/0.jpg)](https://youtu.be/8cr3_0OWj2Y?si=1SI9OahUr7sLORb3)
+[![▶ Watch the LPad Demo](https://img.youtube.com/vi/8cr3_0OWj2Y/hqdefault.jpg)](https://youtu.be/8cr3_0OWj2Y?si=1SI9OahUr7sLORb3)
+
+<p align="center"><em>▶ Watch the demo video</em></p>
 
 **LPad** (Lab Pad) is an experimental ESP32 project that serves as a proving ground for **agentic embedded development** -- building real firmware through AI agent collaboration guided by living specifications.
 
