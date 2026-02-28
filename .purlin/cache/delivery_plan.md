@@ -6,12 +6,12 @@
 ## Summary
 37 features spanning HAL, data layer, UI framework, rendering, system components, and applications all require tests.json generation, traceability gap closure, and status commits. Phased across 6 sessions to manage context and produce a testable state after each layer.
 
-## Phase 1 -- Anchor Nodes [IN_PROGRESS]
+## Phase 1 -- Anchor Nodes [COMPLETE]
 **Features:** arch_component_model.md, arch_concurrency.md, arch_display_pipeline.md, arch_hal_contract.md, design_visual_language.md, policy_build_pipeline.md
-**Completion Commit:** --
+**Completion Commit:** bd91995
 **QA Bugs Addressed:** --
 
-## Phase 2 -- HAL + Build Pipeline [PENDING]
+## Phase 2 -- HAL + Build Pipeline [IN_PROGRESS]
 **Features:** hal_display.md, hal_network.md, hal_power.md, hal_timer.md, hal_touch.md, build_config_injection.md, build_font_pipeline.md, build_svg_pipeline.md
 **Completion Commit:** --
 **QA Bugs Addressed:** --
